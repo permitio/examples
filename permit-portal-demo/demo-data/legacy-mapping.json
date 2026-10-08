@@ -1,0 +1,10 @@
+{
+  "versions": {
+    "1": { "confirmed_admins": ["sam"], "ean_codes": "account_admin", "child_account_codes": null },
+    "2": { "confirmed_admins": ["sam"], "ean_codes": "account_admin", "child_account_codes": "account_manager" }
+  },
+  "approved_tightenings": [
+    { "user": "fatty", "reason": "Admin flag not confirmed by the owner", "approved_by": "sam" },
+    { "user": "lobelia", "reason": "Left the company", "approved_by": "sam" }
+  ]
+}

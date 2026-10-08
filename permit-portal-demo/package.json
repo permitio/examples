@@ -1,0 +1,25 @@
+{
+  "name": "permit-portal-demo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/great-eagle-systems",
+    "apps/portal"
+  ],
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p apps/portal/tsconfig.json --noEmit && tsc -p apps/great-eagle-systems/tsconfig.json --noEmit",
+    "build:web": "npm run build -w @permit-demo/portal"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4",
+    "tsx": "^4.20.5",
+    "@types/node": "^24.3.0",
+    "supertest": "^7.1.4",
+    "@types/supertest": "^6.0.3"
+  }
+}

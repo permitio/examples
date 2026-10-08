@@ -1,0 +1,51 @@
+{
+  "personas": [
+    { "key": "eowyn", "name": "Éowyn", "company": "Riders of Rohan", "title": "New customer user", "facts": { "identity_verified": false, "duplicate_check": "clear", "risk_state": "ok" } },
+    { "key": "eomer", "name": "Éomer", "company": "Riders of Rohan", "title": "Éowyn's colleague", "facts": { "identity_verified": true, "duplicate_check": "clear", "risk_state": "ok" } },
+    { "key": "grima", "name": "Gríma Wormtongue", "company": "Riders of Rohan LLC (registration under review)", "title": "Registrant", "facts": { "identity_verified": false, "duplicate_check": "suspected", "risk_state": "ok" } },
+    { "key": "gandalf", "name": "Gandalf", "company": "Great Eagle Logistics", "title": "Onboarding reviewer", "facts": null },
+    { "key": "sam", "name": "Samwise Gamgee", "company": "Shire Freight", "title": "Organization admin", "facts": { "identity_verified": true, "duplicate_check": "clear", "risk_state": "ok" } },
+    { "key": "frodo", "name": "Frodo Baggins", "company": "Shire Freight", "title": "Account admin, EAN-1001", "facts": { "identity_verified": true, "duplicate_check": "clear", "risk_state": "ok" } },
+    { "key": "merry", "name": "Meriadoc Brandybuck", "company": "Shire Freight", "title": "Shipping coordinator", "facts": null },
+    { "key": "pippin", "name": "Peregrin Took", "company": "Shire Freight", "title": "Developer", "facts": null },
+    { "key": "aragorn", "name": "Aragorn", "company": "External", "title": "Customs broker", "facts": null }
+  ],
+  "organizations": [
+    { "key": "shire-freight", "name": "Shire Freight", "ownership_verified": true, "in_permit": "seed" },
+    { "key": "riders-of-rohan-llc", "name": "Riders of Rohan LLC", "ownership_verified": false, "in_permit": "reset" },
+    { "key": "riders-of-rohan", "name": "Riders of Rohan", "ownership_verified": false, "in_permit": "live" }
+  ],
+  "eans": [
+    { "key": "EAN-1001", "org": "shire-freight", "in_permit": true },
+    { "key": "EAN-1002", "org": "shire-freight", "in_permit": true },
+    { "key": "EAN-1003", "org": "shire-freight", "in_permit": false },
+    { "key": "EAN-SANDBOX", "org": "shire-freight", "in_permit": true },
+    { "key": "EAN-2001", "org": "riders-of-rohan", "in_permit": false, "association_proof": "INV-2001-0815" }
+  ],
+  "accounts": [
+    { "key": "CA-1001-A", "name": "Hobbiton", "ean": "EAN-1001" },
+    { "key": "CA-1001-B", "name": "Bywater", "ean": "EAN-1001" },
+    { "key": "CA-1002-A", "name": "Michel Delving", "ean": "EAN-1002" }
+  ],
+  "locations": [
+    { "key": "LOC-BAGEND", "name": "Bag End depot", "account": "CA-1001-A" },
+    { "key": "LOC-BYWATER", "name": "Bywater depot", "account": "CA-1001-B" },
+    { "key": "LOC-FROGMORTON", "name": "Frogmorton depot", "account": "CA-1001-B" },
+    { "key": "LOC-MICHEL", "name": "Michel Delving depot", "account": "CA-1002-A" }
+  ],
+  "shipments": [
+    { "key": "SHP-77001", "ean": "EAN-1001", "tenant": "shire-freight", "title": "International shipment, customs clearance pending" },
+    { "key": "SHP-77002", "ean": "EAN-1001", "tenant": "shire-freight", "title": "Domestic shipment" }
+  ],
+  "requests": [
+    { "id": "req-grima-first-admin", "type": "first_admin", "tenant": "riders-of-rohan-llc", "target": "organization:riders-of-rohan-llc", "role": "org_admin",
+      "requested_for": "grima", "initiated_by": "grima", "org_name": "Riders of Rohan LLC", "status": "pending", "created_offset_ms": -600000 }
+  ],
+  "legacy": { "users": [
+    { "key": "sam", "name": "Samwise Gamgee", "is_admin": true, "accounts": [], "note": "Organization admin" },
+    { "key": "frodo", "name": "Frodo Baggins", "is_admin": false, "accounts": ["EAN-1001"], "note": "Account admin" },
+    { "key": "pippin", "name": "Peregrin Took", "is_admin": false, "accounts": ["CA-1001-A"], "note": "Uses a child-account code" },
+    { "key": "fatty", "name": "Fredegar Bolger", "is_admin": true, "accounts": [], "note": "Depot clerk; admin flag from an old helpdesk ticket" },
+    { "key": "lobelia", "name": "Lobelia Sackville-Baggins", "is_admin": false, "accounts": ["EAN-1001", "EAN-1002"], "note": "Left the company" }
+  ] }
+}

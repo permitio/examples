@@ -1,0 +1,10 @@
+node_modules/
+dist/
+profiles/*.env
+.env
+.env.*
+!.env.example
+*.bak
+results/
+*.log
+.DS_Store

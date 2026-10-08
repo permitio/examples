@@ -1,0 +1,334 @@
+/* The portal's design: airport wayfinding. The portal is a concourse of graphite sign plates with white
+   type; Permit is its own sign family in purple; state is a green "open" or red "no entry" plate. */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./shadcn-tailwind.css";
+
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+:root {
+  /* Concourse: cool white ground, graphite ink, sign plates in two tones */
+  --ground: #eef1f3;
+  --surface: #ffffff;
+  --ink: #11171b;
+  --ink-muted: #46525a;
+  --rule: #8a959c;
+  --control-edge: #6f7b83;
+  --plate: #1d2327;
+  --plate-edge: #1d2327;
+  --on-plate: #ffffff;
+  --go: #00754a;
+  --stop: #c8102e;
+  --on-state: #ffffff;
+  --go-ink: #006140;
+  --stop-ink: #b00e28;
+
+  /* Permit's sign family */
+  --permit: #8132d7;
+  --on-permit: #ffffff;
+  --permit-ground: #f7f4fc;
+  --permit-surface: #ffffff;
+  --permit-ink: #6a23bd;
+  --permit-rule: #a99cbd;
+
+  --font-sign: "Overpass", "Helvetica Neue", Arial, sans-serif;
+  --font-permit: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --font-code: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--plate);
+  --primary-foreground: var(--on-plate);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: #e2e7ea;
+  --muted-foreground: var(--ink-muted);
+  --accent: #e2e7ea;
+  --accent-foreground: var(--ink);
+  --destructive: var(--stop-ink);
+  --border: var(--rule);
+  --input: var(--control-edge);
+  --ring: var(--plate);
+  --allow: var(--go-ink);
+  --deny: var(--stop-ink);
+  --radius: 0.375rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #121619;
+    --surface: #1a2025;
+    --ink: #e9edef;
+    --ink-muted: #a7b2b8;
+    --rule: #59656d;
+    --control-edge: #7c8890;
+    --plate: #2b343b;
+    --plate-edge: #6c7880;
+    --go-ink: #4cc38a;
+    --stop-ink: #ff7b7b;
+    --permit-ground: #16131d;
+    --permit-surface: #1e1a28;
+    --permit-ink: #b597ff;
+    --permit-rule: #6b5e86;
+    --muted: #232b31;
+    --accent: #232b31;
+    --ring: #e9edef;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground: #121619;
+  --surface: #1a2025;
+  --ink: #e9edef;
+  --ink-muted: #a7b2b8;
+  --rule: #59656d;
+  --control-edge: #7c8890;
+  --plate: #2b343b;
+  --plate-edge: #6c7880;
+  --go-ink: #4cc38a;
+  --stop-ink: #ff7b7b;
+  --permit-ground: #16131d;
+  --permit-surface: #1e1a28;
+  --permit-ink: #b597ff;
+  --permit-rule: #6b5e86;
+  --muted: #232b31;
+  --accent: #232b31;
+  --ring: #e9edef;
+  color-scheme: dark;
+}
+
+/* Permit's layer re-maps the shadcn tokens to its own sign family. */
+.permit {
+  --background: var(--permit-ground);
+  --foreground: var(--ink);
+  --card: var(--permit-surface);
+  --card-foreground: var(--ink);
+  --popover: var(--permit-surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--permit);
+  --primary-foreground: var(--on-permit);
+  --secondary: var(--permit-surface);
+  --secondary-foreground: var(--ink);
+  --muted: color-mix(in oklab, var(--permit) 8%, var(--permit-surface));
+  --muted-foreground: var(--ink-muted);
+  --accent: color-mix(in oklab, var(--permit) 10%, var(--permit-surface));
+  --accent-foreground: var(--ink);
+  --border: var(--permit-rule);
+  --input: var(--permit-rule);
+  --ring: var(--permit-ink);
+  font-family: var(--font-permit);
+  color: var(--foreground);
+}
+
+/* The purple band: white type on Permit purple, two-tone like every plate. */
+.permit-band {
+  --background: var(--permit);
+  --foreground: var(--on-permit);
+  --muted-foreground: var(--on-permit);
+  --border: rgb(255 255 255 / 0.55);
+  --input: rgb(255 255 255 / 0.7);
+  --ring: #ffffff;
+  --accent: rgb(255 255 255 / 0.14);
+  --muted: rgb(255 255 255 / 0.14);
+  --accent-foreground: var(--on-permit);
+  --primary: #ffffff;
+  --primary-foreground: var(--permit);
+  background: var(--permit);
+  color: var(--on-permit);
+}
+
+@theme inline {
+  --font-sans: var(--font-sign);
+  --font-heading: var(--font-sign);
+  --font-permit: var(--font-permit);
+  --font-mono: var(--font-code);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-allow: var(--allow);
+  --color-deny: var(--deny);
+  --color-plate: var(--plate);
+  --color-plate-edge: var(--plate-edge);
+  --color-on-plate: var(--on-plate);
+  --color-go: var(--go);
+  --color-stop: var(--stop);
+  --color-on-state: var(--on-state);
+  --color-permit: var(--permit);
+  --color-permit-ink: var(--permit-ink);
+  --color-surface: var(--surface);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/* Unlayered on purpose: the Artifact host wraps the page in a document whose reset is unlayered
+   (off-white body, 14px system font, dark text), and rules inside @layer always lose to it. */
+html {
+  font-size: 100%;
+  height: 100%;
+}
+
+@media (min-width: 1024px) {
+  /* Larger base size so the screen stays legible over a Teams share. */
+  html {
+    font-size: 106.25%;
+  }
+}
+
+html body {
+  margin: 0;
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sign);
+  font-size: 1rem;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  caret-color: var(--ring);
+  scrollbar-color: var(--rule) transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100%;
+}
+
+@media (min-width: 1024px) {
+  /* A fixed-height root lets the portal and the decision panel scroll on their own. */
+  #root {
+    height: 100%;
+  }
+}
+
+::selection {
+  background: color-mix(in oklab, var(--plate) 22%, transparent);
+  color: var(--ink);
+}
+
+.permit ::selection {
+  background: color-mix(in oklab, var(--permit) 24%, transparent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  /* The outline appears at once; a component's transition-all would otherwise fade it in. */
+  transition-property: color, background-color, border-color, box-shadow, transform;
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+/* Filled buttons are plates too: in dark they carry the plate edge so their shape reads on the
+   ground (the edge equals the fill in light). */
+[data-slot="button"].bg-primary {
+  border-color: var(--plate-edge);
+}
+
+/* A disabled button keeps a legible label (4.5:1) on a muted fill instead of fading to half
+   opacity. */
+[data-slot="button"]:disabled {
+  border-color: var(--border);
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+[data-slot="dropdown-menu-content"] {
+  --tw-ring-color: var(--border);
+}
+
+/* The one authored motion: a directory sign flapping over on its top hinge when its state
+   changes. The old face folds away to 90 degrees, then the new face drops from -90 to flat. */
+.flap {
+  display: grid;
+  perspective: 700px;
+}
+
+.flap > * {
+  grid-area: 1 / 1;
+  transform-origin: 50% 0%;
+  backface-visibility: hidden;
+}
+
+.flap-out {
+  animation: flap-out 260ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+.flap-in {
+  animation: flap-in 340ms cubic-bezier(0.16, 1, 0.3, 1) 260ms both;
+}
+
+@keyframes flap-out {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(90deg);
+    visibility: hidden;
+  }
+}
+
+@keyframes flap-in {
+  from {
+    transform: rotateX(-90deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap-out {
+    animation: none;
+    visibility: hidden;
+  }
+  .flap-in {
+    animation: none;
+  }
+}

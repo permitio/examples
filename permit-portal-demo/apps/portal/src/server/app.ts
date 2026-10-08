@@ -1,0 +1,138 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import express, { type ErrorRequestHandler, type Express, type RequestHandler } from 'express';
+import type { DemoClock } from './clock';
+import type { PortalConfig } from './config';
+import { DeniedError, HttpError, permitUnreachable } from './errors';
+import type { EventLog } from './events';
+import { SelfApprovalError } from './guards';
+import type { MockClient } from './mock-client';
+import type { SeedData } from './model';
+import type { Enforcer } from './permit/enforcer';
+import type { Explainer } from './permit/explainer';
+import type { FactsWriter } from './permit/facts-writer';
+import type { ResourceFactsWriter } from './permit/resource-facts-writer';
+import { WriteFailedError } from './permit/writes';
+import { personaMiddleware, requestSource } from './personas';
+import { integrationApiRouter } from './routes/integration-api';
+import { internalRouter } from './routes/internal';
+import { metaRouter } from './routes/meta';
+import { requestsRouter } from './routes/requests';
+import { s1Router } from './routes/s1';
+import { s2Router } from './routes/s2';
+import { s4Router } from './routes/s4';
+import { s5Router } from './routes/s5';
+
+/** A user as api.users.sync writes it: its name and its whole attribute set, which replaces the stored one. */
+export interface UserSync { key: string; first_name?: string; last_name?: string; email?: string; attributes?: object }
+
+export interface Deps {
+  config: PortalConfig; seed: SeedData; events: EventLog; clock: DemoClock; enforcer: Enforcer;
+  /** Replays a recorded check against the PDP for Permit's reason, only when the panel asks (F2). */
+  explainer: Explainer;
+  facts: FactsWriter; resourceFacts: ResourceFactsWriter; mock: MockClient;
+  permitApi: {
+    users: {
+      get(k: string): Promise<{ attributes?: object | null }>;
+      /** A role in a tenant, or on one resource instance (`resource_instance`, `type:key`). Roles on one resource go through ensureInstanceRole. */
+      assignRole(a: { user: string; role: string; tenant?: string; resource_instance?: string }): Promise<unknown>;
+      unassignRole(a: { user: string; role: string; tenant: string; resource_instance?: string }): Promise<unknown>;
+      /** Creates or replaces the user. Not confirmed on the PDP: a role write that follows is (S5's connector). */
+      sync(u: UserSync): Promise<unknown>;
+      /** Deletes the user and its roles. Not confirmed on the PDP. */
+      delete(key: string): Promise<unknown>;
+    };
+    tenants: { get(k: string): Promise<unknown>; create(t: { key: string; name: string }): Promise<unknown> };
+    resourceInstances: { create(i: { key: string; resource: string; tenant: string; attributes?: object }): Promise<unknown>; list(p: { tenant?: string; resource?: string }): Promise<Array<{ key: string; resource: string; tenant: string; attributes?: object | null }>> };
+    /** Every role assignment that matches; a role on one resource instance carries it as `resource_instance` (`type:key`). */
+    roleAssignments: { list(p: { tenant?: string; role?: string; user?: string }): Promise<Array<{ user: string; role: string; tenant: string; resource_instance?: string }>> };
+  };
+}
+
+/** Vite's output folder (apps/portal/dist/web). It may not exist yet: the API works without it. */
+const WEB_DIR = fileURLToPath(new URL('../../dist/web/', import.meta.url));
+
+/**
+ * Which web build this server hands out: a short hash of the built index.html, which names every hashed asset.
+ * Undefined while the UI has not been built. Every /api answer carries it in `x-portal-build`, so a tab still
+ * running an older build notices the portal was rebuilt and asks to be reloaded.
+ */
+export function webBuildOf(webDir: string): string | undefined {
+  try {
+    return createHash('sha256').update(readFileSync(join(webDir, 'index.html'))).digest('hex').slice(0, 12);
+  } catch {
+    return undefined;
+  }
+}
+
+export function createApp(deps: Deps, webDir: string = WEB_DIR): Express {
+  const build = webBuildOf(webDir);
+  const announceBuild: RequestHandler = (_req, res, next) => {
+    if (build !== undefined) res.set('x-portal-build', build);
+    next();
+  };
+  const app = express();
+  app.disable('x-powered-by');
+  app.use(express.json());
+  app.get('/healthz', (_req, res) => {
+    res.sendStatus(200);
+  });
+  app.use('/internal', internalRouter(deps));
+  // The connector calls the integration API with its own credential, so it sits before the persona middleware.
+  app.use('/api/integration', integrationApiRouter(deps));
+  app.use('/api', announceBuild, personaMiddleware(deps.seed), requestSource, metaRouter(deps), s4Router(deps), s1Router(deps), requestsRouter(deps),
+    s2Router(deps), s5Router(deps));
+  app.use(['/api', '/internal'], notFound); // the SPA fallback below never answers for these
+  app.use(express.static(webDir));
+  app.get('/{*page}', spaFallback(webDir));
+  app.use(notFound);
+  app.use(onError);
+  return app;
+}
+
+const notFound: RequestHandler = (_req, res) => {
+  res.status(404).json({ error: 'Not found' });
+};
+
+/** Page routes belong to the React app: answer them with index.html when the UI has been built. */
+function spaFallback(webDir: string): RequestHandler {
+  const index = join(webDir, 'index.html');
+  return (_req, res, next) => {
+    res.sendFile(index, (error) => {
+      if (error && !res.headersSent) next();
+    });
+  };
+}
+
+const onError: ErrorRequestHandler = (error: unknown, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  const [status, body] = errorResponse(error);
+  // Only the route is logged: an SDK or HTTP error can carry request details, and the API key must never be logged.
+  if (status === 500) console.error(`Unexpected error on ${req.method} ${req.path}`);
+  res.status(status).json(body);
+};
+
+function errorResponse(error: unknown): [number, { error: string; decision?: 'deny' }] {
+  if (error instanceof DeniedError) return [403, { error: error.message, decision: 'deny' }];
+  if (error instanceof HttpError) return [error.status, { error: error.message }];
+  if (error instanceof WriteFailedError) return [error.status === 424 ? 424 : 502, { error: error.message }];
+  if (error instanceof SelfApprovalError) return [409, { error: error.message }];
+  const unreachable = permitUnreachable(error);
+  if (unreachable) return [502, { error: unreachable }];
+  const parse = bodyParserError(error);
+  if (parse) return parse;
+  return [500, { error: 'Unexpected error' }];
+}
+
+/** express.json() rejects a body it cannot read with a 4xx error whose `type` names the problem. */
+function bodyParserError(error: unknown): [number, { error: string }] | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const { status, type } = error as { status?: unknown; type?: unknown };
+  if (typeof status !== 'number' || status < 400 || status >= 500 || typeof type !== 'string') return undefined;
+  return [status, { error: type === 'entity.parse.failed' ? 'The request body is not valid JSON' : 'The request body could not be read' }];
+}
