@@ -47,11 +47,11 @@ function renderSwitchers() {
   for (const u of state.meta.users) groups.set(u.org, [...(groups.get(u.org) ?? []), u]);
   $('#user').innerHTML = [...groups]
     .map(([org, users]) => `<optgroup label="${esc(org)}">${users
-      .map((u) => `<option value="${u.key}" ${u.key === state.user ? 'selected' : ''}>${esc(u.name)}, ${esc(u.title)}</option>`)
+      .map((u) => `<option value="${esc(u.key)}" ${u.key === state.user ? 'selected' : ''}>${esc(u.name)}, ${esc(u.title)}</option>`)
       .join('')}</optgroup>`)
     .join('');
   $('#org').innerHTML = state.orgs
-    .map((o) => `<option value="${o.key}" ${o.key === state.org ? 'selected' : ''}>${esc(o.name)}${VIA[o.via] ?? ''}</option>`)
+    .map((o) => `<option value="${esc(o.key)}" ${o.key === state.org ? 'selected' : ''}>${esc(o.name)}${VIA[o.via] ?? ''}</option>`)
     .join('') + (state.orgs.length > 1 ? `<option value="${ALL}" ${state.org === ALL ? 'selected' : ''}>All my organizations (fleet list)</option>` : '');
 }
 
@@ -130,10 +130,10 @@ const options = (list, selected) => list.map((o) => `<option value="${esc(o.key)
 
 function truckRows(trucks, { site = true, org = false } = {}) {
   return trucks
-    .map((t) => `<tr><td><a href="#/truck/${t.key}" ${org ? `data-org="${t.org}"` : ''}>${esc(t.name)}</a>${operatorBadge(t)}</td>${
+    .map((t) => `<tr><td><a href="#/truck/${esc(t.key)}" ${org ? `data-org="${esc(t.org)}"` : ''}>${esc(t.name)}</a>${operatorBadge(t)}</td>${
       org ? `<td>${esc(orgName(t.org))}</td>` : ''
     }${
-      site ? `<td>${org ? esc(t.site) : `<a href="#/site/${t.siteKey}">${esc(t.site)}</a>`}</td><td>${esc(t.region)}</td>` : ''
+      site ? `<td>${org ? esc(t.site) : `<a href="#/site/${esc(t.siteKey)}">${esc(t.site)}</a>`}</td><td>${esc(t.region)}</td>` : ''
     }<td>${statusBadge(t)}</td></tr>`)
     .join('');
 }
@@ -209,14 +209,14 @@ async function truckPage(key) {
     <h2 class="section">Partner access</h2>
     <p class="sub">Technicians from partner companies get this truck only, and nothing else in ${esc(t.owner)}.</p>
     ${data.partners.length
-      ? `<ul class="rows">${data.partners.map((p) => `<li><span>${esc(p.name)}</span><button type="button" class="btn danger" data-act="revoke" data-partner="${p.key}">Revoke</button></li>`).join('')}</ul>`
+      ? `<ul class="rows">${data.partners.map((p) => `<li><span>${esc(p.name)}</span><button type="button" class="btn danger" data-act="revoke" data-partner="${esc(p.key)}">Revoke</button></li>`).join('')}</ul>`
       : '<p class="none">No partner has access to this truck.</p>'}
     ${data.eligiblePartners.length
       ? `<div class="grant"><select id="partner" aria-label="Partner technician">${options(data.eligiblePartners)}</select><button type="button" class="btn secondary" data-act="grant">Grant access</button></div>`
       : ''}`;
 
   $('#page').innerHTML = `
-    <p class="crumbs"><a href="#/">Fleet</a> / <a href="#/site/${t.siteKey}">${esc(t.site)}</a> / ${esc(t.name)}</p>
+    <p class="crumbs"><a href="#/">Fleet</a> / <a href="#/site/${esc(t.siteKey)}">${esc(t.site)}</a> / ${esc(t.name)}</p>
     <div class="title-row"><h1>${esc(t.name)}</h1>${statusBadge(t)}${operatorBadge(t)}</div>
     <dl class="facts">
       <div><dt>Owner</dt><dd>${esc(t.owner)}</dd></div>
@@ -292,12 +292,12 @@ async function peoplePage() {
     : '';
   const rows = data.people.map((p) => {
     const roles = p.roles.length
-      ? `<ul class="roles">${p.roles.map((r) => `<li>${esc(r.label)}${r.canRemove ? ` <button type="button" class="btn danger small" data-act="unassign" data-key="${p.key}" data-role="${r.role}" data-site="${r.site}">Remove</button>` : ''}</li>`).join('')}</ul>`
+      ? `<ul class="roles">${p.roles.map((r) => `<li>${esc(r.label)}${r.canRemove ? ` <button type="button" class="btn danger small" data-act="unassign" data-key="${esc(p.key)}" data-role="${esc(r.role)}" data-site="${esc(r.site)}">Remove</button>` : ''}</li>`).join('')}</ul>`
       : '<p class="meta">No roles</p>';
     const certs = p.certifications.length ? p.certifications.map((c) => `<span class="badge depot">${esc(c)}</span>`).join(' ') : '<span class="meta">No certifications</span>';
     const editor = p.canCertify
-      ? `<div class="grant">${TIERS.map((tier) => `<label class="check"><input type="checkbox" name="cert-${p.key}" value="${tier}" ${p.certifications.includes(tier) ? 'checked' : ''}> ${tier.replace('tier', 'Tier ')}</label>`).join('')}
-         <button type="button" class="btn secondary" data-act="certify" data-key="${p.key}">Save certifications</button></div>`
+      ? `<div class="grant">${TIERS.map((tier) => `<label class="check"><input type="checkbox" name="cert-${esc(p.key)}" value="${tier}" ${p.certifications.includes(tier) ? 'checked' : ''}> ${tier.replace('tier', 'Tier ')}</label>`).join('')}
+         <button type="button" class="btn secondary" data-act="certify" data-key="${esc(p.key)}">Save certifications</button></div>`
       : '';
     const team = p.team === null
       ? ''
@@ -306,7 +306,7 @@ async function peoplePage() {
           : p.activity.length
             ? `<ul>${p.activity.map((e) => `<li>${esc(e.text)} <span class="meta">${esc(e.time)}</span></li>`).join('')}</ul>`
             : '<p class="none">No activity yet.</p>'}</div>`;
-    const remove = p.canRemove ? `<button type="button" class="btn danger" data-act="remove" data-key="${p.key}">Remove from Permit</button>` : '';
+    const remove = p.canRemove ? `<button type="button" class="btn danger" data-act="remove" data-key="${esc(p.key)}">Remove from Permit</button>` : '';
     return `<li class="person"><div class="person-head"><span><strong>${esc(p.name)}</strong> <span class="meta">${esc(p.title)}</span></span>${remove}</div>
       ${roles}<div class="certs">${certs}</div>${editor}${team}</li>`;
   });
@@ -354,11 +354,11 @@ async function orgsPage() {
   const rows = data.orgs.map((o) => {
     const targets = data.mergeTargets.filter((t) => t.key !== o.key);
     const merge = !o.partner && targets.length
-      ? `<select id="merge-${o.key}" aria-label="Merge into">${options(targets)}</select>
-         <button type="button" class="btn secondary" data-act="merge" data-key="${o.key}">Merge into</button>`
+      ? `<select id="merge-${esc(o.key)}" aria-label="Merge into">${options(targets)}</select>
+         <button type="button" class="btn secondary" data-act="merge" data-key="${esc(o.key)}">Merge into</button>`
       : '';
     return `<tr><td><strong>${esc(o.name)}</strong><div class="meta">${esc(o.description)}</div></td><td>${o.trucks ?? 0}</td><td>${o.resources ?? 0}</td><td>${o.assignments ?? 0}</td>
-      <td><div class="row-actions"><button type="button" class="btn danger" data-act="delete" data-key="${o.key}">Delete</button>${merge}</div></td></tr>`;
+      <td><div class="row-actions"><button type="button" class="btn danger" data-act="delete" data-key="${esc(o.key)}">Delete</button>${merge}</div></td></tr>`;
   });
   $('#page').innerHTML = `
     <h1>Organizations</h1>
