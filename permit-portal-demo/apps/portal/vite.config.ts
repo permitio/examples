@@ -12,8 +12,8 @@ export default defineConfig({
     outDir: '../../dist/web',
     emptyOutDir: true,
     // Third-party code in its own chunk keeps each chunk under Vite's 500 kB warning.
-    rollupOptions: {
-      output: { manualChunks: (id) => (id.includes('/node_modules/') ? 'vendor' : undefined) },
+    rolldownOptions: {
+      output: { codeSplitting: { groups: [{ name: 'vendor', test: /[\\/]node_modules[\\/]/ }] } },
     },
   },
   // '/api/' with the slash: a bare '/api' prefix would also send the UI's own module /api.ts to the

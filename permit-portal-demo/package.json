@@ -17,7 +17,7 @@
   "devDependencies": {
     "@oxlint/plugins": "1.87.0",
     "@types/node": "24.19.1",
-    "@types/supertest": "6.0.3",
+    "@types/supertest": "7.2.1",
     "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
     "supertest": "7.3.1",

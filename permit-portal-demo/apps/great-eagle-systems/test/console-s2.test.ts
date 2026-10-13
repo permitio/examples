@@ -177,7 +177,7 @@ describe('GET /s2', () => {
 
   it('asks these systems, same origin, never the portal: the portal has no CORS and the page must not need it', async () => {
     const html = await page();
-    const script = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '';
+    const script = /<script>([\s\S]*?)<\/script>/i.exec(html)?.[1] ?? '';
     expect(script).toContain("fetch('/api/s2/forged-grant'");
     expect(script).not.toMatch(/https?:\/\//);
     expect(script).not.toContain('x-demo-persona');
@@ -185,7 +185,7 @@ describe('GET /s2', () => {
 
   it('keeps its inline script free of backticks, "${" and backslashes, since it lives in a template literal', async () => {
     const html = await page();
-    const script = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '';
+    const script = /<script>([\s\S]*?)<\/script>/i.exec(html)?.[1] ?? '';
     expect(script.length).toBeGreaterThan(0);
     expect(script).not.toContain('`');
     expect(script).not.toContain('${');

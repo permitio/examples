@@ -20,6 +20,10 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 14
+    ignore:
+      # The demo runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
     groups:
       runtime-dependencies:
         dependency-type: production
