@@ -33,7 +33,9 @@ func roleName(role string) string {
 
 // peoplePage lists the acting organization's people and what the person may do with each one: give
 // and remove roles on sites (scenario 2), see a team's recent activity (scenario 5), change
-// certifications (scenario 9), remove the person from Permit (scenario 15). One bulk call decides it.
+// certifications (scenario 9), remove the person from Permit (scenario 15). One bulk call decides it,
+// and when it allows none of these the page is denied: the roster is shown only to people who may
+// act on it.
 func (a *App) peoplePage(user, org string) (obj, error) {
 	r := a.newRequest()
 	var people []model.User
@@ -54,6 +56,9 @@ func (a *App) peoplePage(user, org string) (obj, error) {
 	answers, err := r.checkMany(fmt.Sprintf("People of %s: what may %s see and do?", model.OrgName(org), model.UserName(user)), asks)
 	if err != nil {
 		return nil, err
+	}
+	if !slices.Contains(answers, true) {
+		return obj{"denied": true, "reason": r.log[len(r.log)-1].Calls[0].Reason, "log": r.log}, nil
 	}
 	can := map[string]bool{}
 	for n, c := range asks {

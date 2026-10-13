@@ -159,3 +159,15 @@ func post(t *testing.T, h http.Handler, path, body string) (int, map[string]any)
 	}
 	return rec.Code, out
 }
+
+// get loads a page the way the page does and decodes the answer.
+func get(t *testing.T, h http.Handler, path string) (int, map[string]any) {
+	t.Helper()
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "http://localhost:3000"+path, nil))
+	var out map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("GET %s: %d %q is not JSON", path, rec.Code, rec.Body.String())
+	}
+	return rec.Code, out
+}

@@ -276,6 +276,10 @@ async function sitePage(key) {
 async function peoplePage() {
   const data = await pageData('/api/people');
   if (!data) return;
+  if (data.denied) {
+    $('#page').innerHTML = deniedHtml('<h1>People</h1>', `the people of ${orgName(state.org)}`, data.reason, 'manage_users');
+    return;
+  }
   const giveForm = data.canGiveRoles
     ? `<h2 class="section">Give a role</h2>
        <p class="sub">A role on a site reaches every truck there. The PDP checks <code>assign_roles</code> on the site you pick.</p>
