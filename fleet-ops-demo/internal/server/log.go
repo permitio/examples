@@ -111,8 +111,7 @@ func (r *request) done(message string, extra obj) obj {
 
 // lagged notes what the PDP had not caught up with, or couldn't be read to confirm, for done.
 func (r *request) lagged(err error) {
-	var behind *pdp.NotCaughtUpError
-	if errors.As(err, &behind) {
+	if behind, ok := errors.AsType[*pdp.NotCaughtUpError](err); ok {
 		r.lag = append(r.lag, behind.Detail)
 		return
 	}
@@ -227,10 +226,11 @@ func (r *request) untilData(what, path string, ready func(data any) bool) {
 // holdLinks waits until the PDP has the parent links and keeps them (pdp.Settle, then pdp.Keep), and
 // notes for done what it had not caught up with.
 func (r *request) holdLinks(links map[string]string, stable, limit time.Duration) {
-	var behind *pdp.NotCaughtUpError
-	if err := r.app.pdp.Settle(links); err != nil && !errors.As(err, &behind) {
-		r.lagged(fmt.Errorf("couldn't read its data to confirm the parent links (%w)", err))
-		return
+	if err := r.app.pdp.Settle(links); err != nil {
+		if _, behind := errors.AsType[*pdp.NotCaughtUpError](err); !behind {
+			r.lagged(fmt.Errorf("couldn't read its data to confirm the parent links (%w)", err))
+			return
+		}
 	}
 	// Settle can see the links before a late deletion takes them again: Keep has the last word.
 	if _, err := r.app.pdp.Keep(links, stable, limit); err != nil {

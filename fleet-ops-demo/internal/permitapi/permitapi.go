@@ -37,16 +37,13 @@ func (e *HTTPError) Error() string { return fmt.Sprintf("%s %s: %s", e.Method, e
 // return a PermitError; a few (resource attributes, for one) pass on the generated client's error,
 // whose message is the status line, e.g. "409 Conflict"; calls made without the SDK return HTTPError.
 func Status(err error) int {
-	var pe permiterrors.PermitError
-	if errors.As(err, &pe) {
+	if pe, ok := errors.AsType[permiterrors.PermitError](err); ok {
 		return pe.StatusCode
 	}
-	var he *HTTPError
-	if errors.As(err, &he) {
+	if he, ok := errors.AsType[*HTTPError](err); ok {
 		return he.StatusCode
 	}
-	var oe *openapi.GenericOpenAPIError
-	if errors.As(err, &oe) {
+	if oe, ok := errors.AsType[*openapi.GenericOpenAPIError](err); ok {
 		code, _ := strconv.Atoi(strings.SplitN(oe.Error(), " ", 2)[0])
 		return code
 	}

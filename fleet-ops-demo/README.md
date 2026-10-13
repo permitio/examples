@@ -38,10 +38,10 @@ out-of-the-box behavior.
 
 ## Run it
 
-You need Docker, Go 1.23 or later, a Permit project with an empty environment, and, for the custom
+You need Docker, Go 1.26 or later, a Permit project with an empty environment, and, for the custom
 rules, a Git repository connected to that environment through
 [GitOps](https://docs.permit.io/integrations/gitops/github). `make test` also needs the
-[opa](https://www.openpolicyagent.org/docs/latest/#running-opa) CLI.
+[opa](https://www.openpolicyagent.org/docs/latest/#running-opa) CLI, version 1.0 or later.
 
 1. Copy `.env.example` to `.env` and put the environment's API key in `PERMIT_API_KEY`. The key
    stays on the server; the browser never sees it. `make setup` and `make reset` name the

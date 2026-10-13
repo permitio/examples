@@ -149,8 +149,7 @@ func ensureLinks(p *pdp.Client, churn bool) {
 		logf("PDP has all %d parent links%s", len(links), note)
 		return
 	}
-	var behind *pdp.NotCaughtUpError
-	if !errors.As(err, &behind) {
+	if _, behind := errors.AsType[*pdp.NotCaughtUpError](err); !behind {
 		unreadable(err)
 		return
 	}

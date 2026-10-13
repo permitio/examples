@@ -84,8 +84,7 @@ func TestWaitsFailOnReadErrors(t *testing.T) {
 				"WaitUnlinked": p.WaitUnlinked([]string{"asset:a"}, 5*time.Second),
 				"Settle":       p.Settle(map[string]string{"asset:a": "site:s"}),
 			} {
-				var behind *NotCaughtUpError
-				if err == nil || errors.As(err, &behind) {
+				if _, behind := errors.AsType[*NotCaughtUpError](err); err == nil || behind {
 					t.Errorf("%s: got %v, want a read error", wait, err)
 				}
 			}
@@ -120,8 +119,7 @@ func TestWaitGone(t *testing.T) {
 			return 200, `{"result":{"relation:parent":{"site":["s"]}}}`
 		})
 		err := p.WaitGone([]string{"asset:a"}, 300*time.Millisecond)
-		var behind *NotCaughtUpError
-		if !errors.As(err, &behind) || !strings.Contains(behind.Detail, "asset:a") {
+		if behind, ok := errors.AsType[*NotCaughtUpError](err); !ok || !strings.Contains(behind.Detail, "asset:a") {
 			t.Fatalf("got %v, want a NotCaughtUpError naming asset:a", err)
 		}
 	})
