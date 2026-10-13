@@ -165,15 +165,34 @@ func evaluate(r schema.ConditionSetRule, attrs map[string]map[string]any) (rows 
 	return rows, matched, holdsRole
 }
 
-// Explain builds the log's explanation of one decision. nameOf names an instance by "type:key".
+// phraseOf words an action for a sentence: "do basic service on".
+func phraseOf(action string) string {
+	if phrase := actionPhrases[action]; phrase != "" {
+		return phrase
+	}
+	return action
+}
+
+// Unavailable explains a decision whose debug output couldn't be had: the verdict, and why no reason
+// is shown, never a guessed one. why is lowercase, without a final period.
+func Unavailable(allow bool, c pdp.Check, nameOf func(string) string, why string) Explanation {
+	verdict := "can"
+	if !allow {
+		verdict = "can't"
+	}
+	return Explanation{Reason: fmt.Sprintf("%s %s %s %s. No reason to show: %s.", model.UserName(c.User), verdict, phraseOf(c.Action), nameOf(c.Resource.ID()), why)}
+}
+
+// Explain builds the log's explanation of one decision. nameOf names an instance by "type:key". An
+// empty debug gives only the verdict (see Unavailable).
 func Explain(allow bool, debug map[string]any, c pdp.Check, nameOf func(string) string) Explanation {
+	if len(debug) == 0 {
+		return Unavailable(allow, c, nameOf, "the PDP answered without its debug output (is PDP_DEBUG=true set on its container?)")
+	}
 	user := model.UserName(c.User)
 	res := c.Resource
 	target := nameOf(res.ID())
-	phrase := actionPhrases[c.Action]
-	if phrase == "" {
-		phrase = c.Action
-	}
+	phrase := phraseOf(c.Action)
 	acting := obj(debug, "acting_org")
 	rebac, rbac, abac := obj(debug, "rebac"), obj(debug, "rbac"), obj(debug, "abac")
 	var hops []hop

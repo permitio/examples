@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"maps"
 	"slices"
 	"time"
@@ -115,7 +116,7 @@ func (a *App) orgAction(body actBody, key string) (obj, error) {
 		message := fmt.Sprintf("Deleted %s with its %d resources and %d role assignments. Left behind in Permit: %d resource instances, %d relationships, %d role assignments.",
 			t.Name, before["resources"], before["assignments"], instances, tuples, assignments)
 		a.record(user, "Deleted "+t.Name)
-		return obj{"ok": true, "message": message, "redirect": "#/organizations", "log": r.log}, nil
+		return r.done(message, obj{"redirect": "#/organizations"}), nil
 
 	case "merge":
 		target, ok := model.TenantOf(body.Target)
@@ -130,7 +131,7 @@ func (a *App) orgAction(body actBody, key string) (obj, error) {
 				return nil, err
 			}
 		}
-		if err := a.merge(key, target.Key); err != nil {
+		if err := a.merge(r, key, target.Key); err != nil {
 			return nil, err
 		}
 		if probeUser != "" && probe != nil {
@@ -150,7 +151,7 @@ func (a *App) orgAction(body actBody, key string) (obj, error) {
 		}
 		message := fmt.Sprintf("Merged %s into %s as a sub-organization: its tree now hangs under %s, and its people keep their roles there.", t.Name, target.Name, target.Name)
 		a.record(user, fmt.Sprintf("Merged %s into %s", t.Name, target.Name))
-		return obj{"ok": true, "message": message, "redirect": "#/organizations", "log": r.log}, nil
+		return r.done(message, obj{"redirect": "#/organizations"}), nil
 	}
 	return fail("Unknown action.")
 }
@@ -207,8 +208,9 @@ func (a *App) leftIn(tenant string) (instances, tuples, assignments int, err err
 
 // merge moves an organization's tree into another organization, under a sub-organization link, and
 // gives its people the same roles there. Instances can't change tenant, so the old organization is
-// deleted (taking its data with it) and everything is created again in the target.
-func (a *App) merge(from, to string) error {
+// deleted (taking its data with it) and everything is created again in the target. What the PDP had
+// not caught up with at the end is noted on r.
+func (a *App) merge(r *request, from, to string) error {
 	var moving []*model.Instance
 	for _, i := range a.instances {
 		if i.Tenant == from {
@@ -245,12 +247,17 @@ func (a *App) merge(from, to string) error {
 		}); err != nil {
 			return err
 		}
-		a.pdp.WaitUnlinked(ids, 20*time.Second)
+		// When the PDP still has them, a late deletion may strip the new links; holdLinks below repairs that.
+		if err := a.pdp.WaitUnlinked(ids, 20*time.Second); err != nil {
+			log.Printf("merge: deleting %s before the PDP dropped its links: %v", from, err)
+		}
 	}
 	if err := permitapi.Call(func(ctx context.Context) error { return a.api.Tenants.Delete(ctx, from) }, 404); err != nil {
 		return err
 	}
-	a.pdp.WaitGone(ids, 20*time.Second)
+	if err := a.pdp.WaitGone(ids, 20*time.Second); err != nil {
+		log.Printf("merge: creating %s's instances again before the PDP dropped them: %v", from, err)
+	}
 	for _, i := range moving {
 		attrs := maps.Clone(i.Attributes)
 		if i.Type == "asset" {
@@ -311,7 +318,6 @@ func (a *App) merge(from, to string) error {
 			parents[i.ID()] = i.Parent
 		}
 	}
-	a.pdp.Settle(parents)
-	a.pdp.Keep(parents, 8*time.Second, time.Minute)
+	r.holdLinks(parents, 8*time.Second, time.Minute)
 	return nil
 }

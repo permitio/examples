@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"maps"
 	"slices"
 	"strings"
@@ -94,7 +95,9 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			return nil, err
 		}
 		truck.Attributes = attrs
-		a.untilData("resource_instances/"+id, func(d any) bool { return field(field(d, "attributes"), "lifecycle_state") == state })
+		r.untilData(fmt.Sprintf("%s's lifecycle_state %s", truck.Name, state), "resource_instances/"+id, func(d any) bool {
+			return field(field(d, "attributes"), "lifecycle_state") == state
+		})
 		message = fmt.Sprintf("%s is %s: its lifecycle_state attribute in Permit changed.", truck.Name, state)
 
 	case "move":
@@ -122,7 +125,7 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			return nil, err
 		}
 		truck.Parent = target.ID()
-		a.untilData("relationships/"+id, func(d any) bool {
+		r.untilData(fmt.Sprintf("%s's parent link to %s", truck.Name, target.Name), "relationships/"+id, func(d any) bool {
 			sites, _ := field(field(d, "relation:parent"), "site").([]any)
 			return len(sites) == 1 && sites[0] == target.Key
 		})
@@ -187,7 +190,7 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			return nil, err
 		}
 		truck.Attributes = attrs
-		a.untilData("resource_instances/"+id, func(d any) bool {
+		r.untilData(fmt.Sprintf("%s's region %s and served account %s", truck.Name, region, account), "resource_instances/"+id, func(d any) bool {
 			stored := field(d, "attributes")
 			return field(stored, "region") == region && field(stored, "served_account") == account
 		})
@@ -229,7 +232,10 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		if err := permitapi.Call(func(ctx context.Context) error { return a.api.ResourceInstances.Delete(ctx, id) }, 404); err != nil {
 			return nil, err
 		}
-		a.pdp.WaitGone([]string{id}, 15*time.Second)
+		// When the PDP still has it, a late deletion may strip the new link; holdLinks below repairs that.
+		if err := a.pdp.WaitGone([]string{id}, 15*time.Second); err != nil {
+			log.Printf("transfer: creating %s again before the PDP dropped it: %v", id, err)
+		}
 		attrs := maps.Clone(truck.Attributes)
 		attrs["owner_org"], attrs["operator_org"], attrs["lifecycle_state"] = to, to, "active"
 		if err := permitapi.CreateAgain(func(ctx context.Context) error {
@@ -246,9 +252,8 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		}
 		truck.Tenant, truck.Parent, truck.Attributes = to, target.ID(), attrs
 		a.assignments = slices.DeleteFunc(a.assignments, func(ra model.RoleAssignment) bool { return ra.ResourceInstance == id })
-		a.untilData("resource_instances/"+id, func(d any) bool { return field(d, "tenant") == to })
-		a.pdp.Settle(map[string]string{id: target.ID()})
-		a.pdp.Keep(map[string]string{id: target.ID()}, 5*time.Second, 30*time.Second)
+		r.untilData(fmt.Sprintf("%s in %s", truck.Name, model.OrgName(to)), "resource_instances/"+id, func(d any) bool { return field(d, "tenant") == to })
+		r.holdLinks(map[string]string{id: target.ID()}, 5*time.Second, 30*time.Second)
 		// The old organization's grants did not follow the truck: decided by the PDP, acting for each side.
 		for _, u := range grantees {
 			for _, o := range []string{from, to} {
@@ -268,13 +273,13 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		}
 		message = fmt.Sprintf("Transferred %s to %s, %s. Grants from %s were removed with it (%s); nothing followed the truck.", truck.Name, model.OrgName(to), target.Name, model.OrgName(from), removed)
 		a.record(user, message)
-		return obj{"ok": true, "message": message, "redirect": "#/", "log": r.log}, nil
+		return r.done(message, obj{"redirect": "#/"}), nil
 
 	default:
 		return fail("Unknown action.")
 	}
 	a.record(user, message)
-	return obj{"ok": true, "message": message, "log": r.log}, nil
+	return r.done(message, nil), nil
 }
 
 // someoneOn is a person with a role on the instance, other than except; the site manager if there is one.

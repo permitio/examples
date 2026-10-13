@@ -5,6 +5,7 @@ package permitapi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,13 +23,27 @@ const (
 	callTimeout = 20 * time.Second
 )
 
-// Status is the HTTP status of a failed SDK call, or 0 when the error carries none. Most SDK methods
+// HTTPError is a non-200 answer to a request made without the SDK: a raw list call, or a PDP or OPA
+// request. It carries the status so Status, and so Call's retries and allowed statuses, see it.
+type HTTPError struct {
+	Method, Path string
+	StatusCode   int
+	Status       string // the status line, e.g. "429 Too Many Requests"
+}
+
+func (e *HTTPError) Error() string { return fmt.Sprintf("%s %s: %s", e.Method, e.Path, e.Status) }
+
+// Status is the HTTP status of a failed call, or 0 when the error carries none. Most SDK methods
 // return a PermitError; a few (resource attributes, for one) pass on the generated client's error,
-// whose message is the status line, e.g. "409 Conflict".
+// whose message is the status line, e.g. "409 Conflict"; calls made without the SDK return HTTPError.
 func Status(err error) int {
 	var pe permiterrors.PermitError
 	if errors.As(err, &pe) {
 		return pe.StatusCode
+	}
+	var he *HTTPError
+	if errors.As(err, &he) {
+		return he.StatusCode
 	}
 	var oe *openapi.GenericOpenAPIError
 	if errors.As(err, &oe) {
@@ -37,6 +52,9 @@ func Status(err error) int {
 	}
 	return 0
 }
+
+// backoff is the wait before retry number attempt+1: 2 s, 4 s, ... 64 s.
+var backoff = func(attempt int) time.Duration { return time.Duration(2<<attempt) * time.Second }
 
 func timedOut(err error) bool {
 	return errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), context.DeadlineExceeded.Error())
@@ -57,7 +75,7 @@ func Call(fn func(ctx context.Context) error, allow ...int) error {
 			return nil
 		}
 		if (status == 429 || timedOut(err)) && attempt < 6 {
-			time.Sleep(time.Duration(2<<attempt) * time.Second)
+			time.Sleep(backoff(attempt))
 			continue
 		}
 		return err

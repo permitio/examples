@@ -62,6 +62,13 @@ func TestPatchRoot(t *testing.T) {
 			if strings.Contains(patched, "custom.allow\n") || strings.Count(patched, "\nallow {") != 2 {
 				t.Fatalf("expected exactly the two managed allow rules:\n%s", patched)
 			}
+			// The reader `make verify` and the app use must recognize what the writer installs.
+			if !policy.RequiredByRoot(patched) {
+				t.Fatalf("policy.RequiredByRoot doesn't recognize the patched root.rego:\n%s", patched)
+			}
+			if policy.RequiredByRoot(root) {
+				t.Fatal("policy.RequiredByRoot recognizes root.rego before the patch")
+			}
 			again, err := patchRoot(patched)
 			if err != nil || again != patched {
 				t.Fatalf("patching twice changed the file (err %v)", err)

@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -53,14 +54,22 @@ func main() {
 	}
 	p := pdp.New(s, client)
 	pdpUp := p.Status().PDP
+	// A late deletion of what these waits watch can strip links created again with the same keys;
+	// ensureLinks below checks and repairs the links, so a failed wait only warns.
 	waitGone := func(ids []string) {
-		if pdpUp && !p.WaitGone(ids, 30*time.Second) {
-			logf("the PDP still has instances that were deleted; continuing")
+		if !pdpUp {
+			return
+		}
+		if err := p.WaitGone(ids, 30*time.Second); err != nil {
+			logf("couldn't confirm the PDP dropped the deleted instances (%v); continuing", err)
 		}
 	}
 	waitUnlinked := func(ids []string) {
-		if pdpUp && !p.WaitUnlinked(ids, 30*time.Second) {
-			logf("the PDP still has links that were deleted; continuing")
+		if !pdpUp {
+			return
+		}
+		if err := p.WaitUnlinked(ids, 30*time.Second); err != nil {
+			logf("couldn't confirm the PDP dropped the deleted links (%v); continuing", err)
 		}
 	}
 	var returned []string
@@ -78,10 +87,10 @@ func main() {
 				}
 			}
 		}
-		if p.Settle(links) {
-			logf("PDP has the returned instances' parent links")
+		if err := p.Settle(links); err != nil {
+			logf("couldn't confirm the PDP has the returned instances' parent links (%v); restart it with `make pdp` and run `make verify`", err)
 		} else {
-			logf("the PDP is missing parent links after a refetch; restart it with `make pdp` and run `make verify`")
+			logf("PDP has the returned instances' parent links")
 		}
 	}
 	if pdpUp {
@@ -110,10 +119,19 @@ func ensureLinks(p *pdp.Client, churn bool) {
 	if churn {
 		stable = 45 * time.Second
 	}
-	if missing := p.Missing(links); len(missing) > 0 {
+	unreadable := func(err error) {
+		logf("couldn't read the PDP's data (%v); run `make verify` once it is reachable", err)
+	}
+	missing, err := p.Missing(links)
+	if err != nil {
+		unreadable(err)
+		return
+	}
+	if len(missing) > 0 {
 		logf("the PDP is missing %d parent links (%s); waiting for them, refetching its data if needed", len(missing), strings.Join(missing, ", "))
 	}
-	if ok, refetches := p.Keep(links, stable, 5*time.Minute); ok {
+	refetches, err := p.Keep(links, stable, 5*time.Minute)
+	if err == nil {
 		note := ""
 		if refetches > 0 {
 			note = fmt.Sprintf(" after %d data refetches", refetches)
@@ -121,13 +139,18 @@ func ensureLinks(p *pdp.Client, churn bool) {
 		logf("PDP has all %d parent links%s", len(links), note)
 		return
 	}
+	var behind *pdp.NotCaughtUpError
+	if !errors.As(err, &behind) {
+		unreadable(err)
+		return
+	}
 	logf("the links still come and go after five minutes; restarting the PDP")
 	if err := p.Restart(); err != nil {
 		logf("%v", err)
 		return
 	}
-	if ok, _ := p.Keep(links, 10*time.Second, time.Minute); !ok {
-		logf("the PDP still misses parent links: %s; run `make pdp`, then `make verify`", strings.Join(p.Missing(links), ", "))
+	if _, err := p.Keep(links, 10*time.Second, time.Minute); err != nil {
+		logf("%v; run `make pdp`, then `make verify`", err)
 		return
 	}
 	logf("PDP restarted; it has all %d parent links", len(links))
@@ -141,7 +164,15 @@ func rebuildRelationshipCache(p *pdp.Client) {
 		return
 	}
 	deadline := time.Now().Add(90 * time.Second)
-	for !pdpHasSchema(p) {
+	for {
+		loaded, err := pdpHasSchema(p)
+		if err != nil {
+			logf("couldn't read the PDP's data (%v); run `make setup` again once it is reachable", err)
+			return
+		}
+		if loaded {
+			break
+		}
 		if time.Now().After(deadline) {
 			logf("the PDP has not loaded the whole schema after 90 s; run `make setup` again later")
 			return
@@ -157,15 +188,23 @@ func rebuildRelationshipCache(p *pdp.Client) {
 
 // pdpHasSchema reports whether the PDP's loaded data has every resource action, role permission and
 // role derivation in the schema.
-func pdpHasSchema(p *pdp.Client) bool {
-	types, _ := p.OPAData("resource_types").(map[string]any)
-	perms, _ := p.OPAData("role_permissions").(map[string]any)
+func pdpHasSchema(p *pdp.Client) (bool, error) {
+	typesData, err := p.OPAData("resource_types")
+	if err != nil {
+		return false, err
+	}
+	permsData, err := p.OPAData("role_permissions")
+	if err != nil {
+		return false, err
+	}
+	types, _ := typesData.(map[string]any)
+	perms, _ := permsData.(map[string]any)
 	for _, r := range schema.Resources {
 		rt, _ := types[r.Key].(map[string]any)
 		actions, _ := rt["actions"].([]any)
 		for _, a := range r.Actions {
 			if !slices.Contains(actions, any(a)) {
-				return false
+				return false, nil
 			}
 		}
 		derived, _ := rt["derived_roles"].(map[string]any)
@@ -174,7 +213,7 @@ func pdpHasSchema(p *pdp.Client) bool {
 			if len(role.DerivedFrom) > 0 {
 				d, _ := derived[role.Key].(map[string]any)
 				if rules, _ := d["rules"].([]any); len(rules) < len(role.DerivedFrom) {
-					return false
+					return false, nil
 				}
 			}
 			rp, _ := rolePerms[role.Key].(map[string]any)
@@ -182,12 +221,12 @@ func pdpHasSchema(p *pdp.Client) bool {
 			have, _ := grants[r.Key].([]any)
 			for _, perm := range role.Permissions {
 				if !slices.Contains(have, any(perm)) {
-					return false
+					return false, nil
 				}
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 func fail(err error) {

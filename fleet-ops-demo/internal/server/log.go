@@ -1,7 +1,10 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"maps"
+	"strings"
 	"time"
 
 	"fleetops/internal/explain"
@@ -31,22 +34,34 @@ type Entry struct {
 	Debug   map[string]any `json:"debug"` // the PDP's raw debug output, single checks only
 }
 
-// request collects the checks one HTTP request makes, for the log.
+// request collects the checks one HTTP request makes, for the log, and what the PDP had not caught
+// up with after the request's writes.
 type request struct {
 	app *App
 	log []Entry
+	lag []string
 }
 
 func (a *App) newRequest() *request { return &request{app: a, log: []Entry{}} }
 
 func millis(d time.Duration) float64 { return float64(d.Microseconds()) / 1000 }
 
-func (r *request) record(purpose, kind string, checks []pdp.Check, results []bool, elapsed time.Duration, debugs []map[string]any) Entry {
+// record logs checks with their answers. debugs holds the PDP's debug output for each check; when
+// it couldn't be read (debugErr), each check is logged with its verdict only.
+func (r *request) record(purpose, kind string, checks []pdp.Check, results []bool, elapsed time.Duration, debugs []map[string]any, debugErr error) Entry {
 	calls := make([]Call, len(checks))
 	for n, c := range checks {
+		var debug map[string]any
+		if debugErr == nil {
+			debug = debugs[n]
+		}
+		explanation := explain.Explain(results[n], debug, c, r.app.nameOf)
+		if debugErr != nil {
+			explanation = explain.Unavailable(results[n], c, r.app.nameOf, "the PDP's debug output couldn't be read: "+debugErr.Error())
+		}
 		calls[n] = Call{
 			User: c.User, Action: c.Action, Resource: c.Resource, Allow: results[n], Code: pdp.Code(c),
-			Explanation: explain.Explain(results[n], debugs[n], c, r.app.nameOf),
+			Explanation: explanation,
 		}
 	}
 	e := Entry{
@@ -59,7 +74,10 @@ func (r *request) record(purpose, kind string, checks []pdp.Check, results []boo
 		Code:    pdp.BulkCode(len(checks)),
 	}
 	if kind == "check" {
-		e.Code, e.Debug = calls[0].Code, debugs[0]
+		e.Code = calls[0].Code
+		if debugErr == nil {
+			e.Debug = debugs[0]
+		}
 	}
 	r.log = append(r.log, e)
 	return e
@@ -77,6 +95,30 @@ func (r *request) refuse(err error) (obj, error) {
 	return obj{"denied": true, "message": r.last().Reason, "log": r.log}, nil
 }
 
+// done answers a write Permit accepted, with the success message and any extra fields (a redirect).
+// When the PDP had not caught up with the write in time, the answer says so in place of the success
+// message, so the page never claims an effect the PDP doesn't show yet.
+func (r *request) done(message string, extra obj) obj {
+	out := obj{"log": r.log}
+	maps.Copy(out, extra)
+	if len(r.lag) > 0 {
+		out["error"] = fmt.Sprintf("Permit has the change, but the PDP doesn't confirm it: %s. Its decisions may still use the old data; reload in a moment, or run `make verify`.", strings.Join(r.lag, "; "))
+		return out
+	}
+	out["ok"], out["message"] = true, message
+	return out
+}
+
+// lagged notes what the PDP had not caught up with, or couldn't be read to confirm, for done.
+func (r *request) lagged(err error) {
+	var behind *pdp.NotCaughtUpError
+	if errors.As(err, &behind) {
+		r.lag = append(r.lag, behind.Detail)
+		return
+	}
+	r.lag = append(r.lag, err.Error())
+}
+
 // checkOne asks the PDP through permitClient.Check and logs the answer with its reason.
 func (r *request) checkOne(purpose, user, action, resource, org string) (bool, error) {
 	c := pdp.NewCheck(user, action, resource, org)
@@ -86,7 +128,8 @@ func (r *request) checkOne(purpose, user, action, resource, org string) (bool, e
 		return false, fmt.Errorf("permitClient.Check: %w", err)
 	}
 	elapsed := time.Since(started)
-	r.record(purpose, "check", []pdp.Check{c}, []bool{allow}, elapsed, []map[string]any{r.app.pdp.Debug(c)})
+	debug, debugErr := r.app.pdp.Debug(c)
+	r.record(purpose, "check", []pdp.Check{c}, []bool{allow}, elapsed, []map[string]any{debug}, debugErr)
 	return allow, nil
 }
 
@@ -100,13 +143,20 @@ func (r *request) checkMany(purpose string, checks []pdp.Check) ([]bool, error) 
 	if err != nil {
 		return nil, fmt.Errorf("permitClient.BulkCheck: %w", err)
 	}
+	if len(results) != len(checks) {
+		return nil, fmt.Errorf("permitClient.BulkCheck: %d answers for %d checks", len(results), len(checks))
+	}
 	elapsed := time.Since(started)
-	r.record(purpose, "bulk", checks, results, elapsed, r.app.pdp.DebugMany(checks))
+	debugs, debugErr := r.app.pdp.DebugMany(checks)
+	r.record(purpose, "bulk", checks, results, elapsed, debugs, debugErr)
 	return results, nil
 }
 
-// untilDecision runs after a write: it polls the PDP until the answer flips (at most 10 s), then logs
-// that final check with the delay.
+// decisionWait bounds how long untilDecision polls for the answer to flip after a write.
+var decisionWait = 10 * time.Second
+
+// untilDecision runs after a write: it polls the PDP until the answer flips (at most decisionWait),
+// then logs that final check with the delay. When the answer never flips, it notes that for done.
 func (r *request) untilDecision(purpose, user, action, resource, org string, want bool) error {
 	c := pdp.NewCheck(user, action, resource, org)
 	started := time.Now()
@@ -119,13 +169,21 @@ func (r *request) untilDecision(purpose, user, action, resource, org string, wan
 			return fmt.Errorf("permitClient.Check: %w", err)
 		}
 		elapsed = time.Since(t)
-		if allow == want || time.Since(started) > 10*time.Second {
+		if allow == want || time.Since(started) > decisionWait {
 			break
 		}
 		time.Sleep(150 * time.Millisecond)
 	}
 	waited := time.Since(started)
-	r.record(fmt.Sprintf("%s (%d ms after the write)", purpose, waited.Milliseconds()), "check", []pdp.Check{c}, []bool{allow}, elapsed, []map[string]any{r.app.pdp.Debug(c)})
+	debug, debugErr := r.app.pdp.Debug(c)
+	r.record(fmt.Sprintf("%s (%d ms after the write)", purpose, waited.Milliseconds()), "check", []pdp.Check{c}, []bool{allow}, elapsed, []map[string]any{debug}, debugErr)
+	if allow != want {
+		verdict := "denies"
+		if allow {
+			verdict = "allows"
+		}
+		r.lagged(fmt.Errorf("after %s it still %s %s %s on %s", decisionWait, verdict, model.FullName(user), action, r.app.nameOf(resource)))
+	}
 	return nil
 }
 
@@ -141,10 +199,41 @@ func platformCheck(user string) pdp.Check {
 	return pdp.NewCheck(user, "manage_users", model.PlatformOrg, model.PlatformTenant)
 }
 
-// untilData runs after a write: it waits until the PDP's loaded data shows it (at most 10 s).
-func (a *App) untilData(path string, ready func(data any) bool) {
+// dataWait bounds how long untilData waits for the PDP's data to show a write.
+var dataWait = 10 * time.Second
+
+// untilData runs after a write: it waits until the PDP's loaded data at path shows it (at most
+// dataWait). what names the change, for the note done shows when the PDP hasn't caught up or its
+// data couldn't be read.
+func (r *request) untilData(what, path string, ready func(data any) bool) {
 	started := time.Now()
-	for time.Since(started) < 10*time.Second && !ready(a.pdp.OPAData(path)) {
+	for {
+		data, err := r.app.pdp.OPAData(path)
+		if err != nil {
+			r.lagged(fmt.Errorf("couldn't read its data to confirm %s (%w)", what, err))
+			return
+		}
+		if ready(data) {
+			return
+		}
+		if time.Since(started) > dataWait {
+			r.lagged(fmt.Errorf("after %s its data doesn't show %s", dataWait, what))
+			return
+		}
 		time.Sleep(150 * time.Millisecond)
+	}
+}
+
+// holdLinks waits until the PDP has the parent links and keeps them (pdp.Settle, then pdp.Keep), and
+// notes for done what it had not caught up with.
+func (r *request) holdLinks(links map[string]string, stable, limit time.Duration) {
+	var behind *pdp.NotCaughtUpError
+	if err := r.app.pdp.Settle(links); err != nil && !errors.As(err, &behind) {
+		r.lagged(fmt.Errorf("couldn't read its data to confirm the parent links (%w)", err))
+		return
+	}
+	// Settle can see the links before a late deletion takes them again: Keep has the last word.
+	if _, err := r.app.pdp.Keep(links, stable, limit); err != nil {
+		r.lagged(err)
 	}
 }

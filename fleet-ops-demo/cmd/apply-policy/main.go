@@ -8,7 +8,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -46,7 +48,10 @@ func run() int {
 
 	changed := false
 	customPath := filepath.Join(repo, "custom", "root.rego")
-	installed, _ := os.ReadFile(customPath)
+	installed, err := os.ReadFile(customPath)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) { // not there yet: installed below
+		return fail(err)
+	}
 	version := policy.Version(string(installed))
 	if !policy.SameRules(string(installed)) {
 		version = time.Now().UTC().Format("2006-01-02T15:04:05Z")
@@ -96,12 +101,25 @@ func run() int {
 	}
 	// Permit fetches the push from Git on its own schedule, so the restarted PDP may first load the
 	// previous rules: wait for this version.
+	var readErr error // the last failed read of the PDP's policy, if the last attempt failed
 	for range 60 {
 		time.Sleep(3 * time.Second)
-		if st := client.Status(); st.PDP && st.ActingOrgRule && client.CustomPolicyVersion() == version {
+		st := client.Status()
+		if st.RulesUnknown != "" {
+			readErr = errors.New(st.RulesUnknown)
+			continue
+		}
+		loaded, err := client.CustomPolicyVersion()
+		if readErr = err; err != nil {
+			continue
+		}
+		if st.PDP && st.ActingOrgRule && loaded == version {
 			fmt.Printf("The PDP has loaded the custom rules, version %s. Run `make verify`.\n", version)
 			return 0
 		}
+	}
+	if readErr != nil {
+		return fail(fmt.Errorf("couldn't read the PDP's policy for three minutes (%w); check OPA_URL in .env, then run `make apply-policy` again", readErr))
 	}
 	return fail(fmt.Errorf("the PDP has not loaded custom rules version %s after three minutes; run `make apply-policy` again, or check `docker compose logs pdp` in the demo folder", version))
 }

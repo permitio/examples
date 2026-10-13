@@ -219,7 +219,11 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 			return nil, err
 		}
 		a.userAttrs[key] = attrs
-		a.untilData("users/"+key, func(d any) bool {
+		certs := "no certifications"
+		if len(want) > 0 {
+			certs = strings.Join(want, ", ")
+		}
+		r.untilData(fmt.Sprintf("%s's certifications as %s", name, certs), "users/"+key, func(d any) bool {
 			stored, _ := field(field(d, "attributes"), "certifications").([]any)
 			return len(stored) == len(list) && !slices.ContainsFunc(list, func(t any) bool { return !slices.Contains(stored, t) })
 		})
@@ -234,13 +238,9 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 				return nil, err
 			}
 		}
-		certs := "no certifications"
-		if len(want) > 0 {
-			certs = strings.Join(want, ", ")
-		}
 		message := fmt.Sprintf("%s now holds %s. The certification is a person attribute: it counts in every organization that gives %s a role.", name, certs, model.UserName(key))
 		a.record(user, fmt.Sprintf("Changed %s's certifications to %s", name, certs))
-		return obj{"ok": true, "message": message, "log": r.log}, nil
+		return r.done(message, nil), nil
 
 	case "assign", "unassign":
 		site, ok := a.instances["site:"+body.Site]
@@ -260,7 +260,11 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 		if err := a.writeAssignment(model.RoleAssignment{User: key, Role: role, ResourceInstance: site.ID(), Tenant: site.Tenant}, assign); err != nil {
 			return nil, err
 		}
-		a.untilData("role_assignments/user:"+key, func(d any) bool {
+		what := fmt.Sprintf("%s's %s role at %s", name, strings.ToLower(roleName(role)), site.Name)
+		if !assign {
+			what = "the removal of " + what
+		}
+		r.untilData(what, "role_assignments/user:"+key, func(d any) bool {
 			roles, _ := field(d, site.ID()).([]any)
 			return slices.Contains(roles, any(role)) == assign
 		})
@@ -273,7 +277,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 		}
 		message := fmt.Sprintf("%s %s %s at %s. Every truck at the site follows.", name, state, strings.ToLower(roleName(role)), site.Name)
 		a.record(user, message)
-		return obj{"ok": true, "message": message, "log": r.log}, nil
+		return r.done(message, nil), nil
 
 	case "remove":
 		if key == user {
@@ -310,7 +314,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 		}
 		message := fmt.Sprintf("Removed %s from Permit. Left behind: %d role assignments. `make reset` brings %s back.", name, len(left), model.UserName(key))
 		a.record(user, "Removed "+name+" from Permit")
-		return obj{"ok": true, "message": message, "log": r.log}, nil
+		return r.done(message, nil), nil
 	}
 	return fail("Unknown action.")
 }
@@ -435,5 +439,5 @@ func (a *App) accessAction(body actBody) (obj, error) {
 	until := time.Unix(grant.ExpiresAt, 0).Format("15:04:05")
 	message := fmt.Sprintf("%s can view and service %s's trucks for incident %s until %s. After that the same checks deny on their own; nothing has to clean up.", name, model.OrgName(org), incident, until)
 	a.record(user, fmt.Sprintf("Gave %s break-glass access for %s", name, incident))
-	return obj{"ok": true, "message": message, "log": r.log}, nil
+	return r.done(message, nil), nil
 }

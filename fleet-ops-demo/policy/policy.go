@@ -20,7 +20,8 @@ func Custom(version string) string {
 	return strings.Replace(customTemplate, versionPlaceholder, version, 1)
 }
 
-// Version is the version stamped in an installed custom/root.rego, "" when none.
+// Version is the version stamped in an installed custom/root.rego, "" when none. The PDP's copy of
+// the module is read with it too.
 func Version(installed string) string {
 	if m := versionValue.FindStringSubmatch(installed); m != nil {
 		return m[1]
@@ -28,7 +29,7 @@ func Version(installed string) string {
 	return ""
 }
 
-var versionValue = regexp.MustCompile(`(?m)^policy_version := "(.*)"$`)
+var versionValue = regexp.MustCompile(`(?m)^policy_version := "([^"]*)"`)
 
 // SameRules reports whether an installed custom/root.rego has these rules, whatever its version.
 func SameRules(installed string) bool {
@@ -53,6 +54,41 @@ allow {
 	custom.acting_org_ok
 	custom.fleet_rules_ok
 }`
+
+var (
+	regoComment = regexp.MustCompile(`(?m)#.*$`)
+	allowHead   = regexp.MustCompile(`(?m)^allow\b`)
+	allowRule   = regexp.MustCompile(`(?m)^allow\s*\{([^}]*)\}`)
+)
+
+// RequiredByRoot reports whether every allow rule in a root.rego requires both custom constraints,
+// custom.acting_org_ok and custom.fleet_rules_ok, in any order: the rules RootAllow installs, or an
+// equivalent edit. Comments are ignored, so rules that are commented out count as absent, and an
+// allow rule of any other shape counts as not requiring them.
+func RequiredByRoot(root string) bool {
+	root = regoComment.ReplaceAllString(root, "")
+	rules := allowRule.FindAllStringSubmatch(root, -1)
+	if len(rules) == 0 || len(rules) != len(allowHead.FindAllStringIndex(root, -1)) {
+		return false
+	}
+	for _, rule := range rules {
+		if !hasStatement(rule[1], "custom.acting_org_ok") || !hasStatement(rule[1], "custom.fleet_rules_ok") {
+			return false
+		}
+	}
+	return true
+}
+
+// hasStatement reports whether a rule body has the expression as a statement of its own, so a
+// negated or compared use (`not custom.acting_org_ok`) doesn't count.
+func hasStatement(body, expr string) bool {
+	for _, line := range strings.FieldsFunc(body, func(r rune) bool { return r == '\n' || r == ';' }) {
+		if strings.TrimSpace(line) == expr {
+			return true
+		}
+	}
+	return false
+}
 
 // RootDebug is the debug result line: Permit's debug output plus both custom verdicts.
 const RootDebug = `result := object.union(debug.debug, {"acting_org": custom.acting_org_debug, "fleet_rules": custom.fleet_rules_debug})`
