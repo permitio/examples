@@ -40,4 +40,4 @@ in CI.
 
 ## License
 
-MIT, the same as the Permit Node SDK. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
