@@ -1,0 +1,173 @@
+name: permit-portal-demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'permit-portal-demo/**'
+      - '.github/workflows/permit-portal-demo.yaml'
+  pull_request:
+    paths:
+      - 'permit-portal-demo/**'
+      - '.github/workflows/permit-portal-demo.yaml'
+
+concurrency:
+  # A new push to a PR cancels that PR's superseded run. Pushes to main get a
+  # group per commit, so no merge's run is cancelled or replaced while queued.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+    working-directory: permit-portal-demo
+
+jobs:
+  audit:
+    name: Locked dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: permit-portal-demo/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: permit-portal-demo/.nvmrc
+          package-manager-cache: false
+      - name: Audit the lockfile before installing anything
+        run: pnpm audit --audit-level=moderate
+
+  lint:
+    name: Lint and format
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: permit-portal-demo/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: permit-portal-demo/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run oxlint and oxfmt
+        run: pnpm lint:oxlint && pnpm lint:format
+
+  types:
+    name: Strict types
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: permit-portal-demo/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: permit-portal-demo/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run tsc on both apps
+        run: pnpm lint:types
+
+  test:
+    name: Tests
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: permit-portal-demo/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: permit-portal-demo/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run vitest
+        run: pnpm test
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install verified shfmt binary
+        run: |
+          curl --fail --silent --show-error --location --max-time 60 \
+            https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64 \
+            --output "$RUNNER_TEMP/shfmt"
+          printf '%s  %s\n' \
+            '76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf' \
+            "$RUNNER_TEMP/shfmt" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/shfmt"
+      # shfmt takes its indentation from .editorconfig.
+      - name: Run shellcheck and shfmt
+        run: |
+          shellcheck bin/demo tools/build-sdk.sh
+          "$RUNNER_TEMP/shfmt" --diff bin/demo tools/build-sdk.sh
+
+  images:
+    name: Docker images
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The portal's image also builds its web app.
+      - name: Build both images from the Compose file's Dockerfiles
+        run: |
+          docker build --file apps/portal/Dockerfile --tag permit-portal-demo/portal:ci .
+          docker build --file apps/great-eagle-systems/Dockerfile \
+            --tag permit-portal-demo/great-eagle-systems:ci .

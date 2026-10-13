@@ -1,0 +1,33 @@
+version: 2
+updates:
+  # Keeps the SHA-pinned actions in .github/workflows current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+  # One entry per example. permitio is vendored from a tarball, which Dependabot leaves alone.
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /permit-portal-demo
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'

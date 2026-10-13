@@ -28,7 +28,7 @@ Each scenario has an automated runner (`bin/demo scenario <profile> <s1|s2|s4|s5
 - Node 24 (see `.nvmrc`) and Docker with Compose.
 - A Permit.io environment made for this demo. `bin/demo seed` creates its whole policy, and `bin/demo reset` rewrites its data, so don't use an environment you need for anything else.
 
-## Setup
+## Run it
 
 1. Install: `corepack enable && pnpm install --frozen-lockfile`
 2. Create `profiles/demo.env` with the environment's API URL and key (see [`profiles/README.md`](profiles/README.md)).
@@ -69,11 +69,15 @@ git grep -n "Permit check" apps
 
 The demo uses `permitio` 3.0.0, built from the open [permit-node pull request #134](https://github.com/permitio/permit-node/pull/134) and vendored as `vendor/permitio-3.0.0-ffe1ccc.tgz` (`tools/build-sdk.sh` rebuilds it). When this demo was built, the latest `permitio` release on npm was 2.7.6.
 
-## Tests
+## Checks
+
+Lint (oxlint, oxfmt, strict TypeScript) and test:
 
 ```
 pnpm lint
 pnpm test
 ```
 
-`pnpm fix` applies the fixes oxlint and oxfmt can make. Comments wrap at 100 columns: oxfmt rewraps JSDoc comments, and a local oxlint rule, `tools/comment-width.ts`, rewraps `//` comments.
+`pnpm fix` applies the fixes both tools can make. Comments wrap at 100 columns: oxfmt rewraps JSDoc comments, and a local oxlint rule, `tools/comment-width.ts`, rewraps `//` comments.
+
+CI runs these, a dependency audit, shellcheck and shfmt on `bin/demo` and `tools/build-sdk.sh`, and both Docker builds, on every push and pull request that changes this folder (`.github/workflows/permit-portal-demo.yaml`). Install the repository's prek hooks to run the same checks before each commit (see the [repository README](../README.md)).

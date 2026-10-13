@@ -1,0 +1,12 @@
+# Spelling checks with typos (https://github.com/crate-ci/typos), run by prek and in CI.
+[files]
+# Lockfiles hold hashes and package names, not prose.
+extend-exclude = ["pnpm-lock.yaml"]
+
+[default]
+# Text that is right as written. Each pattern is narrow, so the same letters elsewhere are checked.
+extend-ignore-re = [
+  "DELETEs",      # the HTTP verb, in a test name
+  "`Nd h:mm:ss`", # a duration format: N days
+  "code: 'BRE'",  # Bree's location code in the portal demo
+]

@@ -1,0 +1,24 @@
+# gitleaks' default rules, plus allowlists for fake values that look like secrets.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake key the portal demo's config tests pass in to check it never leaks"
+condition = "AND"
+regexTarget = "match"
+regexes = ['''sentinel-api-key-7f3a9c''']
+paths = ['''^permit-portal-demo/apps/portal/test/config\.test\.ts$''']
+
+[[allowlists]]
+description = "Fake Permit key the portal demo's error tests use to check it is redacted"
+condition = "AND"
+regexTarget = "match"
+regexes = ['''permit_key_ThisMustNeverLeak0123''']
+paths = ['''^permit-portal-demo/apps/portal/test/routes-meta\.test\.ts$''']
+
+# The default rules miss Permit.io API keys, the secret these examples are most likely to hold.
+[[rules]]
+id = "permit-api-key"
+description = "Permit.io API key"
+regex = '''permit_key_[A-Za-z0-9]{20,}'''
+keywords = ["permit_key_"]
