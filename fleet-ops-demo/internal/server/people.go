@@ -221,7 +221,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 			_, err := a.api.Users.Update(ctx, key, models.UserUpdate{Attributes: attrs})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("updating the attributes of %s: %w", key, err)
 		}
 		a.userAttrs[key] = attrs
 		certs := "no certifications"
@@ -298,7 +298,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 			}
 		}
 		if err := permitapi.Call(func(ctx context.Context) error { return a.api.Users.Delete(ctx, key) }, 404); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("deleting %s: %w", key, err)
 		}
 		delete(a.userAttrs, key)
 		a.assignments = slices.DeleteFunc(a.assignments, func(ra model.RoleAssignment) bool { return ra.User == key })
@@ -315,7 +315,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 			return permitapi.Deref(a.api.RoleAssignments.List(ctx, page, perPage, key, "", ""))
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("listing the role assignments of %s: %w", key, err)
 		}
 		message := fmt.Sprintf("Removed %s from Permit. Left behind: %d role assignments. `make reset` brings %s back.", name, len(left), model.UserName(key))
 		a.record(user, "Removed "+name+" from Permit")
@@ -433,7 +433,7 @@ func (a *App) accessAction(body actBody) (obj, error) {
 		_, err := a.api.Users.Update(ctx, person, models.UserUpdate{Attributes: attrs})
 		return err
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("updating the attributes of %s: %w", person, err)
 	}
 	a.userAttrs[person] = attrs
 	if probe != nil {

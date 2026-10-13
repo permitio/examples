@@ -271,7 +271,7 @@ func syncSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 			_, err := a.ResourceAttributes.Create(ctx, "__user", body)
 			return err
 		}, 409); err != nil {
-			return err
+			return fmt.Errorf("user attribute %s: %w", attr.Key, err)
 		}
 	}
 	if err := pruneSchema(a, raw, scope); err != nil {
@@ -297,7 +297,7 @@ func syncSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 		for _, attr := range r.Attributes {
 			body := models.ResourceAttributeCreate{Key: attr.Key, Type: models.AttributeType(attr.Type), Description: ptr(attr.Description)}
 			if err := call(func(ctx context.Context) error { _, err := a.ResourceAttributes.Create(ctx, r.Key, body); return err }, 409); err != nil {
-				return err
+				return fmt.Errorf("attribute %s.%s: %w", r.Key, attr.Key, err)
 			}
 		}
 	}
@@ -308,7 +308,7 @@ func syncSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 		for _, rel := range r.Relations {
 			body := *models.NewRelationCreate(rel.Key, title(rel.Key), rel.Subject)
 			if err := call(func(ctx context.Context) error { _, err := a.ResourceRelations.Create(ctx, r.Key, body); return err }, 409); err != nil {
-				return err
+				return fmt.Errorf("relation %s.%s: %w", r.Key, rel.Key, err)
 			}
 		}
 	}
@@ -385,7 +385,7 @@ func syncSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 			_, err := a.ConditionSets.AssignSetPermissions(ctx, rule.UserSet, rule.Permission, rule.ResourceSet)
 			return err
 		}, 409); err != nil {
-			return err
+			return fmt.Errorf("rule %s %s on %s: %w", rule.UserSet, rule.Permission, rule.ResourceSet, err)
 		}
 	}
 	logf("ABAC sets: %s; rules: %s", strings.Join(setKeys, ", "), strings.Join(rules, "; "))
@@ -409,7 +409,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 		if err := call(func(ctx context.Context) error {
 			return a.ConditionSets.UnassignSetPermissions(ctx, r.UserSet, r.Permission, r.ResourceSet)
 		}, 404); err != nil {
-			return err
+			return fmt.Errorf("removing rule %s %s on %s: %w", r.UserSet, r.Permission, r.ResourceSet, err)
 		}
 		removed = append(removed, fmt.Sprintf("rule %s %s on %s", r.UserSet, r.Permission, r.ResourceSet))
 	}
@@ -426,7 +426,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 			continue
 		}
 		if err := call(func(ctx context.Context) error { return a.ConditionSets.Delete(ctx, cs.Key) }, 404); err != nil {
-			return err
+			return fmt.Errorf("removing condition set %s: %w", cs.Key, err)
 		}
 		removed = append(removed, "condition set "+cs.Key)
 	}
@@ -435,14 +435,14 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 		return a.Roles.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing org-level roles: %w", err)
 	}
 	for _, role := range roles {
 		if slices.ContainsFunc(schema.TenantRoles, func(tr schema.TenantRole) bool { return tr.Key == role.Key }) {
 			continue
 		}
 		if err := call(func(ctx context.Context) error { return a.Roles.Delete(ctx, role.Key) }, 404); err != nil {
-			return err
+			return fmt.Errorf("removing org-level role %s: %w", role.Key, err)
 		}
 		removed = append(removed, "org-level role "+role.Key)
 	}
@@ -451,14 +451,14 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 		return a.Resources.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing resource types: %w", err)
 	}
 	for _, res := range resources {
 		if _, ok := schema.ResourceByKey(res.Key); ok || strings.HasPrefix(res.Key, "__") {
 			continue
 		}
 		if err := call(func(ctx context.Context) error { return a.Resources.Delete(ctx, res.Key) }, 404); err != nil {
-			return err
+			return fmt.Errorf("removing resource type %s: %w", res.Key, err)
 		}
 		removed = append(removed, "resource type "+res.Key)
 	}
@@ -478,7 +478,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 			return out, err
 		}())
 		if err != nil {
-			return err
+			return fmt.Errorf("listing the roles of %s: %w", res.Key, err)
 		}
 		// Derivations the schema doesn't have, on the roles that stay; then the roles that go.
 		for _, role := range current {
@@ -505,7 +505,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 				continue
 			}
 			if err := call(func(ctx context.Context) error { return a.ResourceRoles.Delete(ctx, res.Key, role.Key) }, 404); err != nil {
-				return err
+				return fmt.Errorf("removing role %s#%s: %w", res.Key, role.Key, err)
 			}
 			removed = append(removed, fmt.Sprintf("role %s#%s", res.Key, role.Key))
 		}
@@ -515,7 +515,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 					continue
 				}
 				if err := call(func(ctx context.Context) error { return a.ResourceActions.Delete(ctx, res.Key, key) }, 404); err != nil {
-					return err
+					return fmt.Errorf("removing action %s:%s: %w", res.Key, key, err)
 				}
 				removed = append(removed, fmt.Sprintf("action %s:%s", res.Key, key))
 			}
@@ -526,7 +526,7 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 					continue
 				}
 				if err := call(func(ctx context.Context) error { return a.ResourceAttributes.Delete(ctx, res.Key, key) }, 404); err != nil {
-					return err
+					return fmt.Errorf("removing attribute %s.%s: %w", res.Key, key, err)
 				}
 				removed = append(removed, fmt.Sprintf("attribute %s.%s", res.Key, key))
 			}
@@ -541,14 +541,14 @@ func pruneSchema(a *api.PermitApiClient, raw rest, scope keyScope) error {
 			return out, err
 		}())
 		if err != nil {
-			return err
+			return fmt.Errorf("listing the relations of %s: %w", res.Key, err)
 		}
 		for _, rel := range relations {
 			if slices.ContainsFunc(want.Relations, func(x schema.Relation) bool { return x.Key == rel.Key }) {
 				continue
 			}
 			if err := call(func(ctx context.Context) error { return a.ResourceRelations.Delete(ctx, res.Key, rel.Key) }, 404); err != nil {
-				return err
+				return fmt.Errorf("removing relation %s.%s: %w", res.Key, rel.Key, err)
 			}
 			removed = append(removed, fmt.Sprintf("relation %s.%s", res.Key, rel.Key))
 		}
@@ -672,7 +672,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		return a.Tenants.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("listing tenants: %w", err)
 	}
 	var gone []string
 	for _, t := range tenants {
@@ -680,7 +680,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 			continue
 		}
 		if err := call(func(ctx context.Context) error { return a.Tenants.Delete(ctx, t.Key) }, 404); err != nil {
-			return false, err
+			return false, fmt.Errorf("removing tenant %s: %w", t.Key, err)
 		}
 		gone = append(gone, t.Key)
 		churn = true
@@ -702,14 +702,14 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		return a.Users.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("listing users: %w", err)
 	}
 	for _, u := range users {
 		if _, ok := model.UserOf(u.Key); ok {
 			continue
 		}
 		if err := call(func(ctx context.Context) error { return a.Users.Delete(ctx, u.Key) }, 404); err != nil {
-			return false, err
+			return false, fmt.Errorf("removing user %s: %w", u.Key, err)
 		}
 		gone = append(gone, "user "+u.Key)
 		churn = true
@@ -733,7 +733,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		return permitapi.Deref(a.ResourceInstances.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("listing resource instances: %w", err)
 	}
 	have := map[string]models.ResourceInstanceRead{}
 	for _, i := range rows {
@@ -819,7 +819,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		return permitapi.Deref(a.RelationshipTuples.List(ctx, page, perPage, "", "", "", ""))
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("listing relationships: %w", err)
 	}
 	haveT, wantT := map[string]bool{}, map[string]bool{}
 	for _, t := range tuples {
@@ -838,7 +838,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		if err := call(func(ctx context.Context) error {
 			return a.RelationshipTuples.BulkCreate(ctx, *models.NewRelationshipTupleCreateBulkOperation(batch))
 		}); err != nil {
-			return false, err
+			return false, fmt.Errorf("creating %d relationships: %w", len(batch), err)
 		}
 	}
 	var remove []models.RelationshipTupleDelete
@@ -851,7 +851,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		if err := call(func(ctx context.Context) error {
 			return a.RelationshipTuples.BulkDelete(ctx, *models.NewRelationshipTupleDeleteBulkOperation(remove))
 		}); err != nil {
-			return false, err
+			return false, fmt.Errorf("removing %d relationships: %w", len(remove), err)
 		}
 	}
 	churn = churn || len(remove) > 0
@@ -864,7 +864,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 		return permitapi.Deref(a.RoleAssignments.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("listing role assignments: %w", err)
 	}
 	haveRA, wantRA := map[string]bool{}, map[string]bool{}
 	for _, r := range current {
@@ -884,7 +884,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 	}
 	if len(assign) > 0 {
 		if err := call(func(ctx context.Context) error { _, err := a.Roles.BulkAssignRole(ctx, assign); return err }); err != nil {
-			return false, err
+			return false, fmt.Errorf("assigning %d roles: %w", len(assign), err)
 		}
 	}
 	var unassign []models.RoleAssignmentRemove
@@ -897,7 +897,7 @@ func syncFacts(a *api.PermitApiClient, returned *[]string, waitGone, waitUnlinke
 	}
 	if len(unassign) > 0 {
 		if err := call(func(ctx context.Context) error { _, err := a.Roles.BulkUnAssignRole(ctx, unassign); return err }); err != nil {
-			return false, err
+			return false, fmt.Errorf("removing %d role assignments: %w", len(unassign), err)
 		}
 	}
 	logf("role assignments: %d (%d created, %d removed)", len(model.RoleAssignments), len(assign), len(unassign))
@@ -910,7 +910,7 @@ func unlink(a *api.PermitApiClient, ids []string, waitUnlinked func(ids []string
 		return permitapi.Deref(a.RelationshipTuples.List(ctx, page, perPage, "", "", "", ""))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing relationships: %w", err)
 	}
 	var del []models.RelationshipTupleDelete
 	for _, t := range tuples {
@@ -924,7 +924,7 @@ func unlink(a *api.PermitApiClient, ids []string, waitUnlinked func(ids []string
 	if err := call(func(ctx context.Context) error {
 		return a.RelationshipTuples.BulkDelete(ctx, *models.NewRelationshipTupleDeleteBulkOperation(del))
 	}); err != nil {
-		return err
+		return fmt.Errorf("removing the links of %s: %w", strings.Join(ids, ", "), err)
 	}
 	waitUnlinked(ids)
 	return nil

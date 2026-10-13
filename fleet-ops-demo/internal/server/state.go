@@ -93,31 +93,31 @@ func (a *App) Load() error {
 		return a.api.Tenants.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing tenants: %w", err)
 	}
 	rows, err := permitapi.ListAll(func(ctx context.Context, page, perPage int) ([]models.ResourceInstanceRead, error) {
 		return permitapi.Deref(a.api.ResourceInstances.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing resource instances: %w", err)
 	}
 	tuples, err := permitapi.ListAll(func(ctx context.Context, page, perPage int) ([]models.RelationshipTupleRead, error) {
 		return permitapi.Deref(a.api.RelationshipTuples.List(ctx, page, perPage, "", "", "", ""))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing relationships: %w", err)
 	}
 	roles, err := permitapi.ListAll(func(ctx context.Context, page, perPage int) ([]models.RoleAssignmentRead, error) {
 		return permitapi.Deref(a.api.RoleAssignments.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing role assignments: %w", err)
 	}
 	users, err := permitapi.ListAll(func(ctx context.Context, page, perPage int) ([]models.UserRead, error) {
 		return a.api.Users.List(ctx, page, perPage)
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing users: %w", err)
 	}
 
 	a.mu.Lock()

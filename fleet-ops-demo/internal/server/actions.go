@@ -92,7 +92,7 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			_, err := a.api.ResourceInstances.Update(ctx, id, models.ResourceInstanceUpdate{Attributes: attrs})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("updating the attributes of %s: %w", id, err)
 		}
 		truck.Attributes = attrs
 		r.untilData(fmt.Sprintf("%s's lifecycle_state %s", truck.Name, state), "resource_instances/"+id, func(d any) bool {
@@ -116,13 +116,13 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		if err := permitapi.Call(func(ctx context.Context) error {
 			return a.api.RelationshipTuples.Delete(ctx, *models.NewRelationshipTupleDelete(old.ID(), "parent", id))
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("unlinking %s from %s: %w", id, old.ID(), err)
 		}
 		if err := permitapi.Call(func(ctx context.Context) error {
 			_, err := a.api.RelationshipTuples.Create(ctx, models.RelationshipTupleCreate{Subject: target.ID(), Relation: "parent", Object: id, Tenant: ptr(truck.Tenant)})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("linking %s to %s: %w", id, target.ID(), err)
 		}
 		truck.Parent = target.ID()
 		r.untilData(fmt.Sprintf("%s's parent link to %s", truck.Name, target.Name), "relationships/"+id, func(d any) bool {
@@ -187,7 +187,7 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			_, err := a.api.ResourceInstances.Update(ctx, id, models.ResourceInstanceUpdate{Attributes: attrs})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("updating the attributes of %s: %w", id, err)
 		}
 		truck.Attributes = attrs
 		r.untilData(fmt.Sprintf("%s's region %s and served account %s", truck.Name, region, account), "resource_instances/"+id, func(d any) bool {
@@ -230,7 +230,7 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		// An instance can't change organization: delete it (its links and grants go with it) and create it
 		// again in the new one.
 		if err := permitapi.Call(func(ctx context.Context) error { return a.api.ResourceInstances.Delete(ctx, id) }, 404); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("deleting %s: %w", id, err)
 		}
 		// When the PDP still has it, a late deletion may strip the new link; holdLinks below repairs that.
 		if err := a.pdp.WaitGone([]string{id}, 15*time.Second); err != nil {
@@ -242,13 +242,13 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 			_, err := a.api.ResourceInstances.Create(ctx, models.ResourceInstanceCreate{Key: truck.Key, Resource: "asset", Tenant: ptr(to), Attributes: attrs})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("creating %s in %s: %w", id, to, err)
 		}
 		if err := permitapi.Call(func(ctx context.Context) error {
 			_, err := a.api.RelationshipTuples.Create(ctx, models.RelationshipTupleCreate{Subject: target.ID(), Relation: "parent", Object: id, Tenant: ptr(to)})
 			return err
 		}); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("linking %s to %s: %w", id, target.ID(), err)
 		}
 		truck.Tenant, truck.Parent, truck.Attributes = to, target.ID(), attrs
 		a.assignments = slices.DeleteFunc(a.assignments, func(ra model.RoleAssignment) bool { return ra.ResourceInstance == id })
@@ -317,7 +317,7 @@ func (a *App) writeAssignment(ra model.RoleAssignment, assign bool) error {
 			_, err := a.api.Users.AssignResourceRole(ctx, ra.User, ra.Role, ra.Tenant, ra.ResourceInstance)
 			return err
 		}, 409); err != nil {
-			return err
+			return fmt.Errorf("assigning %s the %s role on %s: %w", ra.User, ra.Role, ra.ResourceInstance, err)
 		}
 		a.assignments = append(a.assignments, ra)
 		return nil
@@ -326,7 +326,7 @@ func (a *App) writeAssignment(ra model.RoleAssignment, assign bool) error {
 		_, err := a.api.Users.UnassignResourceRole(ctx, ra.User, ra.Role, ra.Tenant, ra.ResourceInstance)
 		return err
 	}, 404); err != nil {
-		return err
+		return fmt.Errorf("unassigning the %s role on %s from %s: %w", ra.Role, ra.ResourceInstance, ra.User, err)
 	}
 	a.assignments = slices.DeleteFunc(a.assignments, func(x model.RoleAssignment) bool {
 		return x.User == ra.User && x.Role == ra.Role && x.ResourceInstance == ra.ResourceInstance

@@ -101,7 +101,7 @@ func (a *App) orgAction(body actBody, key string) (obj, error) {
 		}
 		before := a.counts(key)
 		if err := permitapi.Call(func(ctx context.Context) error { return a.api.Tenants.Delete(ctx, key) }, 404); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("deleting tenant %s: %w", key, err)
 		}
 		a.forget(key)
 		if probeUser != "" && probe != nil {
@@ -174,7 +174,7 @@ func (a *App) leftIn(tenant string) (instances, tuples, assignments int, err err
 		return permitapi.Deref(a.api.ResourceInstances.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return
+		return 0, 0, 0, fmt.Errorf("listing resource instances: %w", err)
 	}
 	for _, i := range rows {
 		if i.Tenant != nil && *i.Tenant == tenant {
@@ -185,7 +185,7 @@ func (a *App) leftIn(tenant string) (instances, tuples, assignments int, err err
 		return permitapi.Deref(a.api.RelationshipTuples.List(ctx, page, perPage, "", "", "", ""))
 	})
 	if err != nil {
-		return
+		return 0, 0, 0, fmt.Errorf("listing relationships: %w", err)
 	}
 	for _, t := range links {
 		if t.Tenant == tenant {
@@ -196,7 +196,7 @@ func (a *App) leftIn(tenant string) (instances, tuples, assignments int, err err
 		return permitapi.Deref(a.api.RoleAssignments.List(ctx, page, perPage, "", "", ""))
 	})
 	if err != nil {
-		return
+		return 0, 0, 0, fmt.Errorf("listing role assignments: %w", err)
 	}
 	for _, ra := range roles {
 		if ra.Tenant == tenant {
@@ -221,7 +221,7 @@ func (a *App) merge(r *request, from, to string) error {
 		return permitapi.Deref(a.api.RelationshipTuples.List(ctx, page, perPage, from, "", "", ""))
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("listing the relationships of %s: %w", from, err)
 	}
 	var roles []model.RoleAssignment
 	for _, ra := range a.assignments {
@@ -245,7 +245,7 @@ func (a *App) merge(r *request, from, to string) error {
 		if err := permitapi.Call(func(ctx context.Context) error {
 			return a.api.RelationshipTuples.BulkDelete(ctx, *models.NewRelationshipTupleDeleteBulkOperation(del))
 		}); err != nil {
-			return err
+			return fmt.Errorf("removing the relationships of %s: %w", from, err)
 		}
 		// When the PDP still has them, a late deletion may strip the new links; holdLinks below repairs that.
 		if err := a.pdp.WaitUnlinked(ids, 20*time.Second); err != nil {
@@ -253,7 +253,7 @@ func (a *App) merge(r *request, from, to string) error {
 		}
 	}
 	if err := permitapi.Call(func(ctx context.Context) error { return a.api.Tenants.Delete(ctx, from) }, 404); err != nil {
-		return err
+		return fmt.Errorf("deleting tenant %s: %w", from, err)
 	}
 	if err := a.pdp.WaitGone(ids, 20*time.Second); err != nil {
 		log.Printf("merge: creating %s's instances again before the PDP dropped them: %v", from, err)
@@ -276,7 +276,7 @@ func (a *App) merge(r *request, from, to string) error {
 	if err := permitapi.Call(func(ctx context.Context) error {
 		return a.api.RelationshipTuples.BulkCreate(ctx, *models.NewRelationshipTupleCreateBulkOperation(links))
 	}); err != nil {
-		return err
+		return fmt.Errorf("linking the tree of %s under %s: %w", from, to, err)
 	}
 	a.get("org:" + from).Parent = "org:" + to
 	// Trucks the merged organization operated for another one are now operated by the target.
@@ -288,7 +288,7 @@ func (a *App) merge(r *request, from, to string) error {
 				_, err := a.api.ResourceInstances.Update(ctx, i.ID(), models.ResourceInstanceUpdate{Attributes: attrs})
 				return err
 			}); err != nil {
-				return err
+				return fmt.Errorf("updating the operator of %s: %w", i.ID(), err)
 			}
 			i.Attributes = attrs
 		}
@@ -302,7 +302,7 @@ func (a *App) merge(r *request, from, to string) error {
 			}
 		}
 		if err := permitapi.Call(func(ctx context.Context) error { _, err := a.api.Roles.BulkAssignRole(ctx, assign); return err }); err != nil {
-			return err
+			return fmt.Errorf("giving the people of %s their roles in %s: %w", from, to, err)
 		}
 	}
 	delete(a.tenants, from)
