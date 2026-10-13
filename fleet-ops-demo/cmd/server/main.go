@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"fleetops/internal/pdp"
 	"fleetops/internal/server"
@@ -23,5 +24,6 @@ func main() {
 	port := s.Port
 	addr := "127.0.0.1:" + port
 	fmt.Printf("Fleet Ops (Go SDK) on http://localhost:%s, project %s, environment %s\n", port, s.Project, s.Env)
-	log.Fatal(http.ListenAndServe(addr, app.Handler(web.Files, s.Project, s.Env)))
+	srv := &http.Server{Addr: addr, Handler: app.Handler(web.Files, s.Project, s.Env), ReadHeaderTimeout: 10 * time.Second}
+	log.Fatal(srv.ListenAndServe())
 }

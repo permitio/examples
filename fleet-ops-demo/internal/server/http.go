@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"mime"
+	"net"
 	"net/http"
 
 	"fleetops/internal/model"
 )
 
-// Handler serves the API and the page (files from web).
+// Handler serves the API and the page (files from web), to this machine's browser only: see
+// localOnly.
 func (a *App) Handler(web fs.FS, project, env string) http.Handler {
 	mux := http.NewServeMux()
 
@@ -66,7 +69,26 @@ func (a *App) Handler(web fs.FS, project, env string) http.Handler {
 		return a.orgAction(body, req.PathValue("key"))
 	}))
 	mux.Handle("/", http.FileServerFS(web))
-	return mux
+	return localOnly(mux)
+}
+
+// localOnly keeps other web sites out. The server listens on 127.0.0.1 and has no sign-in, so any
+// page open in the presenter's browser could otherwise drive it: a cross-site POST (a text/plain one
+// needs no CORS preflight) is refused by http.CrossOriginProtection, and a page that rebinds its own
+// host name to 127.0.0.1 to read the answers is refused by the Host check.
+func localOnly(next http.Handler) http.Handler {
+	crossOrigin := http.NewCrossOriginProtection().Handler(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		host, _, err := net.SplitHostPort(req.Host)
+		if err != nil {
+			host = req.Host
+		}
+		if host != "localhost" && host != "127.0.0.1" {
+			http.Error(w, "Open Fleet Ops at http://localhost.", http.StatusForbidden)
+			return
+		}
+		crossOrigin.ServeHTTP(w, req)
+	})
 }
 
 // recovered turns a panic in a handler into a 502 with the error, so the page shows it.
@@ -92,6 +114,10 @@ func (a *App) read(page func(req *http.Request, user, org string) (obj, error)) 
 func (a *App) write(action func(req *http.Request, body actBody) (obj, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		defer recovered(w, req)
+		if ct, _, _ := mime.ParseMediaType(req.Header.Get("Content-Type")); ct != "application/json" {
+			writeJSON(w, http.StatusUnsupportedMediaType, obj{"error": "The request body must be JSON (Content-Type: application/json)."})
+			return
+		}
 		var body actBody
 		if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, obj{"error": "The request body must be JSON."})
