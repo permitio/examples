@@ -1,5 +1,5 @@
-import type { EventLog } from '../events';
-import { timedWrite } from './writes';
+import type { EventLog } from '#src/server/events';
+import { timedWrite } from '#src/server/permit/writes';
 
 export type ResourceAttributes = Record<string, unknown>;
 export interface ResourceInstancesApi { get(instanceKey: string): Promise<{ attributes?: object | null }>; update(instanceKey: string, d: { attributes: object }): Promise<unknown> }

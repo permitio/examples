@@ -5,17 +5,17 @@
 // at once, with its table untouched), cuts over to Permit and rolls back, and finally replays the run's decisions from
 // Permit's audit log against today's policy: the revocation shows up as a changed decision. It is the automated rehearsal.
 // Run: bin/demo scenario <profile> s8. Exit 0 pass, 1 fail, 2 could not run.
-import { TENANT } from '../src/server/model';
-import { describeError, scriptPermit } from './lib/admin';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { pollUntil } from './lib/pdp';
-import { isMain, type Outcome, type Result, runCli } from './lib/report';
-import { type ReplayDeps, type ReplayReport, permitGet, replayAuditLog, scopeOf } from './replay';
-import { runReset } from './reset';
+import { TENANT } from '#src/server/model';
+import { describeError, scriptPermit } from '#scripts/lib/admin';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { pollUntil } from '#scripts/lib/pdp';
+import { isMain, type Outcome, type Result, runCli } from '#scripts/lib/report';
+import { type ReplayDeps, type ReplayReport, permitGet, replayAuditLog, scopeOf } from '#scripts/replay';
+import { runReset } from '#scripts/reset';
 import {
   Api, awaitResetState, booleanOf, type Expected, expectEqual, expectDecisions, expectSameItems, field, listOf, type Log, ms, numberOf, runScenario, seconds,
   ServiceUnreachable, type StepContext, StepError, textOf,
-} from './scenario-runner';
+} from '#scripts/scenario-runner';
 
 const SAM = 'sam';
 const FRODO = 'frodo';
@@ -263,8 +263,8 @@ export async function runS8(env: Pick<ScriptEnv, 'profile' | 'portalUrl' | 'grea
       const report = await opts.replay({ since: began, until: Date.now() }).catch((error: unknown): never => {
         throw new ServiceUnreachable(`the replay could not run: ${describeError(error)}`, { cause: error });
       });
-      const revoked = report.changed.filter((c) => c.user === FRODO && c.then && !c.now);
-      const fixed = report.changed.filter((c) => c.user === PIPPIN && !c.then && c.now);
+      const revoked = report.changed.filter((c) => c.user === FRODO && c.was && !c.now);
+      const fixed = report.changed.filter((c) => c.user === PIPPIN && !c.was && c.now);
       s.note(`${report.total} recorded ${VIEW_BILLING} decisions read from the audit log in ${report.pages} ${report.pages === 1 ? 'page' : 'pages'}, asked again against today's policy: ${report.unchanged} unchanged, ${report.changed.length} would change`);
       if (revoked.length === 0) {
         throw new StepError(`none of the ${report.total} decisions in the audit log since the run began would change for ${FRODO}: the revocation does not show in the replay`);

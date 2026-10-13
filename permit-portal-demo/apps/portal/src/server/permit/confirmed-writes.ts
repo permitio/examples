@@ -1,6 +1,6 @@
 import type { IResource, Permit } from 'permitio';
-import { statusOf } from '../errors';
-import { holds, type PdpSync, rolesIn } from './pdp-sync';
+import { statusOf } from '#src/server/errors';
+import { holds, type PdpSync, rolesIn } from '#src/server/permit/pdp-sync';
 
 /** User attributes are global, so their probe can name any tenant; every environment has `default`. */
 const ATTRIBUTE_PROBE: IResource = { type: 'organization', key: 'pdp-sync', tenant: 'default' };

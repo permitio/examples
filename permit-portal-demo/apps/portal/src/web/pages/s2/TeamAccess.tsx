@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CHANGE_CONFIRMED, useAction, useResource } from '@/hooks';
-import { PagePlate } from '../s4/parts';
-import { grantRole, revokeRole } from './grants';
-import { grantKey, NO_TOGGLES, roleLabel, type ToggleState, toggleStateFor, type TreeNode, treeOf, withConfirmed } from './team';
-import type { AssignmentsResponse, TeamResponse } from './types';
+import { PagePlate } from '@/pages/s4/parts';
+import { grantRole, revokeRole } from '@/pages/s2/grants';
+import { grantKey, NO_TOGGLES, roleLabel, type ToggleState, toggleStateFor, type TreeNode, treeOf, withConfirmed } from '@/pages/s2/team';
+import type { AssignmentsResponse, TeamResponse } from '@/pages/s2/types';
 
 /** One resource of the tree: its name and key, a toggle for each role Permit lets the persona give there, and what sits under it. */
 function Branch({ node, held, busy, onToggle }: {

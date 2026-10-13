@@ -12,7 +12,7 @@ import { useMeta } from '@/hooks';
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 /** A page's sign plate: the page's name over the persona's company, with an optional count in its status segment. */
-export function PagePlate({ title, aside }: { title: string; aside?: { icon: Icon; text: string } }) {
+export function PagePlate({ title, aside }: { title: string; aside?: { icon: Icon; text: string } | undefined }) {
   const meta = useMeta();
   const company = meta.personas.find((p) => p.key === getPersona())?.company;
   return (
@@ -26,7 +26,7 @@ export function PagePlate({ title, aside }: { title: string; aside?: { icon: Ico
  * The shipment's sign: its key over its title, then the route and `line`. With `withDetails` it carries the route
  * and the status segment from the cargo facts; a shipment without cargo facts shows without them.
  */
-export function ShipmentSign({ shipmentKey, title, line, withDetails }: { shipmentKey: string; title?: string; line?: string; withDetails: boolean }) {
+export function ShipmentSign({ shipmentKey, title, line, withDetails }: { shipmentKey: string; title?: string | undefined; line?: string | undefined; withDetails: boolean }) {
   const facts = withDetails ? factsOf(shipmentKey) : undefined;
   return (
     <SignPlate id="shipment-title" title={shipmentKey} aside={facts && { icon: facts.statusIcon, text: facts.status }}>

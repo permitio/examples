@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import type { Deps } from '../app';
-import { deniedBy, HttpError, permitReason, statusOf } from '../errors';
-import type { EventSource } from '../events';
-import { grantsOf, renewGrant, upsertGrant } from '../grants';
-import { assertDifferentApprover } from '../guards';
-import { type DemoRequest, QUEUE_KEY, RESOURCE, type RequestType, ROLE, TENANT } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { ensureInstanceRole } from '../permit/instance-roles';
-import { resumableWrite, timedWrite } from '../permit/writes';
-import { personaName, personaOf, sourceOf } from '../personas';
-import { actsFor } from './s5';
-import { bodyOf, optionalText, positiveInt } from './validate';
+import type { Deps } from '#src/server/app';
+import { deniedBy, HttpError, permitReason, statusOf } from '#src/server/errors';
+import type { EventSource } from '#src/server/events';
+import { grantsOf, renewGrant, upsertGrant } from '#src/server/grants';
+import { assertDifferentApprover } from '#src/server/guards';
+import { type DemoRequest, QUEUE_KEY, RESOURCE, type RequestType, ROLE, TENANT } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { ensureInstanceRole } from '#src/server/permit/instance-roles';
+import { resumableWrite, timedWrite } from '#src/server/permit/writes';
+import { personaName, personaOf, sourceOf } from '#src/server/personas';
+import { actsFor } from '#src/server/routes/s5';
+import { bodyOf, optionalText, positiveInt } from '#src/server/routes/validate';
 
 /** The shortest and longest grant an approver may set (the S4 runner uses 5 s; the longest menu choice is 30 days). */
 const MIN_GRANT_MS = 5_000;
@@ -194,7 +194,7 @@ export function requestsRouter(d: Deps): Router {
     const pending = await pendingRequest(d, req.params.id, 'approved');
     await authorize(d, pending, persona, sourceOf(res));
     // The approver sets how long a collaborator's access lasts; the request record keeps it.
-    const durationMs = pending.type === 'collaborator_invite' && body.durationMs !== undefined ? grantDuration(body) : undefined;
+    const durationMs = pending.type === 'collaborator_invite' && body['durationMs'] !== undefined ? grantDuration(body) : undefined;
     // A failed write throws here (424 when the PDP did not confirm it), so the request stays pending.
     const ms = await applyApproval(d, pending, durationMs);
     const request = await d.mock.transition(pending.id, 'approved', persona, comment, durationMs);
@@ -213,7 +213,7 @@ export function requestsRouter(d: Deps): Router {
   });
 
   r.get('/requests', async (req, res) => {
-    const tenant = typeof req.query.tenant === 'string' && req.query.tenant !== '' ? req.query.tenant : undefined;
+    const tenant = typeof req.query['tenant'] === 'string' && req.query['tenant'] !== '' ? req.query['tenant'] : undefined;
     res.json(await d.mock.listRequests(tenant === undefined ? {} : { tenant }));
   });
 

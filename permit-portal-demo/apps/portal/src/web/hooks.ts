@@ -2,8 +2,8 @@
 // polled API reads and one-at-a-time actions.
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { api, decideRequest, onPortalRebuilt, portalRebuilt } from './api';
-import type { ApproveResponse, DenyResponse, Meta } from './types';
+import { api, decideRequest, onPortalRebuilt, portalRebuilt } from '@/api';
+import type { ApproveResponse, DenyResponse, Meta } from '@/types';
 
 /** How often a page re-reads itself while it is open. Aragorn's live checks run every 5 s on their own timer. */
 export const PAGE_REFRESH_MS = 10_000;
@@ -99,7 +99,7 @@ export function useResource<T>(path: string | null, { refreshMs, body, key }: Re
   const active = refreshMs === undefined || visible;
   /** The `shown` count of the last read, so a tab shown again reads again even without a timer. */
   const readAtShown = useRef(shown);
-  const [state, setState] = useState<{ path: string | null; data?: T; error?: unknown }>({ path });
+  const [state, setState] = useState<{ path: string | null; data?: T | undefined; error?: unknown }>({ path });
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   /** The read that last finished: path, key and reload count. A read of the same one again is a refresh. */

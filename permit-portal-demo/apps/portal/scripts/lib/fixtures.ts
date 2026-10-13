@@ -1,5 +1,5 @@
-import { type CollaboratorGrant, QUEUE_KEY, RESOURCE, ROLE, type SeedData, type SeedPersona, TENANT } from '../../src/server/model';
-import type { Attributes, CheckSpec } from './pdp';
+import { type CollaboratorGrant, QUEUE_KEY, RESOURCE, ROLE, type SeedData, type SeedPersona, TENANT } from '#src/server/model';
+import type { Attributes, CheckSpec } from '#scripts/lib/pdp';
 
 export const HOUR_MS = 3_600_000;
 /** The S4 broker: the only persona whose access comes from grant entries, so Aragorn's starting state is "no grants". */
@@ -49,7 +49,7 @@ export function splitName(name: string): { first_name: string; last_name: string
 
 /** A persona's attributes at the start of the demo: the trust facts from seed.json, and no grants for Aragorn. */
 export function personaAttributes(p: SeedPersona): Attributes {
-  return { ...(p.facts ?? {}), ...(p.key === ARAGORN ? { time_based_grants: [] } : {}) };
+  return { ...p.facts, ...(p.key === ARAGORN ? { time_based_grants: [] } : {}) };
 }
 
 /**
@@ -173,7 +173,7 @@ export function preflightData(now: number): PermitData {
  * rows whose user appears in no allow row carry a `witness`: a check on the same user and resource that must allow
  * in the same pass. Row 5's witness is what makes the bypass guard real: the PDP knows the user holds org_admin.
  */
-export interface MatrixRow extends CheckSpec { n: number; expect: boolean; note?: string; witness?: { action: string; extra?: Attributes } }
+export interface MatrixRow extends CheckSpec { n: number; expect: boolean; note?: string; witness?: { action: string; extra?: Attributes | undefined } }
 
 const org = (key: string) => ({ type: RESOURCE.organization, key, tenant: PF });
 const shipment = (key: string) => ({ type: RESOURCE.shipment, key, tenant: PF });

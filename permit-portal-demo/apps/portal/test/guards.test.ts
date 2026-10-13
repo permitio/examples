@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertDifferentApprover, effectiveAdmins, SelfApprovalError } from '../src/server/guards';
+import { assertDifferentApprover, effectiveAdmins, SelfApprovalError } from '#src/server/guards';
 
 describe('assertDifferentApprover', () => {
   const req = { initiated_by: 'frodo', requested_for: 'aragorn' };

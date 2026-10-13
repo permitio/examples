@@ -1,12 +1,12 @@
 // A role on a single resource is confirmed by reading the user's roles on that resource from the PDP's
 // user-permissions answer, with the deadline, interval, first wait and 424 of every other confirmed write.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { statusOf } from '../src/server/errors';
-import { loadSeed } from '../src/server/model';
-import { confirmedWrites } from '../src/server/permit/confirmed-writes';
-import { PdpSync, PdpSyncTimeout, SYNC_TIMING } from '../src/server/permit/pdp-sync';
-import { describeWriteError } from '../src/server/permit/writes';
-import { FakePdp, fakePermit, permissionsOn } from './fakes';
+import { statusOf } from '#src/server/errors';
+import { loadSeed } from '#src/server/model';
+import { confirmedWrites } from '#src/server/permit/confirmed-writes';
+import { PdpSync, PdpSyncTimeout, SYNC_TIMING } from '#src/server/permit/pdp-sync';
+import { describeWriteError } from '#src/server/permit/writes';
+import { FakePdp, fakePermit, permissionsOn } from '#test/fakes';
 
 const SHIRE = 'shire-freight';
 const SHIPPER_ON_1001 = { user: 'merry', role: 'shipper', tenant: SHIRE, resource_instance: 'ean:EAN-1001' };

@@ -10,9 +10,9 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui
 import { Input } from '@/components/ui/input';
 import { useAction, useResource } from '@/hooks';
 import type { DemoRequest } from '@/types';
-import { PagePlate } from '../s4/parts';
-import { ScopeTags } from './parts';
-import { canAskForProduction, type Integration, type IntegrationsResponse, PRODUCTION_EAN, PRODUCTION_REASON, type RegisterResponse } from './scope';
+import { PagePlate } from '@/pages/s4/parts';
+import { ScopeTags } from '@/pages/s5/parts';
+import { canAskForProduction, type Integration, type IntegrationsResponse, PRODUCTION_EAN, PRODUCTION_REASON, type RegisterResponse } from '@/pages/s5/scope';
 
 /** The client secret Great Eagle's systems issued, on screen once: it is not stored here, and no later answer carries it. */
 function SecretNotice({ name, secret, onDismiss }: { name: string; secret: string; onDismiss: () => void }) {

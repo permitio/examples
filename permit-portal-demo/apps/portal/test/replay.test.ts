@@ -4,12 +4,12 @@
 // failed is never reported as "nothing changed".
 import type { ICheckQuery, Permit } from 'permitio';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ScriptEnv } from '../scripts/lib/env';
+import type { ScriptEnv } from '#scripts/lib/env';
 import {
   AUDIT_RETRY_WAITS_MS, type AuditEntry, checkFromEntry, groupChanges, NoAnswerError, parseReplayArgs, permitGet, type ReplayDeps, replayAuditLog, runReplay, USAGE,
   UsageError,
-} from '../scripts/replay';
-import { resetS8 } from '../scripts/reset/s8';
+} from '#scripts/replay';
+import { resetS8 } from '#scripts/reset/s8';
 
 const SINCE = Date.parse('2026-10-07T14:00:00.000Z');
 const UNTIL = Date.parse('2026-10-07T14:30:00.000Z');
@@ -161,8 +161,8 @@ describe('replaying the audit log', () => {
     expect(report).toEqual({
       total: 103, unchanged: 101, unreplayable: 0, pages: 2,
       changed: [
-        { at: '2026-10-07T14:20:00.000Z', user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', then: true, now: false },
-        { at: '2026-10-07T14:21:00.000Z', user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', then: false, now: true },
+        { at: '2026-10-07T14:20:00.000Z', user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', was: true, now: false },
+        { at: '2026-10-07T14:21:00.000Z', user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', was: false, now: true },
       ],
     });
     // One bulk check per page, and each asked exactly what the page recorded.
@@ -301,7 +301,7 @@ describe('replaying the audit log', () => {
 });
 
 describe('grouping the changes', () => {
-  const change = (user: string, resource: string, at: string, then = true) => ({ at, user, action: 'view_billing', resource, then, now: !then });
+  const change = (user: string, resource: string, at: string, was = true) => ({ at, user, action: 'view_billing', resource, was, now: !was });
 
   it('counts each user, action, resource and change once, with the earliest and latest time it knows', () => {
     expect(groupChanges([
@@ -312,10 +312,10 @@ describe('grouping the changes', () => {
       change('pippin', 'account:CA-1001-A', '2026-10-07T14:21:00.000Z', false),
       change('frodo', 'account:CA-1001-A', '2026-10-07T14:13:00.000Z', false),
     ])).toEqual([
-      { user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', then: true, now: false, count: 3, first: '2026-10-07T14:10:00.000Z', last: '2026-10-07T14:12:00.000Z' },
-      { user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', then: false, now: true, count: 2, first: '2026-10-07T14:20:00.000Z', last: '2026-10-07T14:21:00.000Z' },
+      { user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', was: true, now: false, count: 3, first: '2026-10-07T14:10:00.000Z', last: '2026-10-07T14:12:00.000Z' },
+      { user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', was: false, now: true, count: 2, first: '2026-10-07T14:20:00.000Z', last: '2026-10-07T14:21:00.000Z' },
       // The same user and resource the other way round is a change of its own.
-      { user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', then: false, now: true, count: 1, first: '2026-10-07T14:13:00.000Z', last: '2026-10-07T14:13:00.000Z' },
+      { user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', was: false, now: true, count: 1, first: '2026-10-07T14:13:00.000Z', last: '2026-10-07T14:13:00.000Z' },
     ]);
   });
 

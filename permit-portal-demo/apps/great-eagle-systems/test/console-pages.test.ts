@@ -2,10 +2,10 @@
 // shell, whose header links every page. These hold for every scenario page.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { createApp } from '../src/app';
-import type { PortalNotifier } from '../src/portal-notifier';
-import { loadSeed } from '../src/seed';
-import { Store } from '../src/store';
+import { createApp } from '#src/app';
+import type { PortalNotifier } from '#src/portal-notifier';
+import { loadSeed } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const PAGES = ['/', '/s2', '/s5', '/s8'];

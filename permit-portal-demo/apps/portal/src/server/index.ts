@@ -1,18 +1,18 @@
 // The portal server: the enforcement point and the API the UI calls. Wires the real Permit SDK into the app.
 import type { Permit } from 'permitio';
-import { createApp, type Deps } from './app';
-import { DemoClock } from './clock';
-import { loadConfig } from './config';
-import { EventLog } from './events';
-import { MockClient } from './mock-client';
-import { loadSeed } from './model';
-import { createPermit } from './permit/client';
-import { Enforcer } from './permit/enforcer';
-import { PdpExplainer } from './permit/explainer';
-import { confirmedWrites } from './permit/confirmed-writes';
-import { FactsWriter } from './permit/facts-writer';
-import { PdpSync } from './permit/pdp-sync';
-import { ResourceFactsWriter } from './permit/resource-facts-writer';
+import { createApp, type Deps } from '#src/server/app';
+import { DemoClock } from '#src/server/clock';
+import { loadConfig } from '#src/server/config';
+import { EventLog } from '#src/server/events';
+import { MockClient } from '#src/server/mock-client';
+import { loadSeed } from '#src/server/model';
+import { createPermit } from '#src/server/permit/client';
+import { Enforcer } from '#src/server/permit/enforcer';
+import { PdpExplainer } from '#src/server/permit/explainer';
+import { confirmedWrites } from '#src/server/permit/confirmed-writes';
+import { FactsWriter } from '#src/server/permit/facts-writer';
+import { PdpSync } from '#src/server/permit/pdp-sync';
+import { ResourceFactsWriter } from '#src/server/permit/resource-facts-writer';
 
 type ConfirmedUsers = Pick<Deps['permitApi']['users'], 'get' | 'assignRole' | 'unassignRole'>;
 

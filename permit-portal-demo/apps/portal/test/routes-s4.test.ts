@@ -1,8 +1,8 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import type { CheckEvent } from '../src/server/events';
-import { DAY, grant, harness, NOW } from './fakes';
+import type { CheckEvent } from '#src/server/events';
+import { DAY, grant, harness, NOW } from '#test/fakes';
 
 const as = (app: Express, persona: string) => ({
   get: (path: string) => request(app).get(path).set('x-demo-persona', persona),

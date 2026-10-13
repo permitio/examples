@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import type { Deps } from '../app';
-import { HttpError } from '../errors';
-import type { ResourceRef } from '../permit/enforcer';
-import { personaOf, sourceOf } from '../personas';
-import { bodyOf, positiveInt } from './validate';
+import type { Deps } from '#src/server/app';
+import { HttpError } from '#src/server/errors';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { personaOf, sourceOf } from '#src/server/personas';
+import { bodyOf, positiveInt } from '#src/server/routes/validate';
 
 const MAX_BULK = 50;
 
@@ -23,7 +23,7 @@ export function metaRouter(d: Deps): Router {
   });
 
   r.get('/events', (req, res) => {
-    const since = sinceOf(req.query.since);
+    const since = sinceOf(req.query['since']);
     res.json({ events: d.events.since(since), lastId: d.events.lastId() });
   });
 
@@ -50,7 +50,7 @@ export function metaRouter(d: Deps): Router {
   });
 
   r.post('/checks/bulk', async (req, res) => {
-    const items = checksOf(bodyOf(req).checks);
+    const items = checksOf(bodyOf(req)['checks']);
     const start = performance.now();
     // Permit check, several at once, asked by the page itself: Aragorn's live checks every 5 seconds.
     const results = await d.enforcer.bulk(personaOf(res), items, { source: sourceOf(res) });
@@ -72,13 +72,13 @@ const isText = (v: unknown): v is string => typeof v === 'string' && v !== '';
 function checksOf(value: unknown): Array<{ action: string; ref: ResourceRef }> {
   if (!Array.isArray(value) || value.length > MAX_BULK) throw new HttpError(400, `checks must be a list of at most ${MAX_BULK} checks`);
   return value.map((check: unknown, i) => {
-    const resource = isObject(check) ? check.resource : undefined;
-    if (!isObject(check) || !isText(check.action) || !isObject(resource) || !isText(resource.type) || !isText(resource.key) || !isText(resource.tenant)) {
+    const resource = isObject(check) ? check['resource'] : undefined;
+    if (!isObject(check) || !isText(check['action']) || !isObject(resource) || !isText(resource['type']) || !isText(resource['key']) || !isText(resource['tenant'])) {
       throw new HttpError(400, `checks[${i}] needs an action and a resource with type, key and tenant`);
     }
-    if (resource.attributes !== undefined && !isObject(resource.attributes)) throw new HttpError(400, `checks[${i}].resource.attributes must be an object`);
-    const ref: ResourceRef = { type: resource.type, key: resource.key, tenant: resource.tenant };
-    if (resource.attributes !== undefined) ref.attributes = resource.attributes;
-    return { action: check.action, ref };
+    if (resource['attributes'] !== undefined && !isObject(resource['attributes'])) throw new HttpError(400, `checks[${i}].resource.attributes must be an object`);
+    const ref: ResourceRef = { type: resource['type'], key: resource['key'], tenant: resource['tenant'] };
+    if (resource['attributes'] !== undefined) ref.attributes = resource['attributes'];
+    return { action: check['action'], ref };
   });
 }

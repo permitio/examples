@@ -20,7 +20,7 @@ export function SignPlate({
   id: string
   title: string
   children?: ReactNode
-  aside?: { icon: Icon; text: string }
+  aside?: { icon: Icon; text: string } | undefined
 }) {
   return (
     <section
@@ -89,7 +89,7 @@ export function GateSign({
   label: string
   title: string
   detail?: string
-  clock?: { value: string; caption: string }
+  clock?: { value: string; caption: string } | undefined
   action?: ReactNode
   children?: ReactNode
 }) {

@@ -5,9 +5,9 @@ import { EmptyNote, Heading, Lede, Tag } from '@/components/parts';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useResource } from '@/hooks';
-import { PagePlate } from '../s4/parts';
-import { groupRows } from './team';
-import type { PermissionRow, PermissionsResponse } from './types';
+import { PagePlate } from '@/pages/s4/parts';
+import { groupRows } from '@/pages/s2/team';
+import type { PermissionRow, PermissionsResponse } from '@/pages/s2/types';
 
 /** One kind of resource as a framed table: where, the roles held there, and the actions they allow. */
 function PermissionTable({ id, title, rows }: { id: string; title: string; rows: PermissionRow[] }) {

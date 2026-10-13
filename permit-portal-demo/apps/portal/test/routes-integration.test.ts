@@ -3,9 +3,9 @@
 import type { Response } from 'express';
 import request from 'supertest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HttpError } from '../src/server/errors';
-import { connectorOf } from '../src/server/routes/integration-api';
-import { as, asConnector, approvedForProduction, KEY, NAME, register, s5World, SHIRE } from './fakes-s5';
+import { HttpError } from '#src/server/errors';
+import { connectorOf } from '#src/server/routes/integration-api';
+import { as, asConnector, approvedForProduction, KEY, NAME, register, s5World, SHIRE } from '#test/fakes-s5';
 
 const SHIPMENTS = '/api/integration/shipments';
 const UNKNOWN = { error: 'Unknown client credential' };

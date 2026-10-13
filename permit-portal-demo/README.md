@@ -30,7 +30,7 @@ Each scenario has an automated runner (`bin/demo scenario <profile> <s1|s2|s4|s5
 
 ## Setup
 
-1. Install: `npm ci`
+1. Install: `corepack enable && pnpm install --frozen-lockfile`
 2. Create `profiles/demo.env` with the environment's API URL and key (see [`profiles/README.md`](profiles/README.md)).
 3. Create the policy and the demo data in Permit: `bin/demo seed demo`
 4. Build and start the PDP, the systems and the portal: `bin/demo up demo`
@@ -72,6 +72,6 @@ The demo uses `permitio` 3.0.0, built from the open [permit-node pull request #1
 ## Tests
 
 ```
-npm run typecheck
-npx vitest run
+pnpm lint
+pnpm test
 ```

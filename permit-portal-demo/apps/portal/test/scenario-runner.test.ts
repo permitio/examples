@@ -2,15 +2,15 @@ import { once } from 'node:events';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { type Result, runCli } from '../scripts/lib/report';
-import type { DecisionChange, ReplayReport } from '../scripts/replay';
-import { Api, awaitResetState, type Expected, expectSameItems, runScenario, StepError } from '../scripts/scenario-runner';
-import { runS1 } from '../scripts/scenario-s1';
-import { runS2 } from '../scripts/scenario-s2';
-import { runS4 } from '../scripts/scenario-s4';
-import { runS5 } from '../scripts/scenario-s5';
-import { type AuditTrail, auditTrailWith, runS8 } from '../scripts/scenario-s8';
-import { type Reply, S5_SECRET, type S2Bugs, type S5Bugs, type S8Bugs, type Seen, s2World, s5World, s8World } from './fakes-runners';
+import { type Result, runCli } from '#scripts/lib/report';
+import type { DecisionChange, ReplayReport } from '#scripts/replay';
+import { Api, awaitResetState, type Expected, expectSameItems, runScenario, StepError } from '#scripts/scenario-runner';
+import { runS1 } from '#scripts/scenario-s1';
+import { runS2 } from '#scripts/scenario-s2';
+import { runS4 } from '#scripts/scenario-s4';
+import { runS5 } from '#scripts/scenario-s5';
+import { type AuditTrail, auditTrailWith, runS8 } from '#scripts/scenario-s8';
+import { type Reply, S5_SECRET, type S2Bugs, type S5Bugs, type S8Bugs, type Seen, s2World, s5World, s8World } from '#test/fakes-runners';
 
 const servers: Server[] = [];
 afterEach(async () => {
@@ -242,7 +242,7 @@ function nthOf(n: number, match: Match, tamper: Tamper): Tamper {
   return (req, was) => (match(req) && ++counted === n ? tamper(req, was) : was);
 }
 /** Drops the events of the decision-panel feed that `keep` refuses. */
-const keeping = (keep: (event: Doc) => boolean): Tamper => rewrite(on('/api/events'), (body) => ({ ...body, events: (body.events as Doc[]).filter(keep) }));
+const keeping = (keep: (event: Doc) => boolean): Tamper => rewrite(on('/api/events'), (body) => ({ ...body, events: (body['events'] as Doc[]).filter(keep) }));
 const listed = (body: Doc, key: string) => body[key] as Doc[];
 
 describe('the shared helpers of the new runners', () => {
@@ -321,7 +321,7 @@ describe('S2 runner', () => {
 
   const GRID = on('/api/s2/permissions/merry');
   const rowsOf = (body: Doc) => listed(body, 'rows');
-  const editRow = (resource: string, change: (row: Doc) => Doc) => rewrite(GRID, (body) => ({ rows: rowsOf(body).map((row) => (row.resource === resource ? change(row) : row)) }));
+  const editRow = (resource: string, change: (row: Doc) => Doc) => rewrite(GRID, (body) => ({ rows: rowsOf(body).map((row) => (row['resource'] === resource ? change(row) : row)) }));
   const MERRYS_ASSIGNMENTS = '/api/s2/members/merry/assignments';
 
   it.each<{ name: string; step: number; says: string; bugs?: S2Bugs; tamper?: Tamper }>([
@@ -342,14 +342,14 @@ describe('S2 runner', () => {
     { name: 'the portal reports a fresh grant as no change', step: 2, says: 'reports 0 ms on the PDP',
       tamper: rewrite((req) => req.method === 'POST' && req.path === '/api/s2/grants', () => ({ ms: 0 })) },
     { name: "the decision panel has no check for Sam's grant", step: 2, says: 'the decision panel has no allowed grant_shipper check as sam on ean:EAN-1001',
-      tamper: keeping((event) => event.kind !== 'check') },
+      tamper: keeping((event) => event['kind'] !== 'check') },
     { name: "the decision panel has no write for Sam's grant", step: 2, says: 'the decision panel has no confirmed write "assign shipper on ean:EAN-1001 to merry"',
-      tamper: keeping((event) => event.kind !== 'write') },
+      tamper: keeping((event) => event['kind'] !== 'write') },
     { name: "Team access forgets Merry's operator role on Frogmorton depot", step: 4, says: "Merry's roles in Sam's Team access lacks location_operator location:LOC-FROGMORTON",
-      tamper: rewrite(on(MERRYS_ASSIGNMENTS, 'sam'), (body) => ({ assignments: listed(body, 'assignments').filter((a) => a.resource !== 'location:LOC-FROGMORTON') })) },
+      tamper: rewrite(on(MERRYS_ASSIGNMENTS, 'sam'), (body) => ({ assignments: listed(body, 'assignments').filter((a) => a['resource'] !== 'location:LOC-FROGMORTON') })) },
     { name: "Hobbiton's row lists no role", step: 6, says: "Merry's roles on account:CA-1001-A lacks shipper", tamper: editRow('account:CA-1001-A', (row) => ({ ...row, roles: [] })) },
     { name: "Hobbiton's row lists view_billing, which no decision allows", step: 6, says: "Merry's actions on account:CA-1001-A also has view_billing",
-      tamper: editRow('account:CA-1001-A', (row) => ({ ...row, actions: [...(row.actions as string[]), 'view_billing'] })) },
+      tamper: editRow('account:CA-1001-A', (row) => ({ ...row, actions: [...(row['actions'] as string[]), 'view_billing'] })) },
     { name: 'the PDP lets Merry view billing on Hobbiton, which the grid does not list', step: 6, says: 'merry view_billing account:CA-1001-A@shire-freight: expected deny, got allow',
       // The first of Merry's bulk checks is the start check, which must see the reset state; the second is step 6's.
       tamper: nthOf(2, on('/api/checks/bulk', 'merry'), rewrite(on('/api/checks/bulk', 'merry'), (body) => ({ ...body, results: listed(body, 'results').map(() => ({ allow: true })) }))) },
@@ -366,11 +366,11 @@ describe('S2 runner', () => {
     { name: "the forged grant is refused in other words than Permit's", step: 9, says: "the portal's reason is Something went wrong, expected Permit denied grant_shipper on ean:EAN-1002.",
       tamper: rewrite(on('/api/s2/forged-grant'), (body) => ({ ...body, body: { error: 'Something went wrong', decision: 'deny' } })) },
     { name: "the decision panel has no DENIED check for Frodo's grant", step: 9, says: 'the decision panel has no DENIED grant_shipper check as frodo on ean:EAN-1002',
-      tamper: keeping((event) => event.user !== 'frodo') },
+      tamper: keeping((event) => event['user'] !== 'frodo') },
     { name: 'the portal reports a removal as no change', step: 10, says: 'the removal reports 0 ms on the PDP',
       tamper: rewrite((req) => req.method === 'DELETE', () => ({ ms: 0 })) },
     { name: "Merry's grid still lists Frogmorton depot after the removal (the grid only)", step: 10, says: "Merry's grid after the removal also has location:LOC-FROGMORTON",
-      tamper: rewrite(GRID, (body) => ({ rows: rowsOf(body).some((row) => row.resource === 'location:LOC-FROGMORTON') ? rowsOf(body) : [...rowsOf(body), { resource: 'location:LOC-FROGMORTON', name: 'Frogmorton depot', roles: ['location_operator'], actions: ['operate', 'view'] }] })) },
+      tamper: rewrite(GRID, (body) => ({ rows: rowsOf(body).some((row) => row['resource'] === 'location:LOC-FROGMORTON') ? rowsOf(body) : [...rowsOf(body), { resource: 'location:LOC-FROGMORTON', name: 'Frogmorton depot', roles: ['location_operator'], actions: ['operate', 'view'] }] })) },
     { name: 'a repeated removal is reported as a change', step: 10, says: 'the milliseconds a repeated removal reports is 900, expected 0',
       tamper: nthOf(2, (req) => req.method === 'DELETE', () => [200, { ms: 900 }]) },
   ])('stops at step $step and exits 1 when $name', async ({ bugs, tamper, step, says }) => {
@@ -428,7 +428,7 @@ describe('S5 runner', () => {
   const scopeOf = (c: Doc) => listed(c, 'scope');
   const RUN = on('/api/integrations/shire-erp/run');
   /** The console's run answers for one call of the connector. */
-  const runOf = (op: string, ean: string): Match => (req) => RUN(req) && (req.body as Doc).op === op && (req.body as Doc).ean === ean;
+  const runOf = (op: string, ean: string): Match => (req) => RUN(req) && (req.body as Doc)['op'] === op && (req.body as Doc)['ean'] === ean;
   const refused = (op: string, ean: string, status = 403): Reply => [200, { status, body: { error: `Permit denied ${op === 'create' ? 'create_shipment' : 'view'} on ean:${ean}.`, decision: 'deny' } }];
   const APPROVE = (who: string): Match => (req) => req.method === 'POST' && req.persona === who && req.path.endsWith('/approve');
   const RECENT_DENIED = [1, 2, 3, 4, 5].map((at) => ({ action: 'view', resource: 'ean:EAN-1001', allow: false, at }));
@@ -451,7 +451,7 @@ describe('S5 runner', () => {
     { name: 'the client secret is not 64 hexadecimal characters', step: 1, says: 'the client secret is not 64 hexadecimal characters',
       tamper: rewrite((req) => req.method === 'POST' && req.path === '/api/s5/integrations', (body) => ({ ...body, client_secret: 'abc123' })) },
     { name: "the registration gives the connector a role beyond the sandbox", step: 1, says: "the connector's scope also has integration_client ean:EAN-1001",
-      tamper: rewrite((req) => req.method === 'POST' && req.path === '/api/s5/integrations', (body) => ({ ...body, integration: { ...(body.integration as Doc), scope: [...scopeOf(body.integration as Doc), { role: 'integration_client', resource: 'ean:EAN-1001' }] } })) },
+      tamper: rewrite((req) => req.method === 'POST' && req.path === '/api/s5/integrations', (body) => ({ ...body, integration: { ...(body['integration'] as Doc), scope: [...scopeOf(body['integration'] as Doc), { role: 'integration_client', resource: 'ean:EAN-1001' }] } })) },
     { name: 'the integration API lets a call with no credential in', step: 1, says: "the integration API's status without a credential is 201, expected 401",
       tamper: answer((req) => req.path === '/api/integration/shipments' && req.authorization === undefined, [201, { key: 'SHP-1' }]) },
     { name: 'the integration API refuses a stranger in other words', step: 1, says: "the integration API's reason is Forbidden, expected Unknown client credential",
@@ -473,7 +473,7 @@ describe('S5 runner', () => {
     { name: 'the approval reports no change on the PDP', step: 6, says: 'the approval reports 0 ms on the PDP, so no role was written',
       tamper: rewrite(APPROVE('sam'), (body) => ({ ...body, ms: 0 })) },
     { name: 'the approval leaves the connector without its role', step: 6, says: "the connector's scope lacks integration_client ean:EAN-1001",
-      tamper: card((c) => ({ ...c, scope: scopeOf(c).filter((entry) => entry.resource !== 'ean:EAN-1001') }), 'sam') },
+      tamper: card((c) => ({ ...c, scope: scopeOf(c).filter((entry) => entry['resource'] !== 'ean:EAN-1001') }), 'sam') },
     { name: 'the PDP lets Pippin view EAN-1001', step: 6, says: 'pippin view ean:EAN-1001@shire-freight: expected deny, got allow',
       tamper: rewrite(on('/api/checks/bulk', 'pippin'), (body) => ({ ...body, results: listed(body, 'results').map(() => ({ allow: true })) })) },
     { name: 'Great Eagle systems hold no shipment after the create', step: 7, says: 'the shipments Great Eagle systems hold on EAN-1001 lacks SHP-80002',
@@ -483,9 +483,9 @@ describe('S5 runner', () => {
     { name: 'the PDP does not let Sam view EAN-1002', step: 8, says: 'sam view ean:EAN-1002@shire-freight: expected allow, got deny',
       tamper: rewrite(on('/api/checks/bulk', 'sam'), (body) => ({ ...body, results: listed(body, 'results').map(() => ({ allow: false })) })) },
     { name: 'the view-only swap reports no change', step: 9, says: 'the swap reports 0 ms on the PDP, so no role changed',
-      tamper: rewrite((req) => on('/api/s5/integrations/shire-erp/scope')(req) && (req.body as Doc).level === 'read', () => ({ ms: 0 })) },
+      tamper: rewrite((req) => on('/api/s5/integrations/shire-erp/scope')(req) && (req.body as Doc)['level'] === 'read', () => ({ ms: 0 })) },
     { name: 'after the swap the card still lists the create role', step: 9, says: "the connector's scope also has integration_client ean:EAN-1001",
-      tamper: card((c) => (scopeOf(c).some((e) => e.role === 'integration_reader') ? { ...c, scope: [...scopeOf(c), { role: 'integration_client', resource: 'ean:EAN-1001' }] } : c), 'sam') },
+      tamper: card((c) => (scopeOf(c).some((e) => e['role'] === 'integration_reader') ? { ...c, scope: [...scopeOf(c), { role: 'integration_client', resource: 'ean:EAN-1001' }] } : c), 'sam') },
     { name: 'a list on EAN-1001 is refused after the swap', step: 9, says: "the connector's list on EAN-1001 answered 403, expected 200",
       tamper: nthOf(2, runOf('list', 'EAN-1001'), answer(() => true, refused('list', 'EAN-1001'))) },
     { name: 'the list on EAN-1001 does not show the shipment the connector created', step: 9, says: 'the list on EAN-1001 does not show SHP-80002',
@@ -553,8 +553,8 @@ describe('S5 runner', () => {
 });
 
 describe('S8 runner', () => {
-  const FRODO_CHANGE: DecisionChange = { at: '2026-10-07T15:53:25+00:00', user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', then: true, now: false };
-  const PIPPIN_CHANGE: DecisionChange = { at: '2026-10-07T15:53:17+00:00', user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', then: false, now: true };
+  const FRODO_CHANGE: DecisionChange = { at: '2026-10-07T15:53:25+00:00', user: 'frodo', action: 'view_billing', resource: 'account:CA-1001-A', was: true, now: false };
+  const PIPPIN_CHANGE: DecisionChange = { at: '2026-10-07T15:53:17+00:00', user: 'pippin', action: 'view_billing', resource: 'account:CA-1001-A', was: false, now: true };
   const report = (changed: DecisionChange[]): ReplayReport => ({ total: 404, unchanged: 404 - changed.length, changed, unreplayable: 0, pages: 5 });
   type Trail = Partial<AuditTrail>;
 
@@ -611,13 +611,13 @@ describe('S8 runner', () => {
 
   const VALIDATE = on('/api/legacy/validate');
   const STATE = on('/api/legacy/state');
-  const REQUEST = (user: string): Match => (req) => req.path === '/api/legacy/requests' && (req.body as Doc).user === user;
+  const REQUEST = (user: string): Match => (req) => req.path === '/api/legacy/requests' && (req.body as Doc)['user'] === user;
   const SYNC = on('/api/legacy/sync');
-  const MODE = (mode: string): Match => (req) => req.method === 'PUT' && req.path === '/api/legacy/mode' && (req.body as Doc).mode === mode;
-  const groups = (body: Doc) => listed(body.summary as Doc, 'groups');
+  const MODE = (mode: string): Match => (req) => req.method === 'PUT' && req.path === '/api/legacy/mode' && (req.body as Doc)['mode'] === mode;
+  const groups = (body: Doc) => listed(body['summary'] as Doc, 'groups');
   /** Changes the comparison's groups in the answer to the `n`th validation. */
   const regroup = (n: number, change: (groups: Doc[]) => Doc[]): Tamper =>
-    nthOf(n, VALIDATE, rewrite(VALIDATE, (body) => ({ ...body, summary: { ...(body.summary as Doc), groups: change(groups(body)) } })));
+    nthOf(n, VALIDATE, rewrite(VALIDATE, (body) => ({ ...body, summary: { ...(body['summary'] as Doc), groups: change(groups(body)) } })));
   const grantsOf = (body: Doc) => listed(body, 'grants');
 
   it.each<{ name: string; step: number; says: string; bugs?: S8Bugs; tamper?: Tamper }>([
@@ -632,33 +632,33 @@ describe('S8 runner', () => {
     // One answer is wrong.
     { name: 'the legacy app starts in both mode', step: 1, says: 'the mode is both, expected shadow', tamper: rewrite(STATE, (body) => ({ ...body, mode: 'both' })) },
     { name: 'the legacy table lacks Fatty', step: 1, says: "the legacy app's users lacks fatty",
-      tamper: nthOf(1, STATE, rewrite(STATE, (body) => ({ ...body, users: listed(body, 'users').filter((u) => u.key !== 'fatty') }))) },
+      tamper: nthOf(1, STATE, rewrite(STATE, (body) => ({ ...body, users: listed(body, 'users').filter((u) => u['key'] !== 'fatty') }))) },
     { name: "the first comparison lists someone else's mismatches", step: 2, says: 'the users with mismatches also has sam',
       tamper: regroup(1, (list) => [...list, { user: 'sam', count: 13 }]) },
     { name: "Pippin's mismatch is approved as well", step: 2, says: "Pippin's mismatches are unexpected: approved by is sam, expected missing",
-      tamper: regroup(1, (list) => list.map((g) => (g.user === 'pippin' ? { ...g, expected: { reason: 'x', approved_by: 'sam' } } : g))) },
+      tamper: regroup(1, (list) => list.map((g) => (g['user'] === 'pippin' ? { ...g, expected: { reason: 'x', approved_by: 'sam' } } : g))) },
     { name: "Fatty's tightening is approved by someone else", step: 2, says: "the owner's approval of fatty's tightening is frodo, expected sam",
-      tamper: regroup(1, (list) => list.map((g) => (g.user === 'fatty' ? { ...g, expected: { reason: 'x', approved_by: 'frodo' } } : g))) },
+      tamper: regroup(1, (list) => list.map((g) => (g['user'] === 'fatty' ? { ...g, expected: { reason: 'x', approved_by: 'frodo' } } : g))) },
     { name: 'the mapping stays on version 1', step: 3, says: 'the mapping version is 1, expected 2',
       tamper: rewrite((req) => req.method === 'PUT' && req.path === '/api/legacy/mapping', (body) => ({ ...body, mappingVersion: 1 })) },
     { name: 'the sync lists a grant as failed', step: 3, says: 'the grants that failed is 1, expected 0',
       tamper: rewrite(SYNC, (body) => ({ ...body, grants: grantsOf(body).map((g, i) => (i === 0 ? { ...g, status: 'failed' } : g)) })) },
     { name: "the sync does not skip Lobelia's grants", step: 3, says: 'the grants the mapping skipped lacks lobelia, lobelia',
-      tamper: rewrite(SYNC, (body) => ({ ...body, grants: grantsOf(body).map((g) => (g.user === 'lobelia' ? { ...g, status: 'written' } : g)) })) },
+      tamper: rewrite(SYNC, (body) => ({ ...body, grants: grantsOf(body).map((g) => (g['user'] === 'lobelia' ? { ...g, status: 'written' } : g)) })) },
     { name: 'the sync counts one write only', step: 3, says: 'the grants written or already held is 1, expected 3',
       tamper: rewrite(SYNC, (body) => ({ ...body, written: 1, unchanged: 0 })) },
     { name: 'the second comparison lists an approved group of someone else', step: 4, says: 'the users with mismatches also has sam',
       tamper: regroup(2, (list) => [...list, { user: 'sam', count: 13, expected: { reason: 'x', approved_by: 'sam' } }]) },
     { name: "the second comparison leaves Fatty's group unapproved", step: 4, says: 'the unexpected mismatches is 1, expected 0',
-      tamper: regroup(2, (list) => list.map((g) => (g.user === 'fatty' ? { user: g.user, count: g.count } : g))) },
+      tamper: regroup(2, (list) => list.map((g) => (g['user'] === 'fatty' ? { user: g['user'], count: g['count'] } : g))) },
     { name: 'Fatty passes in both mode', step: 5, says: 'fatty on CA-1001-A: what the legacy app enforced is true, expected false',
       tamper: rewrite(REQUEST('fatty'), (body) => ({ ...body, enforced: true })) },
     { name: 'the revocation reports no change', step: 6, says: 'the revocation reports 0 ms on the PDP, so no role was removed',
       tamper: rewrite((req) => req.method === 'DELETE', () => ({ ms: 0 })) },
     { name: "Frodo's accounts in the legacy table are gone", step: 7, says: "Frodo's accounts in the legacy table lacks EAN-1001",
-      tamper: nthOf(2, STATE, rewrite(STATE, (body) => ({ ...body, users: listed(body, 'users').map((u) => (u.key === 'frodo' ? { ...u, accounts: [] } : u)) }))) },
+      tamper: nthOf(2, STATE, rewrite(STATE, (body) => ({ ...body, users: listed(body, 'users').map((u) => (u['key'] === 'frodo' ? { ...u, accounts: [] } : u)) }))) },
     { name: "Sam is denied after Frodo's revocation", step: 7, says: "sam on CA-1001-B: Permit's answer is false, expected true",
-      tamper: rewrite(REQUEST('sam'), (body) => (body.mode === 'both' ? { ...body, permit: false, enforced: false } : body)) },
+      tamper: rewrite(REQUEST('sam'), (body) => (body['mode'] === 'both' ? { ...body, permit: false, enforced: false } : body)) },
     { name: 'the switch to Permit leaves the mode on both', step: 8, says: 'the mode is both, expected permit',
       tamper: rewrite(MODE('permit'), (body) => ({ ...body, mode: 'both' })) },
     { name: 'the rollback leaves the mode on Permit', step: 9, says: 'the mode is permit, expected both',

@@ -1,16 +1,16 @@
 import express, { type Request, type Response } from 'express';
-import { CleanupJob, DEFAULT_CLEANUP_INTERVAL_MS } from './cleanup-job';
-import { CONSOLE_HTML } from './console';
-import { renderS2Console, s2ConsoleRouter } from './console-s2';
-import { renderS5Console } from './console-s5';
-import { renderS8Console } from './console-s8';
-import { answerErrors, type Body, HttpError, jsonBody, text } from './http';
-import type { NotifyResult, PortalNotifier } from './portal-notifier';
-import type { RequestStatus, RequestType } from './requests';
-import { s5Router } from './routes-s5';
-import { s8Router } from './routes-s8';
-import { loadSeed, type SeedData, type TrustFacts } from './seed';
-import type { NewRequest, Store } from './store';
+import { CleanupJob, DEFAULT_CLEANUP_INTERVAL_MS } from '#src/cleanup-job';
+import { CONSOLE_HTML } from '#src/console';
+import { renderS2Console, s2ConsoleRouter } from '#src/console-s2';
+import { renderS5Console } from '#src/console-s5';
+import { renderS8Console } from '#src/console-s8';
+import { answerErrors, type Body, HttpError, jsonBody, text } from '#src/http';
+import type { NotifyResult, PortalNotifier } from '#src/portal-notifier';
+import type { RequestStatus, RequestType } from '#src/requests';
+import { s5Router } from '#src/routes-s5';
+import { s8Router } from '#src/routes-s8';
+import { loadSeed, type SeedData, type TrustFacts } from '#src/seed';
+import type { NewRequest, Store } from '#src/store';
 
 export interface AppDeps {
   store: Store; notifier: PortalNotifier; now: () => number;
@@ -72,15 +72,15 @@ function queryList(req: Request, name: string): string[] {
 
 function factsPatch(body: Body): Partial<TrustFacts> {
   return {
-    ...(body.identity_verified !== undefined ? { identity_verified: flag(body, 'identity_verified') } : {}),
-    ...(body.duplicate_check !== undefined ? { duplicate_check: oneOf('duplicate_check', body.duplicate_check, DUPLICATE_CHECKS) } : {}),
-    ...(body.risk_state !== undefined ? { risk_state: oneOf('risk_state', body.risk_state, RISK_STATES) } : {}),
+    ...(body['identity_verified'] !== undefined ? { identity_verified: flag(body, 'identity_verified') } : {}),
+    ...(body['duplicate_check'] !== undefined ? { duplicate_check: oneOf('duplicate_check', body['duplicate_check'], DUPLICATE_CHECKS) } : {}),
+    ...(body['risk_state'] !== undefined ? { risk_state: oneOf('risk_state', body['risk_state'], RISK_STATES) } : {}),
   };
 }
 
 function newRequest(body: Body): NewRequest {
   return {
-    type: oneOf('type', body.type, REQUEST_TYPES), tenant: text(body, 'tenant'), target: text(body, 'target'),
+    type: oneOf('type', body['type'], REQUEST_TYPES), tenant: text(body, 'tenant'), target: text(body, 'target'),
     requested_for: text(body, 'requested_for'), initiated_by: text(body, 'initiated_by'),
     role: optionalText(body, 'role'), reason: optionalText(body, 'reason'), org_name: optionalText(body, 'org_name'),
     duration_ms: optionalCount(body, 'duration_ms'), requested_days: optionalCount(body, 'requested_days'),
@@ -186,7 +186,7 @@ export function createApp({
   app.post('/api/requests/:id/transition', (req, res) => {
     const body = jsonBody(req, ['to', 'by', 'comment', 'duration_ms']);
     const move = {
-      to: oneOf('to', body.to, REQUEST_STATUSES), by: text(body, 'by'), comment: optionalText(body, 'comment'),
+      to: oneOf('to', body['to'], REQUEST_STATUSES), by: text(body, 'by'), comment: optionalText(body, 'comment'),
       duration_ms: optionalCount(body, 'duration_ms'),
     };
     res.json(found(store.transitionRequest(req.params.id, move, now()), `No request ${req.params.id}`));

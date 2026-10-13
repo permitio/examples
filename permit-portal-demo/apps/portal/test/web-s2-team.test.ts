@@ -1,8 +1,8 @@
 // The logic behind S2's pages that needs no browser: the Team access tree built from what Permit allowed, which toggle is
 // on, and the grid's groups. The pages themselves (src/web/pages/s2/*.tsx) only draw these.
 import { describe, expect, it } from 'vitest';
-import { grantKey, groupRows, heldKeys, NO_TOGGLES, roleLabel, type ToggleState, toggleStateFor, type TreeNode, treeOf, withConfirmed } from '../src/web/pages/s2/team';
-import type { AssignmentsResponse, Grantable, PermissionRow } from '../src/web/pages/s2/types';
+import { grantKey, groupRows, heldKeys, NO_TOGGLES, roleLabel, type ToggleState, toggleStateFor, type TreeNode, treeOf, withConfirmed } from '@/pages/s2/team';
+import type { AssignmentsResponse, Grantable, PermissionRow } from '@/pages/s2/types';
 
 const ean = (key: string, role: string): Grantable => ({ role, resource: `ean:${key}`, name: key, parent: null });
 const account = (key: string, name: string, parentEan: string, role = 'account_manager'): Grantable =>

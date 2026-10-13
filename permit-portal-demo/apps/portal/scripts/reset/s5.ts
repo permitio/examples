@@ -1,7 +1,7 @@
 import type { Permit } from 'permitio';
-import { TENANT } from '../../src/server/model';
-import { actsFor } from '../../src/server/routes/s5';
-import { ignoreNotFound, type Log, logged } from '../lib/admin';
+import { TENANT } from '#src/server/model';
+import { actsFor } from '#src/server/routes/s5';
+import { ignoreNotFound, type Log, logged } from '#scripts/lib/admin';
 
 /** The Permit API's largest page of users. */
 const PAGE_SIZE = 100;

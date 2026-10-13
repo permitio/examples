@@ -5,14 +5,14 @@
 // It asserts every decision and status code. It is the automated rehearsal. The connector's client secret is shown to the
 // runner once, at registration: it is never printed, and every line the runner prints passes through a filter for it.
 // Run: bin/demo scenario <profile> s5. Exit 0 pass, 1 fail, 2 could not run.
-import { TENANT } from '../src/server/model';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { isMain, type Outcome, type Result, runCli } from './lib/report';
-import { runReset } from './reset';
+import { TENANT } from '#src/server/model';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { isMain, type Outcome, type Result, runCli } from '#scripts/lib/report';
+import { runReset } from '#scripts/reset';
 import {
   Api, approvalOf, errorText, type Expected, eventsSince, expectDecisions, expectEqual, expectSameItems, field, lastEventId, listOf, type Log, ms, NotReady,
   numberOf, requestOf, runScenario, StepError, textOf,
-} from './scenario-runner';
+} from '#scripts/scenario-runner';
 
 const PIPPIN = 'pippin';
 const SAM = 'sam';

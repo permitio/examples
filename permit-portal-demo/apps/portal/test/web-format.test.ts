@@ -14,7 +14,7 @@ import {
   timeLegend,
   formatPrecise,
   trustFactItems,
-} from '../src/web/format';
+} from '@/format';
 
 describe('formatCountdown', () => {
   it.each([

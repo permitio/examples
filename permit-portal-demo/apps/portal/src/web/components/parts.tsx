@@ -45,7 +45,7 @@ export function CountBadge({ count, label }: { count: number; label?: string }) 
 }
 
 /** A section heading with an optional count badge and an optional action on the right. */
-export function Heading({ id, title, count, action }: { id: string; title: string; count?: number; action?: ReactNode }) {
+export function Heading({ id, title, count, action }: { id: string; title: string; count?: number | undefined; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">

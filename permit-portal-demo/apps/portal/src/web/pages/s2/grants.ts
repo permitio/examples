@@ -1,7 +1,7 @@
 // S2's writes: give a member a role on one resource, and take it away, through the shared client.
 
 import { api } from '@/api';
-import type { GrantBody, GrantResponse } from './types';
+import type { GrantBody, GrantResponse } from '@/pages/s2/types';
 
 /** POST /api/s2/grants: the portal asks Permit `grant_<role>` on that resource, writes the role and answers once the PDP holds it. */
 export const grantRole = (grant: GrantBody) => api.post<GrantResponse>('/api/s2/grants', grant);

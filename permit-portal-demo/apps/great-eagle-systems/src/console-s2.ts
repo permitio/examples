@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { consolePage } from './console';
+import { consolePage } from '#src/console';
 
 /**
  * The grant S2's tester forges: Frodo administers EAN-1001 only, and gives Merry shipper on EAN-1002,

@@ -1,11 +1,11 @@
 import { type Response, Router } from 'express';
-import type { Deps } from '../app';
-import { DeniedError, deniedBy, HttpError } from '../errors';
-import { grantsOf, removeGrant } from '../grants';
-import { RESOURCE, type RequestType, type SeedData } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { personaOf, sourceOf } from '../personas';
-import { bodyOf, optionalText, personaKey, positiveInt, text } from './validate';
+import type { Deps } from '#src/server/app';
+import { DeniedError, deniedBy, HttpError } from '#src/server/errors';
+import { grantsOf, removeGrant } from '#src/server/grants';
+import { RESOURCE, type RequestType, type SeedData } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { personaOf, sourceOf } from '#src/server/personas';
+import { bodyOf, optionalText, personaKey, positiveInt, text } from '#src/server/routes/validate';
 
 type Shipment = SeedData['shipments'][number];
 

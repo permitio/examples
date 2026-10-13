@@ -1,17 +1,17 @@
 import { ChevronRightIcon, DatabaseZapIcon, PanelRightCloseIcon, PanelRightOpenIcon } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { api, emptyFeed, explainEvent, type FeedState, isShown, mergeFeed } from '../api';
-import { formatClock, formatPrecise, replayNote, ruleLegend, timeLegend } from '../format';
-import { usePersonaName, useVisible } from '../hooks';
-import type { CheckEvent, EventsResponse, ExplainResponse, ReadEvent, WriteEvent } from '../types';
-import { Decision } from './CheckChips';
-import { ErrorBanner } from './ErrorBanner';
-import { SignDirectory } from './panel/SignDirectory';
-import { Button } from './ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { Separator } from './ui/separator';
-import { Switch } from './ui/switch';
+import { api, emptyFeed, explainEvent, type FeedState, isShown, mergeFeed } from '@/api';
+import { formatClock, formatPrecise, replayNote, ruleLegend, timeLegend } from '@/format';
+import { usePersonaName, useVisible } from '@/hooks';
+import type { CheckEvent, EventsResponse, ExplainResponse, ReadEvent, WriteEvent } from '@/types';
+import { Decision } from '@/components/CheckChips';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { SignDirectory } from '@/components/panel/SignDirectory';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 
 const POLL_MS = 700;
 

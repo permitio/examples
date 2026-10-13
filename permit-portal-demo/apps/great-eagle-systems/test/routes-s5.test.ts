@@ -6,10 +6,10 @@ import type { AddressInfo } from 'node:net';
 import { Script } from 'node:vm';
 import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createApp } from '../src/app';
-import type { PortalNotifier } from '../src/portal-notifier';
-import { loadSeed } from '../src/seed';
-import { Store } from '../src/store';
+import { createApp } from '#src/app';
+import type { PortalNotifier } from '#src/portal-notifier';
+import { loadSeed } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const notifier: PortalNotifier = { factsChanged: async () => ({ ok: true }), runCleanup: async () => ({ removed: 0 }) };

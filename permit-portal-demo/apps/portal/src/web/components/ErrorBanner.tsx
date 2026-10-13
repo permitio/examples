@@ -3,8 +3,8 @@
 // red stays in the Permit panel.
 
 import { BanIcon, CheckIcon, InfoIcon, XIcon } from 'lucide-react';
-import { ApiError } from '../api';
-import { Button } from './ui/button';
+import { ApiError } from '@/api';
+import { Button } from '@/components/ui/button';
 
 function readError(error: unknown): { text: string; status?: number; deny: boolean } {
   if (error instanceof ApiError) return { text: error.message, status: error.status, deny: error.decision === 'deny' };

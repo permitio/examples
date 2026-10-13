@@ -4,8 +4,8 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { harness, permissionsOn, unconfirmed } from './fakes';
-import { hold, tenantPermissions, useS2Policy } from './fakes-s2';
+import { harness, permissionsOn, unconfirmed } from '#test/fakes';
+import { hold, tenantPermissions, useS2Policy } from '#test/fakes-s2';
 
 const SHIRE = 'shire-freight';
 type H = ReturnType<typeof harness>;

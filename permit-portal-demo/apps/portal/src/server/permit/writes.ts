@@ -1,5 +1,5 @@
-import { permitUnreachable, statusOf } from '../errors';
-import type { EventLog } from '../events';
+import { permitUnreachable, statusOf } from '#src/server/errors';
+import type { EventLog } from '#src/server/events';
 
 export class WriteFailedError extends Error {
   constructor(

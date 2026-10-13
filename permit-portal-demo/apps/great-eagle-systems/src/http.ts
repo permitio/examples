@@ -1,7 +1,7 @@
 // The request plumbing every router of these systems shares: one error to refuse a request with, the body readers, and the
 // one error handler that answers them all. app.ts puts the handler last; a test that mounts a router alone adds it too.
 import type { ErrorRequestHandler, Request } from 'express';
-import { TransitionError } from './requests';
+import { TransitionError } from '#src/requests';
 
 /** A request these systems refuse: the error handler answers `status` and `{ error: message }`. */
 export class HttpError extends Error {

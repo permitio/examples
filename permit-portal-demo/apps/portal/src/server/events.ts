@@ -1,5 +1,5 @@
 import type { IUser } from 'permitio';
-import type { CheckInput } from './permit/explainer';
+import type { CheckInput } from '#src/server/permit/explainer';
 
 /**
  * Why a check ran: a persona's own `action`, a page's background `refresh` (the request said `x-demo-source:

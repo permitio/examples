@@ -3,7 +3,7 @@
 
 import { CheckIcon, CircleDashedIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { FactItem } from '../../format';
+import type { FactItem } from '@/format';
 
 /** Our trustFactItems in a grid of cells: two across, four once the container is wide enough. */
 export function FactGrid({ label, items }: { label: string; items: FactItem[] }) {

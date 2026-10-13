@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { grant, harness, NOW } from './fakes';
+import { grant, harness, NOW } from '#test/fakes';
 
 const NW = 'riders-of-rohan';
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { grantsOf, removeExpired, removeGrant, renewGrant, upsertGrant } from '../src/server/grants';
+import { grantsOf, removeExpired, removeGrant, renewGrant, upsertGrant } from '#src/server/grants';
 
 const DAY = 86_400_000;
 const g = (resource: string, expires: number, renewals_used = 0) => ({ resource, role: 'collaborator' as const, expires, renewals_used });

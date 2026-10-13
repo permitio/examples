@@ -67,7 +67,7 @@ export function legacyPermit(env: NodeJS.ProcessEnv): Permit {
   // Permit SDK: the legacy app's own client, the way an existing app adds Permit next to its own logic. `token` is the
   // environment's API key, `pdp` the local PDP that answers every check, and `apiUrl` Permit's API.
   return new Permit({
-    token: env.PERMIT_API_KEY, apiUrl: env.PERMIT_API_URL, pdp: env.PERMIT_PDP_URL,
+    token: env['PERMIT_API_KEY'], apiUrl: env['PERMIT_API_URL'], pdp: env['PERMIT_PDP_URL'],
     // Writes go through the PDP, which answers once it has applied them: `api.users.waitForSync` only waits on a client that does.
     proxyFactsViaPdp: true,
     // A PDP that cannot answer must throw. With this off the SDK answers deny for every check instead, and the comparison

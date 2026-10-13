@@ -1,7 +1,7 @@
 // The portal API client. Every call names the current demo persona in x-demo-persona;
 // errors keep the server's own text, so a 424 or a policy deny reaches the screen word for word.
 
-import type { ApproveResponse, DemoEvent, DenyResponse, EventsResponse, ExplainResponse } from './types';
+import type { ApproveResponse, DemoEvent, DenyResponse, EventsResponse, ExplainResponse } from '@/types';
 
 export class ApiError extends Error {
   constructor(
@@ -74,7 +74,7 @@ export function onPortalRebuilt(listener: () => void): () => void {
 async function call<T>(method: string, path: string, body: unknown, { source }: CallOptions = {}): Promise<T> {
   const headers: Record<string, string> = { 'content-type': 'application/json', 'x-demo-persona': persona };
   if (source) headers['x-demo-source'] = source;
-  const res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  const res = await fetch(path, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   noteBuild(res.headers.get('x-portal-build'));
   const data = (await res.json().catch(() => ({}))) as { error?: unknown; decision?: unknown } | null;
   if (!res.ok) {

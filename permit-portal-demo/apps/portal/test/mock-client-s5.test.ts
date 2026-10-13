@@ -5,8 +5,8 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
-import { HttpError } from '../src/server/errors';
-import { MockClient } from '../src/server/mock-client';
+import { HttpError } from '#src/server/errors';
+import { MockClient } from '#src/server/mock-client';
 
 interface Seen { method: string; url: string; body: unknown }
 

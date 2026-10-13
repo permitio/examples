@@ -1,21 +1,21 @@
 import { ArrowRightIcon, BanIcon, HourglassIcon, ListChecksIcon, LockKeyholeIcon, RefreshCwIcon, TimerOffIcon, Undo2Icon, UploadIcon } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { GateSign, HiddenDetails } from '@/signs/plates';
-import { api, getPersona } from '../api';
-import { CheckChips } from '../components/CheckChips';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote, Heading, Lede } from '../components/parts';
-import { RequestSummary } from '../components/RequestSummary';
-import { Button } from '../components/ui/button';
-import { Field, FieldLabel } from '../components/ui/field';
-import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { formatCountdown, formatWhen } from '../format';
-import { PAGE_REFRESH_MS, useAction, useMeta, useNow, useResource } from '../hooks';
-import type { BulkCheckRequest, BulkCheckResponse, Collaborator, DemoRequest, Doc, RequestStatus, ShipmentDetail, ShipmentsResponse } from '../types';
-import { accessState } from './s4/access';
-import { CargoFacts, Fact, ShipmentSign } from './s4/parts';
-import { DocumentList } from './ShipmentDetail';
+import { api, getPersona } from '@/api';
+import { CheckChips } from '@/components/CheckChips';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote, Heading, Lede } from '@/components/parts';
+import { RequestSummary } from '@/components/RequestSummary';
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { formatCountdown, formatWhen } from '@/format';
+import { PAGE_REFRESH_MS, useAction, useMeta, useNow, useResource } from '@/hooks';
+import type { BulkCheckRequest, BulkCheckResponse, Collaborator, DemoRequest, Doc, RequestStatus, ShipmentDetail, ShipmentsResponse } from '@/types';
+import { accessState } from '@/pages/s4/access';
+import { CargoFacts, Fact, ShipmentSign } from '@/pages/s4/parts';
+import { DocumentList } from '@/pages/ShipmentDetail';
 
 /** The live checks re-run faster than the page: they are what the presenter watches change at the expiry. */
 const LIVE_CHECKS_MS = 5_000;

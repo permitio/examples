@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPermit } from '../src/server/permit/client';
+import { createPermit } from '#src/server/permit/client';
 
 const settings = { apiUrl: 'https://api.permit.io', apiKey: 'test-api-key', pdpUrl: 'http://pdp:7000' };
 

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import type { Deps } from '../app';
-import { HttpError } from '../errors';
-import { removeExpired } from '../grants';
-import { type CollaboratorGrant, RESOURCE, type RequestType } from '../model';
-import { personaName } from '../personas';
-import { tenantExists, trustFacts } from './s1';
-import { bodyOf, personaKey, text } from './validate';
+import type { Deps } from '#src/server/app';
+import { HttpError } from '#src/server/errors';
+import { removeExpired } from '#src/server/grants';
+import { type CollaboratorGrant, RESOURCE, type RequestType } from '#src/server/model';
+import { personaName } from '#src/server/personas';
+import { tenantExists, trustFacts } from '#src/server/routes/s1';
+import { bodyOf, personaKey, text } from '#src/server/routes/validate';
 
 const COLLABORATOR_TYPES: RequestType[] = ['collaborator_invite', 'renewal'];
 
@@ -15,7 +15,7 @@ export function internalRouter(d: Deps): Router {
 
   r.post('/facts-changed', async (req, res) => {
     const body = bodyOf(req);
-    if (body.subject === 'user') {
+    if (body['subject'] === 'user') {
       const key = personaKey(body, 'key', d.seed);
       const facts = await d.mock.getUserFacts(key);
       // Permit write: Great Eagle's trust facts, as the user's attributes.
@@ -23,7 +23,7 @@ export function internalRouter(d: Deps): Router {
       res.json(update && !update.skipped ? { ms: update.ms } : { skipped: true });
       return;
     }
-    if (body.subject !== 'org') throw new HttpError(400, "subject must be 'user' or 'org'");
+    if (body['subject'] !== 'org') throw new HttpError(400, "subject must be 'user' or 'org'");
     const key = text(body, 'key');
     // An organization's facts reach Permit only once S1 has created its tenant; until then Great Eagle keeps them alone.
     const org = (await tenantExists(d, key)) ? await d.mock.getOrg(key) : null;

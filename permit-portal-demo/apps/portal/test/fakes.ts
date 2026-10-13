@@ -4,20 +4,20 @@
 // helpers on top of harness().
 import { randomBytes } from 'node:crypto';
 import type { ICheckQuery, IResource, IUser, IUserPermissions } from 'permitio';
-import { createApp, type Deps } from '../src/server/app';
-import { DemoClock } from '../src/server/clock';
-import type { PortalConfig } from '../src/server/config';
-import { HttpError } from '../src/server/errors';
-import { EventLog } from '../src/server/events';
+import { createApp, type Deps } from '#src/server/app';
+import { DemoClock } from '#src/server/clock';
+import type { PortalConfig } from '#src/server/config';
+import { HttpError } from '#src/server/errors';
+import { EventLog } from '#src/server/events';
 import type {
   CleanupStatus, Doc, EanAssociation, IntegrationIdentity, MockClient, MockIntegration, MockOrg, MockShipment, NewIntegration, NewRequest, NewShipment,
   RegisteredIntegration, RequestFilter,
-} from '../src/server/mock-client';
-import { type DemoRequest, loadSeed, type RequestStatus, type SeedData, type TrustFacts } from '../src/server/model';
-import { type CheckClient, Enforcer } from '../src/server/permit/enforcer';
-import type { CheckInput, Explainer, Explanation } from '../src/server/permit/explainer';
-import { FactsWriter } from '../src/server/permit/facts-writer';
-import { ResourceFactsWriter } from '../src/server/permit/resource-facts-writer';
+} from '#src/server/mock-client';
+import { type DemoRequest, loadSeed, type RequestStatus, type SeedData, type TrustFacts } from '#src/server/model';
+import { type CheckClient, Enforcer } from '#src/server/permit/enforcer';
+import type { CheckInput, Explainer, Explanation } from '#src/server/permit/explainer';
+import { FactsWriter } from '#src/server/permit/facts-writer';
+import { ResourceFactsWriter } from '#src/server/permit/resource-facts-writer';
 
 export const NOW = 1_000_000;
 export const DAY = 86_400_000;

@@ -1,6 +1,6 @@
 import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { couldNotRun, describeError } from './admin';
+import { couldNotRun, describeError } from '#scripts/lib/admin';
 
 export type Outcome = 'pass' | 'fail' | 'could-not-run';
 export interface Result { outcome: Outcome; summary: string }

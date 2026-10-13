@@ -6,16 +6,16 @@ import express from 'express';
 import { type ICheckQuery, type IResource, type IUser, PermitConnectionError } from 'permitio';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { createApp } from '../src/app';
-import { answerErrors } from '../src/http';
-import { accessLog, compare } from '../src/legacy/compare';
-import { grantsFor, loadMapping } from '../src/legacy/mapping';
-import { type LegacyPermit, legacyPermit, type RoleWrite } from '../src/legacy/permit';
-import { legacyAllows } from '../src/legacy/rule';
-import type { PortalNotifier } from '../src/portal-notifier';
-import { s8Router } from '../src/routes-s8';
-import { type LegacyUser, loadSeed, type SeedAccount } from '../src/seed';
-import { Store } from '../src/store';
+import { createApp } from '#src/app';
+import { answerErrors } from '#src/http';
+import { accessLog, compare } from '#src/legacy/compare';
+import { grantsFor, loadMapping } from '#src/legacy/mapping';
+import { type LegacyPermit, legacyPermit, type RoleWrite } from '#src/legacy/permit';
+import { legacyAllows } from '#src/legacy/rule';
+import type { PortalNotifier } from '#src/portal-notifier';
+import { s8Router } from '#src/routes-s8';
+import { type LegacyUser, loadSeed, type SeedAccount } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const seed = loadSeed();
@@ -56,8 +56,6 @@ const permitAfterSync = (version: 1 | 2): Grant[] => grantsFor(version, USERS, A
 /** `compare`'s `permit` callback over a Permit that holds `grants`. */
 const askingPermit = (grants: readonly Grant[]) => async (pairs: ReadonlyArray<{ user: string; account: string }>) =>
   pairs.map((p) => permitAllows(grants, p.user, account(p.account)));
-
-const conflict = () => Object.assign(new Error('Request failed with status code 409'), { status: 409 });
 
 /**
  * The Permit SDK as the legacy app uses it, over a directory of users and role assignments. It starts as Permit does

@@ -5,9 +5,9 @@
 // "nothing changed". The replayed checks are real checks: they appear in the Audit Log too, from the moment the run starts.
 import { parseArgs } from 'node:util';
 import type { ICheckQuery, IResource, IUser } from 'permitio';
-import { describeError, HttpError, scriptPermit, statusOf } from './lib/admin';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { isMain, type Result, runCli } from './lib/report';
+import { describeError, HttpError, scriptPermit, statusOf } from '#scripts/lib/admin';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { isMain, type Result, runCli } from '#scripts/lib/report';
 
 export const USAGE = 'usage: bin/demo replay <profile> --since <ISO time, or 30m, 2h, 1d> [--action <action>] [--details]';
 
@@ -34,11 +34,11 @@ export interface ReplayArgs { since: number; action?: string; details?: true }
 
 /** One entry of the audit-log API's page (`data`): what the replay reads of it, and the request as the PDP evaluated it in `input`. */
 export interface AuditEntry {
-  id?: string; timestamp?: string; user_key?: string; action?: string; resource_type?: string; tenant?: string; decision?: boolean | null; input?: unknown;
+  id?: string; timestamp?: string; user_key?: string; action?: string; resource_type?: string; tenant?: string; decision?: boolean | null | undefined; input?: unknown;
 }
 
 /** One recorded decision that today's policy and data would answer differently. */
-export interface DecisionChange { at: string; user: string; action: string; resource: string; then: boolean; now: boolean }
+export interface DecisionChange { at: string; user: string; action: string; resource: string; was: boolean; now: boolean }
 
 export interface ReplayReport {
   /** Decisions the audit log holds in the window. */
@@ -69,7 +69,7 @@ type AuditReader = Pick<ReplayDeps, 'get' | 'bulkCheck'> & Partial<Pick<ReplayDe
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-export interface ReplayWindow { project: string; environment: string; since: number; until: number; action?: string }
+export interface ReplayWindow { project: string; environment: string; since: number; until: number; action?: string | undefined }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const nonEmpty = (value: unknown): value is string => typeof value === 'string' && value !== '';
@@ -78,7 +78,7 @@ const nonEmpty = (value: unknown): value is string => typeof value === 'string' 
 function sinceOf(value: string, now: number): number {
   const length = /^(?<count>\d+)(?<unit>[smhd])$/.exec(value)?.groups;
   if (length !== undefined) {
-    const ms = Number(length.count) * (UNIT_MS[length.unit ?? ''] ?? 0);
+    const ms = Number(length['count']) * (UNIT_MS[length['unit'] ?? ''] ?? 0);
     if (ms > 0) return now - ms;
   } else if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}.*)?$/.test(value)) {
     const time = Date.parse(value);
@@ -114,14 +114,14 @@ export function checkFromEntry(entry: AuditEntry): ReplayCheck | undefined {
   if (!isRecord(input)) return undefined;
   const { user, action, resource } = input;
   // The PDP logs a user as an object, or as the key alone: the audit pipeline reads both.
-  const key = isRecord(user) ? user.key : user;
-  if (!nonEmpty(key) || !nonEmpty(action) || !isRecord(resource) || !nonEmpty(resource.type)) return undefined;
-  const asker: IUser = { key, ...(isRecord(user) && isRecord(user.attributes) ? { attributes: user.attributes } : {}) };
+  const key = isRecord(user) ? user['key'] : user;
+  if (!nonEmpty(key) || !nonEmpty(action) || !isRecord(resource) || !nonEmpty(resource['type'])) return undefined;
+  const asker: IUser = { key, ...(isRecord(user) && isRecord(user['attributes']) ? { attributes: user['attributes'] } : {}) };
   const target: IResource = {
-    type: resource.type,
-    ...(nonEmpty(resource.key) ? { key: resource.key } : {}),
-    ...(nonEmpty(resource.tenant) ? { tenant: resource.tenant } : {}),
-    ...(isRecord(resource.attributes) ? { attributes: resource.attributes } : {}),
+    type: resource['type'],
+    ...(nonEmpty(resource['key']) ? { key: resource['key'] } : {}),
+    ...(nonEmpty(resource['tenant']) ? { tenant: resource['tenant'] } : {}),
+    ...(isRecord(resource['attributes']) ? { attributes: resource['attributes'] } : {}),
   };
   return { user: asker, action, resource: target };
 }
@@ -130,10 +130,10 @@ export function checkFromEntry(entry: AuditEntry): ReplayCheck | undefined {
 function entryOf(item: unknown): AuditEntry {
   if (!isRecord(item)) return {};
   return {
-    ...(typeof item.timestamp === 'string' ? { timestamp: item.timestamp } : {}),
-    ...(typeof item.action === 'string' ? { action: item.action } : {}),
-    ...(typeof item.decision === 'boolean' ? { decision: item.decision } : {}),
-    input: item.input,
+    ...(typeof item['timestamp'] === 'string' ? { timestamp: item['timestamp'] } : {}),
+    ...(typeof item['action'] === 'string' ? { action: item['action'] } : {}),
+    ...(typeof item['decision'] === 'boolean' ? { decision: item['decision'] } : {}),
+    input: item['input'],
   };
 }
 
@@ -175,8 +175,8 @@ async function readPage(deps: AuditReader, window: ReplayWindow, page: number): 
   });
   const path = `/v2/pdps/${encodeURIComponent(window.project)}/${encodeURIComponent(window.environment)}/audit_logs?${query}`;
   const body = await getWithRetry(deps, path, `page ${page} of the audit log`);
-  if (!isRecord(body) || !Array.isArray(body.data)) throw new Error('The audit-log API answered something other than a page of decisions');
-  return body.data.map(entryOf);
+  if (!isRecord(body) || !Array.isArray(body['data'])) throw new Error('The audit-log API answered something other than a page of decisions');
+  return body['data'].map(entryOf);
 }
 
 /** When the entry was recorded, in ms. Undefined when it has no time that can be read. */
@@ -201,7 +201,7 @@ const resourceOf = (resource: IResource) => (resource.key === undefined ? resour
 async function replayPage(deps: Pick<ReplayDeps, 'bulkCheck'>, entries: readonly AuditEntry[], report: ReplayReport): Promise<void> {
   const askable = entries.flatMap((entry) => {
     const check = checkFromEntry(entry);
-    return check !== undefined && typeof entry.decision === 'boolean' ? [{ entry, check, then: entry.decision }] : [];
+    return check !== undefined && typeof entry.decision === 'boolean' ? [{ entry, check, was: entry.decision }] : [];
   });
   report.total += entries.length;
   report.unreplayable += entries.length - askable.length;
@@ -210,14 +210,14 @@ async function replayPage(deps: Pick<ReplayDeps, 'bulkCheck'>, entries: readonly
   // permit.bulkCheck, asked of the local PDP.
   const answers = await deps.bulkCheck(askable.map((a) => a.check));
   if (answers.length !== askable.length) throw new Error(`The PDP answered ${answers.length} of the ${askable.length} checks it was asked`);
-  askable.forEach(({ entry, check, then }, i) => {
+  askable.forEach(({ entry, check, was }, i) => {
     const now = answers[i];
     if (typeof now !== 'boolean') throw new Error('The PDP answered a check with something other than allow or deny');
-    if (now === then) {
+    if (now === was) {
       report.unchanged += 1;
       return;
     }
-    report.changed.push({ at: entry.timestamp ?? 'unknown time', user: check.user.key, action: check.action, resource: resourceOf(check.resource), then, now });
+    report.changed.push({ at: entry.timestamp ?? 'unknown time', user: check.user.key, action: check.action, resource: resourceOf(check.resource), was, now });
   });
 }
 
@@ -240,17 +240,17 @@ export async function replayAuditLog(deps: AuditReader, window: ReplayWindow): P
 /** The project and environment the API key belongs to, from /v2/api-key/scope. */
 export async function scopeOf(get: ReplayDeps['get']): Promise<{ project: string; environment: string }> {
   const body = await get('/v2/api-key/scope');
-  if (!isRecord(body) || !nonEmpty(body.project_id) || !nonEmpty(body.environment_id)) {
+  if (!isRecord(body) || !nonEmpty(body['project_id']) || !nonEmpty(body['environment_id'])) {
     throw new Error("The API key is not scoped to one environment, so that environment's audit log cannot be read: use the environment key from the profile");
   }
-  return { project: body.project_id, environment: body.environment_id };
+  return { project: body['project_id'], environment: body['environment_id'] };
 }
 
 const word = (allow: boolean) => (allow ? 'ALLOW' : 'DENY');
-const changeOf = (c: { then: boolean; now: boolean }) => `then ${word(c.then)}, now ${word(c.now)}`;
+const changeOf = (c: { was: boolean; now: boolean }) => `then ${word(c.was)}, now ${word(c.now)}`;
 
 /** The decisions of one user, action and resource that would change the same way: how many, and the first and last time. */
-export interface ChangeGroup { user: string; action: string; resource: string; then: boolean; now: boolean; count: number; first: string; last: string }
+export interface ChangeGroup { user: string; action: string; resource: string; was: boolean; now: boolean; count: number; first: string; last: string }
 
 /**
  * The changes, one group per user, action, resource and change, the largest first (then by user, action and resource).
@@ -259,9 +259,9 @@ export interface ChangeGroup { user: string; action: string; resource: string; t
 export function groupChanges(changed: readonly DecisionChange[]): ChangeGroup[] {
   const groups = new Map<string, ChangeGroup & { firstMs: number; lastMs: number }>();
   for (const c of changed) {
-    const key = JSON.stringify([c.user, c.action, c.resource, c.then, c.now]);
+    const key = JSON.stringify([c.user, c.action, c.resource, c.was, c.now]);
     const ms = Date.parse(c.at);
-    const group = groups.get(key) ?? { user: c.user, action: c.action, resource: c.resource, then: c.then, now: c.now, count: 0, first: c.at, last: c.at, firstMs: ms, lastMs: ms };
+    const group = groups.get(key) ?? { user: c.user, action: c.action, resource: c.resource, was: c.was, now: c.now, count: 0, first: c.at, last: c.at, firstMs: ms, lastMs: ms };
     group.count += 1;
     if (!Number.isNaN(ms) && (Number.isNaN(group.firstMs) || ms < group.firstMs)) Object.assign(group, { first: c.at, firstMs: ms });
     if (!Number.isNaN(ms) && (Number.isNaN(group.lastMs) || ms > group.lastMs)) Object.assign(group, { last: c.at, lastMs: ms });
@@ -315,7 +315,7 @@ function noAnswerBecause(error: unknown): string {
   if (error instanceof Error && error.name === 'TimeoutError') return `no answer within ${REQUEST_TIMEOUT_MS / 1000} s`;
   const cause = error instanceof Error ? error.cause : undefined;
   const reason = cause instanceof AggregateError ? cause.errors[0] : cause;
-  const code = isRecord(reason) ? reason.code : undefined;
+  const code = isRecord(reason) ? reason['code'] : undefined;
   if (nonEmpty(code)) return code;
   return reason instanceof Error && reason.message !== '' ? reason.message : describeError(error);
 }

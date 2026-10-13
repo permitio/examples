@@ -2,8 +2,8 @@
 // organization's connectors with their latest calls, and Sam changes or revokes scope. The PDP decides from the roles
 // the fake Permit holds (fakes-s5.ts).
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { unconfirmed } from './fakes';
-import { as, askForProduction, asConnector, approvedForProduction, KEY, NAME, recordCheck, register, s5World, SHIRE, writesOf } from './fakes-s5';
+import { unconfirmed } from '#test/fakes';
+import { as, askForProduction, asConnector, approvedForProduction, KEY, NAME, recordCheck, register, s5World, SHIRE, writesOf } from '#test/fakes-s5';
 
 const SANDBOX = { role: 'integration_client', resource: 'ean:EAN-SANDBOX' };
 

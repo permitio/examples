@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { FactsWriter } from '../src/server/permit/facts-writer';
-import { EventLog } from '../src/server/events';
-import { ResourceFactsWriter } from '../src/server/permit/resource-facts-writer';
-import { WriteFailedError } from '../src/server/permit/writes';
+import { FactsWriter } from '#src/server/permit/facts-writer';
+import { EventLog } from '#src/server/events';
+import { ResourceFactsWriter } from '#src/server/permit/resource-facts-writer';
+import { WriteFailedError } from '#src/server/permit/writes';
 
 function fakeUsers(initial: Record<string, object>) {
   const store = new Map(Object.entries(initial));

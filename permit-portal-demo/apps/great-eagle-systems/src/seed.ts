@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { DemoRequest } from './requests';
+import type { DemoRequest } from '#src/requests';
 
 // The mock's own copies of the seed types. Keep them identical in shape to apps/portal/src/server/model.ts.
 export interface TrustFacts { identity_verified: boolean; duplicate_check: 'clear' | 'suspected' | 'confirmed'; risk_state: 'ok' | 'suspended' }

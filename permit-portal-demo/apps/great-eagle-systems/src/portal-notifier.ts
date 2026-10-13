@@ -13,7 +13,7 @@ export interface PortalNotifier {
 
 export interface NotifierOptions {
   /** How long to wait for the portal. Its writes wait up to 5 s for the PDP, and a cleanup may make several. */
-  timeoutMs?: number;
+  timeoutMs?: number | undefined;
   log?: (line: string) => void;
 }
 

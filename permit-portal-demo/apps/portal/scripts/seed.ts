@@ -1,11 +1,11 @@
 // Creates the whole Permit setup for a profile. Idempotent: a 409 on create means the object exists,
 // and it is updated instead. Run: bin/demo seed <profile>
-import { loadSeed } from '../src/server/model';
-import { ensure, type Log, logged, scriptPermit, upsert, writeData } from './lib/admin';
-import { scriptEnv } from './lib/env';
-import { demoData, preflightData } from './lib/fixtures';
-import { isMain, type Result, runCli } from './lib/report';
-import { CONDITION_SET_RULES, CONDITION_SETS, RELATIONS, RESOURCE_ROLES, RESOURCES, TENANT_ROLES, USER_ATTRIBUTES } from './policy';
+import { loadSeed } from '#src/server/model';
+import { ensure, type Log, logged, scriptPermit, upsert, writeData } from '#scripts/lib/admin';
+import { scriptEnv } from '#scripts/lib/env';
+import { demoData, preflightData } from '#scripts/lib/fixtures';
+import { isMain, type Result, runCli } from '#scripts/lib/report';
+import { CONDITION_SET_RULES, CONDITION_SETS, RELATIONS, RESOURCE_ROLES, RESOURCES, TENANT_ROLES, USER_ATTRIBUTES } from '#scripts/policy';
 
 const USER_RESOURCE = '__user';
 
@@ -27,7 +27,7 @@ async function main(): Promise<Result> {
   // Permit write: api.resources declares each resource type with its actions and attributes.
   for (const r of RESOURCES) {
     await write(`resource ${r.key}`, () => permit.api.resources.create(r),
-      () => permit.api.resources.update(r.key, { name: r.name, actions: r.actions, attributes: r.attributes }));
+      () => permit.api.resources.update(r.key, { name: r.name, actions: r.actions, ...(r.attributes === undefined ? {} : { attributes: r.attributes }) }));
   }
   // Permit write: api.resourceRelations declares that a shipment's parent is an EAN (the ReBAC link).
   for (const { resource, relation } of RELATIONS) {
@@ -42,12 +42,12 @@ async function main(): Promise<Result> {
   // derived from account_admin on its parent EAN (ReBAC).
   for (const { resource, role } of RESOURCE_ROLES) {
     await write(`resource role ${resource}#${role.key}`, () => permit.api.resourceRoles.create(resource, role),
-      () => permit.api.resourceRoles.update(resource, role.key, { name: role.name, permissions: role.permissions, granted_to: role.granted_to }));
+      () => permit.api.resourceRoles.update(resource, role.key, { name: role.name, ...(role.permissions === undefined ? {} : { permissions: role.permissions }), ...(role.granted_to === undefined ? {} : { granted_to: role.granted_to }) }));
   }
   // Permit write: api.conditionSets creates the ABAC user sets and resource sets (ABAC Rules in the dashboard).
   for (const cs of CONDITION_SETS) {
     await write(`condition set ${cs.key}`, () => permit.api.conditionSets.create(cs),
-      () => permit.api.conditionSets.update(cs.key, { name: cs.name, conditions: cs.conditions }));
+      () => permit.api.conditionSets.update(cs.key, { name: cs.name, ...(cs.conditions === undefined ? {} : { conditions: cs.conditions }) }));
   }
   // Permit write: api.conditionSetRules grants each user set its permissions on a resource set (the Policy Editor).
   for (const rule of CONDITION_SET_RULES) {

@@ -1,13 +1,13 @@
 import { ClipboardCheckIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote, Heading, Lede } from '../components/parts';
-import { RequestDecisionForm, RequestSummary } from '../components/RequestSummary';
-import { Button } from '../components/ui/button';
-import { grantDurations } from '../format';
-import { decideAndConfirm, useAction, useMeta, useResource } from '../hooks';
-import type { ApprovalsResponse } from '../types';
-import { PagePlate } from './s4/parts';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote, Heading, Lede } from '@/components/parts';
+import { RequestDecisionForm, RequestSummary } from '@/components/RequestSummary';
+import { Button } from '@/components/ui/button';
+import { grantDurations } from '@/format';
+import { decideAndConfirm, useAction, useMeta, useResource } from '@/hooks';
+import type { ApprovalsResponse } from '@/types';
+import { PagePlate } from '@/pages/s4/parts';
 
 /** Requests waiting for this persona's decision. GET /api/approvals lists only those Permit lets them decide. */
 export function SamApprovals() {

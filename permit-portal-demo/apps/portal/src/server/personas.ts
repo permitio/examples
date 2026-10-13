@@ -1,6 +1,6 @@
 import type { RequestHandler, Response } from 'express';
-import type { EventSource } from './events';
-import type { SeedData } from './model';
+import type { EventSource } from '#src/server/events';
+import type { SeedData } from '#src/server/model';
 
 /**
  * The demo identity switcher. Every /api request names a seeded persona in `x-demo-persona`; a missing or
@@ -14,27 +14,27 @@ export function personaMiddleware(seed: SeedData): RequestHandler {
       res.status(401).json({ error: 'Pick a persona' });
       return;
     }
-    res.locals.persona = persona;
+    res.locals['persona'] = persona;
     next();
   };
 }
 
 /** The persona key the middleware accepted for this request. */
 export function personaOf(res: Response): string {
-  const persona: unknown = res.locals.persona;
+  const persona: unknown = res.locals['persona'];
   if (typeof persona !== 'string') throw new Error('personaOf() used on a route outside the persona middleware');
   return persona;
 }
 
 /** A page's background refresh says `x-demo-source: refresh`; anything else is the persona's own action. */
 export const requestSource: RequestHandler = (req, res, next) => {
-  res.locals.source = req.get('x-demo-source') === 'refresh' ? 'refresh' : 'action';
+  res.locals['source'] = req.get('x-demo-source') === 'refresh' ? 'refresh' : 'action';
   next();
 };
 
 /** The source of this request's checks (`requestSource` sets it); a guard inside a flow passes `'guard'` instead. */
 export function sourceOf(res: Response): EventSource {
-  return res.locals.source === 'refresh' ? 'refresh' : 'action';
+  return res.locals['source'] === 'refresh' ? 'refresh' : 'action';
 }
 
 export function isPersona(seed: SeedData, key: string): boolean {

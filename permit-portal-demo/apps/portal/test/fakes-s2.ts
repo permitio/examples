@@ -1,8 +1,8 @@
 // Test doubles for S2's routes. They plug into harness() from test/fakes.ts; this file only
 // imports from it.
 import type { IResource, IUserPermissions } from 'permitio';
-import type { SeedData } from '../src/server/model';
-import type { harness } from './fakes';
+import type { SeedData } from '#src/server/model';
+import type { harness } from '#test/fakes';
 
 type H = ReturnType<typeof harness>;
 

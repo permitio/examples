@@ -72,11 +72,11 @@ export class PdpSync {
     }
     if (!res.ok) return undefined;
     const body: unknown = await res.json();
-    const request = record(record(body).debug).request;
+    const request = record(record(body)['debug'])['request'];
     if (request === undefined) {
       throw new PdpSyncUnavailable('The PDP answered without a debug block, so the portal cannot confirm writes. Start it with PDP_DEBUG=True, or set PERMIT_WRITES=waited.');
     }
-    return { user: record(record(record(request).user).attributes), resource: record(record(record(request).resource).attributes) };
+    return { user: record(record(record(request)['user'])['attributes']), resource: record(record(record(request)['resource'])['attributes']) };
   }
 
   /** Polls until `ready` holds for the PDP's view, from `firstMs` after the call, every `everyMs`, up to `deadlineMs`. */
@@ -155,10 +155,10 @@ function record(value: unknown): Record<string, unknown> {
  */
 function permissionMap(body: unknown): Record<string, { roles?: unknown }> | undefined {
   const read = (value: unknown) =>
-    isRecord(value) && Object.values(value).every((entry) => isRecord(entry) && Array.isArray(entry.permissions))
+    isRecord(value) && Object.values(value).every((entry) => isRecord(entry) && Array.isArray(entry['permissions']))
       ? (value as Record<string, { roles?: unknown }>)
       : undefined;
-  return read(body) ?? (isRecord(body) && isRecord(body.result) ? read(body.result.permissions) : undefined);
+  return read(body) ?? (isRecord(body) && isRecord(body['result']) ? read(body['result']['permissions']) : undefined);
 }
 
 /** JSON with object keys sorted, so the PDP's key order does not matter when comparing values. */
@@ -177,6 +177,6 @@ export function holds(held: Record<string, unknown>, written: object): boolean {
 
 /** The user's roles in the probed tenant, as the PDP lists them. */
 export function rolesIn(view: PdpView): string[] {
-  const roles = view.user.roles;
+  const roles = view.user['roles'];
   return Array.isArray(roles) ? roles.filter((r): r is string => typeof r === 'string') : [];
 }

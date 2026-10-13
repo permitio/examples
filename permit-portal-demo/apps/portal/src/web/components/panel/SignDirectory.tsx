@@ -3,14 +3,14 @@
 
 import { ArrowRightIcon, BanIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DemoEvent } from '../../types';
-import { resourceParts, type Sign, type SignAnswer, sharedResources, signsOf } from './signs';
+import type { DemoEvent } from '@/types';
+import { resourceParts, type Sign, type SignAnswer, sharedResources, signsOf } from '@/components/panel/signs';
 
 /**
  * One face of a sign. When several signs name the same resource, the action leads, so one place never reads as both
  * open and closed. `turn` plays the flap: the old face folds away on its top hinge and the new one drops in.
  */
-function SignFace({ sign, answer, shared, turn }: { sign: Sign; answer: SignAnswer; shared: boolean; turn?: 'out' | 'in' }) {
+function SignFace({ sign, answer, shared, turn }: { sign: Sign; answer: SignAnswer; shared: boolean; turn?: 'out' | 'in' | undefined }) {
   const { type, key } = resourceParts(sign.resource);
   return (
     <div

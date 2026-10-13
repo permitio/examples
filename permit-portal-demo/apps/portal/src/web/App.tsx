@@ -1,26 +1,26 @@
 import { RefreshCwIcon } from 'lucide-react';
 import { type ComponentType, useCallback, useEffect, useState } from 'react';
-import { ApiError, api, DEFAULT_PERSONA, getPersona, setPersona } from './api';
-import { DecisionPanel } from './components/DecisionPanel';
-import { ErrorBanner } from './components/ErrorBanner';
-import { Button } from './components/ui/button';
-import { MetaContext, useAction, usePortalRebuilt } from './hooks';
-import { AragornShared } from './pages/AragornShared';
-import { EowynOnboarding } from './pages/EowynOnboarding';
-import { Evidence } from './pages/Evidence';
-import { OrgPage } from './pages/OrgPage';
-import { FrodoShipments } from './pages/FrodoShipments';
-import { GandalfQueue } from './pages/GandalfQueue';
-import { TeamAccess } from './pages/s2/TeamAccess';
-import { WhatICanDo } from './pages/s2/WhatICanDo';
-import { PippinIntegrations } from './pages/s5/PippinIntegrations';
-import { SamIntegrations } from './pages/s5/SamIntegrations';
-import { SamApprovals } from './pages/SamApprovals';
-import { EomerInbox } from './pages/EomerInbox';
-import { IdentityBand } from './shell/IdentityBand';
-import { type PortalTab, PortalHeader } from './shell/PortalHeader';
-import { applyTheme, otherTheme, readTheme, saveTheme } from './theme';
-import type { ClockResponse, Meta } from './types';
+import { ApiError, api, DEFAULT_PERSONA, getPersona, setPersona } from '@/api';
+import { DecisionPanel } from '@/components/DecisionPanel';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { Button } from '@/components/ui/button';
+import { MetaContext, useAction, usePortalRebuilt } from '@/hooks';
+import { AragornShared } from '@/pages/AragornShared';
+import { EowynOnboarding } from '@/pages/EowynOnboarding';
+import { Evidence } from '@/pages/Evidence';
+import { OrgPage } from '@/pages/OrgPage';
+import { FrodoShipments } from '@/pages/FrodoShipments';
+import { GandalfQueue } from '@/pages/GandalfQueue';
+import { TeamAccess } from '@/pages/s2/TeamAccess';
+import { WhatICanDo } from '@/pages/s2/WhatICanDo';
+import { PippinIntegrations } from '@/pages/s5/PippinIntegrations';
+import { SamIntegrations } from '@/pages/s5/SamIntegrations';
+import { SamApprovals } from '@/pages/SamApprovals';
+import { EomerInbox } from '@/pages/EomerInbox';
+import { IdentityBand } from '@/shell/IdentityBand';
+import { type PortalTab, PortalHeader } from '@/shell/PortalHeader';
+import { applyTheme, otherTheme, readTheme, saveTheme } from '@/theme';
+import type { ClockResponse, Meta } from '@/types';
 
 /** Gríma's pending registration: the impostor organization S1's reviewer denies. */
 function GrimaOrganization() {

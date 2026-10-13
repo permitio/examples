@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { Router } from 'express';
-import { type Body, HttpError, jsonBody, text } from './http';
-import type { Store } from './store';
+import { type Body, HttpError, jsonBody, text } from '#src/http';
+import type { Store } from '#src/store';
 
 /** A connector's key: lowercase letters, digits and dashes. The portal also makes it the connector's user in Permit. */
 const KEY = /^[a-z0-9-]{3,40}$/;
@@ -22,11 +22,11 @@ function matching(value: unknown, field: string, pattern: RegExp, expected: stri
   return value;
 }
 
-const keyOf = (body: Body) => matching(body.key, 'key', KEY, 'lowercase letters, digits and dashes, 3 to 40 characters');
+const keyOf = (body: Body) => matching(body['key'], 'key', KEY, 'lowercase letters, digits and dashes, 3 to 40 characters');
 const eanOf = (value: unknown) => matching(value, 'ean', EAN, 'an EAN key such as EAN-1001');
 
 function operationOf(body: Body): Operation {
-  const found = OPERATIONS.find((op) => op === body.op);
+  const found = OPERATIONS.find((op) => op === body['op']);
   if (found === undefined) throw new HttpError(400, `op must be one of ${OPERATIONS.join(', ')}`);
   return found;
 }
@@ -51,12 +51,13 @@ export function s5Router({ store, portalUrl, now }: { store: Store; portalUrl: s
   const r = Router();
   const portal = portalUrl.replace(/\/+$/, '');
 
-  /** One call to the portal's integration API as the connector, answered as `{ status, body }` whatever the status. */
-  const callPortal = async (method: 'GET' | 'POST', path: string, secret: string, body?: object): Promise<{ status: number; body: unknown }> => {
+  /** One call to the portal's integration API as the connector: a POST of `body` when given, else a GET. It is answered
+   * as `{ status, body }` whatever the status. */
+  const callPortal = async (path: string, secret: string, body?: object): Promise<{ status: number; body: unknown }> => {
     const res = await fetch(`${portal}${path}`, {
-      method,
-      headers: { authorization: `Bearer ${secret}`, ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      ...(body === undefined
+        ? { method: 'GET', headers: { authorization: `Bearer ${secret}` } }
+        : { method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' }, body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(PORTAL_TIMEOUT_MS),
     }).catch((error: unknown) => {
       throw new HttpError(502, `The portal did not answer: ${reasonOf(error)}`);
@@ -85,7 +86,7 @@ export function s5Router({ store, portalUrl, now }: { store: Store; portalUrl: s
   });
 
   r.post('/api/integrations/resolve', (req, res) => {
-    const secret = jsonBody(req, ['client_secret']).client_secret;
+    const secret = jsonBody(req, ['client_secret'])['client_secret'];
     const integration = typeof secret === 'string' ? store.findIntegrationBySecret(secret) : undefined;
     if (integration === undefined) throw new HttpError(401, UNKNOWN_CREDENTIAL);
     res.json({ key: integration.key, customer: integration.customer });
@@ -99,23 +100,23 @@ export function s5Router({ store, portalUrl, now }: { store: Store; portalUrl: s
   r.post('/api/integrations/:key/run', async (req, res) => {
     const body = jsonBody(req, ['op', 'ean']);
     const op = operationOf(body);
-    const ean = eanOf(body.ean);
+    const ean = eanOf(body['ean']);
     const integration = store.listIntegrations().find((i) => i.key === req.params.key);
     if (integration === undefined) throw new HttpError(404, `No connector ${req.params.key}`);
     // The portal's answer goes back verbatim, status and body, so the console shows what the portal said and why.
     res.json(op === 'create'
-      ? await callPortal('POST', '/api/integration/shipments', integration.secret, { ean, title: `Created by ${integration.name}` })
-      : await callPortal('GET', `/api/integration/shipments?ean=${encodeURIComponent(ean)}`, integration.secret));
+      ? await callPortal('/api/integration/shipments', integration.secret, { ean, title: `Created by ${integration.name}` })
+      : await callPortal(`/api/integration/shipments?ean=${encodeURIComponent(ean)}`, integration.secret));
   });
 
   // Only /api/shipments itself: /api/shipments/:key/documents belongs to the documents routes.
   r.route('/api/shipments')
     .get((req, res) => {
-      res.json(store.listShipments(eanOf(req.query.ean)));
+      res.json(store.listShipments(eanOf(req.query['ean'])));
     })
     .post((req, res) => {
       const body = jsonBody(req, ['ean', 'title', 'created_by']);
-      res.status(201).json(store.addShipment({ ean: eanOf(body.ean), title: text(body, 'title', MAX_TITLE), created_by: text(body, 'created_by', MAX_NAME) }, now()));
+      res.status(201).json(store.addShipment({ ean: eanOf(body['ean']), title: text(body, 'title', MAX_TITLE), created_by: text(body, 'created_by', MAX_NAME) }, now()));
     });
 
   return r;

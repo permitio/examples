@@ -4,12 +4,12 @@ import { type Stage, SignPlate, StageStrip } from '@/signs/plates';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { api } from '../api';
-import { ErrorBanner } from '../components/ErrorBanner';
-import { Lede } from '../components/parts';
-import { useAction } from '../hooks';
-import type { CreateOrgResponse } from '../types';
-import { OrgPage } from './OrgPage';
+import { api } from '@/api';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { Lede } from '@/components/parts';
+import { useAction } from '@/hooks';
+import type { CreateOrgResponse } from '@/types';
+import { OrgPage } from '@/pages/OrgPage';
 
 /** The organization S1 creates live. */
 const S1_ORG = 'riders-of-rohan';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RESOURCES, RELATIONS, TENANT_ROLES, RESOURCE_ROLES, CONDITION_SETS, CONDITION_SET_RULES } from '../scripts/policy';
+import { RESOURCES, RELATIONS, TENANT_ROLES, RESOURCE_ROLES, CONDITION_SETS, CONDITION_SET_RULES } from '#scripts/policy';
 
 const gated = new Set(CONDITION_SET_RULES.map((r) => r.permission));
 function numbersInsideAnyMatch(node: unknown, inside = false): number[] {

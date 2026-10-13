@@ -3,7 +3,7 @@
 // They pin where each router sits, not what it answers.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { harness } from './fakes';
+import { harness } from '#test/fakes';
 
 const PICK_A_PERSONA = { error: 'Pick a persona' };
 

@@ -1,7 +1,7 @@
 import { PermitConnectionError, PermitPDPStatusError } from 'permitio';
 import { describe, expect, it, vi } from 'vitest';
-import { couldNotRun, describeError, HttpError, syncUser, upsert } from '../scripts/lib/admin';
-import { MissingEnvError } from '../scripts/lib/env';
+import { couldNotRun, describeError, HttpError, syncUser, upsert } from '#scripts/lib/admin';
+import { MissingEnvError } from '#scripts/lib/env';
 
 const networkError = (code: string) => Object.assign(new Error(`connect ${code} 127.0.0.1:7766`), { code });
 

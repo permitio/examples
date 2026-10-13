@@ -1,4 +1,4 @@
-import type { CollaboratorGrant, UserAttributes } from './model';
+import type { CollaboratorGrant, UserAttributes } from '#src/server/model';
 
 const DAY_MS = 86_400_000;
 const list = (a: UserAttributes) => a.time_based_grants ?? [];
@@ -26,7 +26,7 @@ export function removeExpired(a: UserAttributes, now: number): { attrs: UserAttr
 function isGrant(x: unknown): x is CollaboratorGrant {
   if (typeof x !== 'object' || x === null) return false;
   const g = x as Record<string, unknown>;
-  return typeof g.resource === 'string' && g.role === 'collaborator' && typeof g.expires === 'number' && typeof g.renewals_used === 'number';
+  return typeof g['resource'] === 'string' && g['role'] === 'collaborator' && typeof g['expires'] === 'number' && typeof g['renewals_used'] === 'number';
 }
 
 /** The grant entries in a user's stored attributes, as Permit returns them (an untyped object). */

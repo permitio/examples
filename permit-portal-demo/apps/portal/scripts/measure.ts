@@ -5,13 +5,13 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { RESOURCE, ROLE, TENANT } from '../src/server/model';
-import { couldNotRun, describeError, ignoreNotFound, scriptPermit, statusOf } from './lib/admin';
-import { scriptEnv } from './lib/env';
-import { matrixRow, PF_ADMIN_OK } from './lib/fixtures';
-import { type CheckSpec, decide, explain, pollUntil } from './lib/pdp';
-import { isMain, type Result, runCli } from './lib/report';
-import { printMatrix, refreshCollaboratorGrants, runMatrix } from './preflight';
+import { RESOURCE, ROLE, TENANT } from '#src/server/model';
+import { couldNotRun, describeError, ignoreNotFound, scriptPermit, statusOf } from '#scripts/lib/admin';
+import { scriptEnv } from '#scripts/lib/env';
+import { matrixRow, PF_ADMIN_OK } from '#scripts/lib/fixtures';
+import { type CheckSpec, decide, explain, pollUntil } from '#scripts/lib/pdp';
+import { isMain, type Result, runCli } from '#scripts/lib/report';
+import { printMatrix, refreshCollaboratorGrants, runMatrix } from '#scripts/preflight';
 
 const USAGE = 'usage: bin/demo measure <profile> [--checks N] [--cycles N], where N is a positive whole number';
 const LATENCY_KINDS = [{ kind: 'role allow', row: 12 }, { kind: 'attribute allow', row: 6 }, { kind: 'attribute deny', row: 8 }];
@@ -71,7 +71,7 @@ async function main(): Promise<Result> {
     printMatrix(matrix);
     return { outcome: 'could-not-run', summary: `the preflight matrix does not match, so nothing was measured; run bin/demo preflight ${env.profile}` };
   }
-  const pdpDebug = process.env.PDP_DEBUG ?? 'True';
+  const pdpDebug = process.env['PDP_DEBUG'] ?? 'True';
   const probe = await explain(env, matrixRow(1));
   const pdpDebugObserved = typeof probe.debug === 'object' && probe.debug !== null;
   if (pdpDebugObserved !== (pdpDebug.toLowerCase() === 'true')) {

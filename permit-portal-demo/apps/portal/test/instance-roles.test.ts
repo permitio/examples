@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ensureInstanceRole, ensureNoInstanceRole } from '../src/server/permit/instance-roles';
-import { WriteFailedError } from '../src/server/permit/writes';
-import { harness, unconfirmed } from './fakes';
+import { ensureInstanceRole, ensureNoInstanceRole } from '#src/server/permit/instance-roles';
+import { WriteFailedError } from '#src/server/permit/writes';
+import { harness, unconfirmed } from '#test/fakes';
 
 const SHIRE = 'shire-freight';
 

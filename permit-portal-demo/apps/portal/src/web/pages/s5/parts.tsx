@@ -3,7 +3,7 @@
 
 import { Tag } from '@/components/parts';
 import { formatClock, roleWords } from '@/format';
-import type { RecentCall, ScopeEntry } from './scope';
+import type { RecentCall, ScopeEntry } from '@/pages/s5/scope';
 
 /**
  * The roles Permit holds for a connector now, one line each: the role, the resource it is on and what it allows. A connector

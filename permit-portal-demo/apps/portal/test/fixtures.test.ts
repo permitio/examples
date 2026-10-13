@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { demoData, MATRIX, type PermitData, preflightData } from '../scripts/lib/fixtures';
-import { loadSeed, RESOURCE, ROLE, TENANT } from '../src/server/model';
+import { demoData, MATRIX, type PermitData, preflightData } from '#scripts/lib/fixtures';
+import { loadSeed, RESOURCE, ROLE, TENANT } from '#src/server/model';
 
 const seed = loadSeed();
 const demo = demoData(seed);

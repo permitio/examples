@@ -1,12 +1,12 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import type { IResource, IUser, Permit } from 'permitio';
-import { HttpError } from './admin';
-import type { ScriptEnv } from './env';
+import { HttpError } from '#scripts/lib/admin';
+import type { ScriptEnv } from '#scripts/lib/env';
 
 export type Attributes = Record<string, unknown>;
 
 /** One authorization question: who, what, and on which resource instance. */
-export interface CheckSpec { user: string; action: string; type: string; key: string; tenant: string; extra?: Attributes }
+export interface CheckSpec { user: string; action: string; type: string; key: string; tenant: string; extra?: Attributes | undefined }
 
 /** Every check sends the time as a user attribute, never in `context`. */
 export function checkUser(key: string, now = Date.now()): IUser {

@@ -1,8 +1,8 @@
 import { ArrowRightIcon, DoorClosedIcon, HourglassIcon, PauseIcon, UsersIcon } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
-import { formatClock } from '../src/web/format';
-import { gateOf, pathOf, standingOf } from '../src/web/pages/org/standing';
-import type { DemoRequest, OrgDetail, RequestStatus, RequestType, TrustFacts } from '../src/web/types';
+import { formatClock } from '@/format';
+import { gateOf, pathOf, standingOf } from '@/pages/org/standing';
+import type { DemoRequest, OrgDetail, RequestStatus, RequestType, TrustFacts } from '@/types';
 
 const NAMES: Record<string, string> = { eowyn: 'Éowyn', eomer: 'Éomer', gandalf: 'Gandalf', grima: 'Gríma Wormtongue' };
 const nameOf = (key: string) => NAMES[key] ?? key;

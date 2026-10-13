@@ -4,11 +4,11 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { MetaContext } from '../src/web/hooks';
-import { ProductionRequestForm } from '../src/web/pages/s5/PippinIntegrations';
-import { IntegrationCard } from '../src/web/pages/s5/SamIntegrations';
-import { PRODUCTION_REASON, type Integration, type ScopeEntry } from '../src/web/pages/s5/scope';
-import type { Meta } from '../src/web/types';
+import { MetaContext } from '@/hooks';
+import { ProductionRequestForm } from '@/pages/s5/PippinIntegrations';
+import { IntegrationCard } from '@/pages/s5/SamIntegrations';
+import { PRODUCTION_REASON, type Integration, type ScopeEntry } from '@/pages/s5/scope';
+import type { Meta } from '@/types';
 
 const META: Meta = {
   profile: 'test', permitAppUrl: 'https://app.permit.io', demoClock: { enabled: false, offsetMs: 0 }, grantDemoDurationMs: 120_000, shipments: [],

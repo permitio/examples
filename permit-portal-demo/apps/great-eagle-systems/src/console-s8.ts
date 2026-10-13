@@ -1,4 +1,4 @@
-import { consolePage } from './console';
+import { consolePage } from '#src/console';
 
 // The page's own sections, style and script. Like the shell's, they live in template literals: no backticks, "${" or
 // backslashes in them. The script uses string concatenation, and "…" and "–" as themselves.

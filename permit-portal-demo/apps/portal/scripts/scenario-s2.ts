@@ -4,14 +4,14 @@
 // reset state. Then it drives the portal's API as each persona, and the console's forged-grant tester of Great Eagle's
 // systems, asserting every decision, every status code and what the decision panel records. It is the automated rehearsal.
 // Run: bin/demo scenario <profile> s2. Exit 0 pass, 1 fail, 2 could not run.
-import { TENANT } from '../src/server/model';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { isMain, type Outcome, type Result, runCli } from './lib/report';
-import { runReset } from './reset';
+import { TENANT } from '#src/server/model';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { isMain, type Outcome, type Result, runCli } from '#scripts/lib/report';
+import { runReset } from '#scripts/reset';
 import {
   Api, awaitResetState, type Expected, eventsSince, expectDecisions, expectEqual, expectSameItems, field, lastEventId, listOf, type Log, ms,
   numberOf, runScenario, type StepContext, StepError, textOf, textsOf,
-} from './scenario-runner';
+} from '#scripts/scenario-runner';
 
 const SAM = 'sam';
 const FRODO = 'frodo';

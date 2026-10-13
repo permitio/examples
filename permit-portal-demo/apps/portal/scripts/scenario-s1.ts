@@ -3,14 +3,14 @@
 // (reset.ts, which ends with preflight) and waits until the PDP shows the reset state. Then it drives the portal's API,
 // and the Great Eagle systems mock's trust service, as each persona, asserting every decision and status code. It is the
 // automated rehearsal. Run: bin/demo scenario <profile> s1. Exit 0 pass, 1 fail, 2 could not run.
-import { loadSeed, RESOURCE, TENANT } from '../src/server/model';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { isMain, type Outcome, type Result, runCli } from './lib/report';
-import { runReset } from './reset';
+import { loadSeed, RESOURCE, TENANT } from '#src/server/model';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { isMain, type Outcome, type Result, runCli } from '#scripts/lib/report';
+import { runReset } from '#scripts/reset';
 import {
   Api, approvalOf, errorText, type Expected, expectDecisions, expectEqual, field, listOf, type Log, ms, NotReady, numberOf, requestOf,
   runScenario, seconds, type StepContext, StepError, waitForDecisions,
-} from './scenario-runner';
+} from '#scripts/scenario-runner';
 
 const EOWYN = 'eowyn';
 const GANDALF = 'gandalf';

@@ -1,20 +1,20 @@
 import { ArrowLeftIcon, BrushCleaningIcon, FileTextIcon, RefreshCwIcon, SendIcon, UserMinusIcon } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
-import { api } from '../api';
-import { CheckChips, GrantChip, StatusChip } from '../components/CheckChips';
-import { Countdown } from '../components/Countdown';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote, Heading } from '../components/parts';
-import { RequestDecisionForm, RequestSummary } from '../components/RequestSummary';
-import { Button } from '../components/ui/button';
-import { Field, FieldGroup, FieldLabel } from '../components/ui/field';
-import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
-import { canChecks, formatWhen, requestDuration } from '../format';
-import { CHANGE_CONFIRMED, decideAndConfirm, PAGE_REFRESH_MS, useAction, usePersonaName, useResource } from '../hooks';
-import type { ApprovalsResponse, CleanupStatus, DemoRequest, ShipmentDetail as Detail, Doc, RevokeResponse, ShipmentAction } from '../types';
-import { CargoFacts, ShipmentSign } from './s4/parts';
+import { api } from '@/api';
+import { CheckChips, GrantChip, StatusChip } from '@/components/CheckChips';
+import { Countdown } from '@/components/Countdown';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote, Heading } from '@/components/parts';
+import { RequestDecisionForm, RequestSummary } from '@/components/RequestSummary';
+import { Button } from '@/components/ui/button';
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { canChecks, formatWhen, requestDuration } from '@/format';
+import { CHANGE_CONFIRMED, decideAndConfirm, PAGE_REFRESH_MS, useAction, usePersonaName, useResource } from '@/hooks';
+import type { ApprovalsResponse, CleanupStatus, DemoRequest, ShipmentDetail as Detail, Doc, RevokeResponse, ShipmentAction } from '@/types';
+import { CargoFacts, ShipmentSign } from '@/pages/s4/parts';
 
 const RENEWAL_LIMIT = 2;
 const SHIPMENT_ACTIONS: readonly ShipmentAction[] = [

@@ -1,12 +1,12 @@
 import { ChevronRightIcon, PlaneIcon } from 'lucide-react';
 import { useState } from 'react';
 import { factsOf } from '@/signs/shipment-facts';
-import { ErrorBanner } from '../components/ErrorBanner';
-import { EmptyNote, Heading, Lede } from '../components/parts';
-import { useMeta, useResource } from '../hooks';
-import type { Shipment, ShipmentsResponse } from '../types';
-import { PagePlate } from './s4/parts';
-import { ShipmentDetail } from './ShipmentDetail';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { EmptyNote, Heading, Lede } from '@/components/parts';
+import { useMeta, useResource } from '@/hooks';
+import type { Shipment, ShipmentsResponse } from '@/types';
+import { PagePlate } from '@/pages/s4/parts';
+import { ShipmentDetail } from '@/pages/ShipmentDetail';
 
 /** One shipment in the list: its key, title, route and EAN; the row opens it. */
 function ShipmentRow({ shipment, onOpen }: { shipment: Shipment; onOpen: () => void }) {

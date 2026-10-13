@@ -1,4 +1,4 @@
-import type { CleanupResult, PortalNotifier } from './portal-notifier';
+import type { CleanupResult, PortalNotifier } from '#src/portal-notifier';
 
 export const DEFAULT_CLEANUP_INTERVAL_MS = 600_000;
 

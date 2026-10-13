@@ -2,14 +2,18 @@
   "name": "@permit-demo/great-eagle-systems",
   "private": true,
   "type": "module",
+  "imports": {
+    "#src/*": "./src/*.ts",
+    "#test/*": "./test/*.ts"
+  },
   "scripts": {
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "express": "5.2.1",
     "permitio": "file:../../vendor/permitio-3.0.0-ffe1ccc.tgz"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3"
+    "@types/express": "5.0.6"
   }
 }

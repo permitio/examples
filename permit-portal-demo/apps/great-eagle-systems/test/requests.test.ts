@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { transition, TransitionError, type DemoRequest } from '../src/requests';
+import { transition, TransitionError, type DemoRequest } from '#src/requests';
 
 const base: DemoRequest = { id: 'r1', type: 'collaborator_invite', tenant: 'shire-freight', target: 'shipment:SHP-77001', role: 'collaborator',
   requested_for: 'aragorn', initiated_by: 'frodo', status: 'pending', created_at: 't0', updated_at: 't0', history: [{ at: 't0', status: 'pending', by: 'frodo' }] };

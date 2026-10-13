@@ -13,9 +13,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { formatOffset } from '../format';
-import type { Theme } from '../theme';
-import type { Meta, Persona } from '../types';
+import { formatOffset } from '@/format';
+import type { Theme } from '@/theme';
+import type { Meta, Persona } from '@/types';
 
 const CIAM_NOTICE = "Demo identity switcher. In production the company's CIAM authenticates users; Permit only authorizes.";
 const HOUR_MS = 3_600_000;

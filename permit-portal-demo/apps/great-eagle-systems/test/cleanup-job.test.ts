@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CleanupJob } from '../src/cleanup-job';
-import type { CleanupResult } from '../src/portal-notifier';
+import { CleanupJob } from '#src/cleanup-job';
+import type { CleanupResult } from '#src/portal-notifier';
 
 const T0 = Date.parse('2026-10-05T09:00:00.000Z');
 const INTERVAL = 60_000;

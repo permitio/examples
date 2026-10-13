@@ -1,4 +1,4 @@
-import type { LegacyUser, SeedAccount } from '../seed';
+import type { LegacyUser, SeedAccount } from '#src/seed';
 
 /**
  * The legacy app's own rule for its one protected action, view billing on a child account: the user is an

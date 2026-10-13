@@ -1,15 +1,15 @@
 import { isDeepStrictEqual } from 'node:util';
 import { type Response, Router } from 'express';
-import type { Deps } from '../app';
-import { deniedBy, HttpError, permitReason, statusOf } from '../errors';
-import type { DemoEvent } from '../events';
-import type { MockIntegration } from '../mock-client';
-import { type DemoRequest, RESOURCE, ROLE, TENANT } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { ensureInstanceRole, ensureNoInstanceRole } from '../permit/instance-roles';
-import { describeWriteError, WriteFailedError } from '../permit/writes';
-import { isPersona, personaName, personaOf, sourceOf } from '../personas';
-import { type Body, bodyOf, text } from './validate';
+import type { Deps } from '#src/server/app';
+import { deniedBy, HttpError, permitReason, statusOf } from '#src/server/errors';
+import type { DemoEvent } from '#src/server/events';
+import type { MockIntegration } from '#src/server/mock-client';
+import { type DemoRequest, RESOURCE, ROLE, TENANT } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { ensureInstanceRole, ensureNoInstanceRole } from '#src/server/permit/instance-roles';
+import { describeWriteError, WriteFailedError } from '#src/server/permit/writes';
+import { isPersona, personaName, personaOf, sourceOf } from '#src/server/personas';
+import { type Body, bodyOf, text } from '#src/server/routes/validate';
 
 /** The EAN a connector is registered with: scope to test against, never production. */
 export const SANDBOX_EAN = 'EAN-SANDBOX';
@@ -133,7 +133,7 @@ export function s5Router(d: Deps): Router {
   r.post('/s5/integrations', async (req, res) => {
     const persona = personaOf(res);
     const body = bodyOf(req);
-    const key = body.key;
+    const key = body['key'];
     if (typeof key !== 'string' || !INTEGRATION_KEY.test(key)) throw new HttpError(400, 'key must be 3 to 40 lowercase letters, digits or dashes');
     const name = boundedText(body, 'name', MAX_NAME);
     // Permit check: may this persona register an integration for the organization?
@@ -167,7 +167,7 @@ export function s5Router(d: Deps): Router {
   r.post('/s5/integrations/:key/production-requests', async (req, res) => {
     const persona = personaOf(res);
     const body = bodyOf(req);
-    const ean = eanKeyOf(body.ean);
+    const ean = eanKeyOf(body['ean']);
     const reason = boundedText(body, 'reason', MAX_REASON);
     const integration = await integrationOf(req.params.key);
     if (integration.owner !== persona) {
@@ -208,8 +208,8 @@ export function s5Router(d: Deps): Router {
   r.post('/s5/integrations/:key/scope', async (req, res) => {
     const persona = personaOf(res);
     const body = bodyOf(req);
-    const ean = eanKeyOf(body.ean);
-    const level = body.level;
+    const ean = eanKeyOf(body['ean']);
+    const level = body['level'];
     if (level !== 'read' && level !== 'none') throw new HttpError(400, "level must be 'read' or 'none'");
     const integration = await integrationOf(req.params.key);
     const ref: ResourceRef = { type: RESOURCE.ean, key: ean, tenant: integration.customer };

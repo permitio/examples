@@ -1,6 +1,6 @@
 import type { Permit } from 'permitio';
-import { RESOURCE, ROLE, TENANT } from '../../src/server/model';
-import { ensureAssignment, ignoreNotFound, type Log, logged } from '../lib/admin';
+import { RESOURCE, ROLE, TENANT } from '#src/server/model';
+import { ensureAssignment, ignoreNotFound, type Log, logged } from '#scripts/lib/admin';
 
 const PIPPIN = 'pippin';
 const FRODO = 'frodo';

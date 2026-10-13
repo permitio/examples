@@ -1,6 +1,6 @@
 // Display formatting for the portal UI. Pure functions, so they are unit-tested without a browser.
 
-import type { DemoRequest, RequestType, TrustFacts } from './types';
+import type { DemoRequest, RequestType, TrustFacts } from '@/types';
 
 const SECOND = 1_000;
 const MINUTE = 60 * SECOND;
@@ -187,7 +187,7 @@ export function timeLegend(value: unknown): TimeName[] {
     const obj = v as Record<string, unknown>;
     for (const [k, child] of Object.entries(obj)) {
       if ((k === 'current_time' || k === 'expires') && typeof child === 'number' && child > 1e12) {
-        const label = k === 'expires' && typeof obj.resource === 'string' ? `expires (${obj.resource})` : k;
+        const label = k === 'expires' && typeof obj['resource'] === 'string' ? `expires (${obj['resource']})` : k;
         if (!found.has(label)) found.set(label, { label, ms: child });
       } else {
         walk(child);

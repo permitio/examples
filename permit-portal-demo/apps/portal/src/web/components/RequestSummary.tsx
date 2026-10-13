@@ -5,13 +5,13 @@ import { CheckIcon, XIcon } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
 import { type Stage, StageStrip } from '@/signs/plates';
 import { cn } from '@/lib/utils';
-import { formatWhen, REQUEST_TYPE_LABEL, requestDuration, roleWords } from '../format';
-import { usePersonaName } from '../hooks';
-import type { DemoRequest, RequestStatus } from '../types';
-import { Button } from './ui/button';
-import { Field, FieldLabel } from './ui/field';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { formatWhen, REQUEST_TYPE_LABEL, requestDuration, roleWords } from '@/format';
+import { usePersonaName } from '@/hooks';
+import type { DemoRequest, RequestStatus } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const STAGE_LABEL: Record<RequestStatus, string> = {
   pending: 'Requested',
@@ -113,7 +113,7 @@ interface DecisionFormProps {
   busy: boolean;
   onDecide: (verdict: 'approve' | 'deny', comment: string, durationMs?: number) => void;
   /** When given, the approver picks how long the access lasts; the first choice is the default. */
-  durations?: { label: string; ms: number }[];
+  durations?: { label: string; ms: number }[] | undefined;
   /** "Approve", or "Accept" for a nominee accepting an invitation. */
   approveLabel?: string;
   /** False for an invitation the nominee can only accept. */

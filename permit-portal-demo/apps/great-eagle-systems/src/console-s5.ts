@@ -1,4 +1,4 @@
-import { consolePage } from './console';
+import { consolePage } from '#src/console';
 
 /** The three runs the page offers, in order: what each sends to the portal's integration API as the connector. */
 const RUNS = [

@@ -1,11 +1,11 @@
 import { type RequestHandler, type Response, Router } from 'express';
-import type { Deps } from '../app';
-import { deniedBy, HttpError } from '../errors';
-import { RESOURCE } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { isPersona } from '../personas';
-import { eanKeyOf } from './s5';
-import { bodyOf } from './validate';
+import type { Deps } from '#src/server/app';
+import { deniedBy, HttpError } from '#src/server/errors';
+import { RESOURCE } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { isPersona } from '#src/server/personas';
+import { eanKeyOf } from '#src/server/routes/s5';
+import { bodyOf } from '#src/server/routes/validate';
 
 /** What every refused credential is told: missing, malformed, unknown or not a connector's, the answer is the same. */
 const UNKNOWN_CREDENTIAL = 'Unknown client credential';
@@ -28,7 +28,7 @@ const isConnector = (value: unknown): value is Connector => {
  * never a principal to check as.
  */
 export function connectorOf(res: Response): Connector {
-  const connector: unknown = res.locals.connector;
+  const connector: unknown = res.locals['connector'];
   if (!isConnector(connector)) throw new Error('connectorOf() used on a route outside the integration authentication');
   return connector;
 }
@@ -62,7 +62,7 @@ export function integrationApiRouter(d: Deps): Router {
     if (identity === null || isPersona(d.seed, identity.key)) throw refuse();
     const name = (await d.mock.listIntegrations()).find((i) => i.key === identity.key)?.name ?? identity.key;
     // From here the connector is the request's principal, as the persona is for the routes behind the persona middleware.
-    res.locals.connector = { key: identity.key, name, customer: identity.customer } satisfies Connector;
+    res.locals['connector'] = { key: identity.key, name, customer: identity.customer } satisfies Connector;
     next();
   };
   r.use(authenticate);
@@ -78,8 +78,8 @@ export function integrationApiRouter(d: Deps): Router {
     const body = bodyOf(req);
     const unknown = Object.keys(body).filter((field) => !SHIPMENT_FIELDS.includes(field));
     if (unknown.length > 0) throw new HttpError(400, `Unknown field: ${unknown.join(', ')}`);
-    const ean = eanKeyOf(body.ean);
-    const title = titleOf(body.title);
+    const ean = eanKeyOf(body['ean']);
+    const title = titleOf(body['title']);
     // Permit check: may this connector create shipments on this EAN?
     await enforce(connector, 'create_shipment', eanRef(connector, ean));
     // Great Eagle's systems are the system of record: Permit authorized the create, and stores no shipment.
@@ -88,7 +88,7 @@ export function integrationApiRouter(d: Deps): Router {
 
   r.get('/shipments', async (req, res) => {
     const connector = connectorOf(res);
-    const ean = eanKeyOf(req.query.ean);
+    const ean = eanKeyOf(req.query['ean']);
     // Permit check: may this connector view this EAN?
     await enforce(connector, 'view', eanRef(connector, ean));
     const created = await d.mock.listShipments(ean);

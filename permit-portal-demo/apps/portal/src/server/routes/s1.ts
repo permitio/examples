@@ -1,13 +1,13 @@
 import { type Response, Router } from 'express';
-import type { Deps } from '../app';
-import { deniedBy, HttpError, statusOf } from '../errors';
-import { effectiveAdmins } from '../guards';
-import { RESOURCE, ROLE, type TrustFacts } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { resumableWrite, timedWrite } from '../permit/writes';
-import { personaName, personaOf, sourceOf } from '../personas';
-import { assign, ensureRole, QUEUE_REF, unassign } from './requests';
-import { bodyOf, optionalText, personaKey, text } from './validate';
+import type { Deps } from '#src/server/app';
+import { deniedBy, HttpError, statusOf } from '#src/server/errors';
+import { effectiveAdmins } from '#src/server/guards';
+import { RESOURCE, ROLE, type TrustFacts } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { resumableWrite, timedWrite } from '#src/server/permit/writes';
+import { personaName, personaOf, sourceOf } from '#src/server/personas';
+import { assign, ensureRole, QUEUE_REF, unassign } from '#src/server/routes/requests';
+import { bodyOf, optionalText, personaKey, text } from '#src/server/routes/validate';
 
 const ORG_ACTIONS = ['view_own_request', 'view_profile', 'manage_members', 'invite', 'transfer_admin', 'request_ean_association'] as const;
 type OrgAction = (typeof ORG_ACTIONS)[number];
@@ -122,7 +122,6 @@ export function s1Router(d: Deps): Router {
   });
 
   r.get('/s1/reviewer-queue', async (_req, res) => {
-    const persona = personaOf(res);
     // Permit check: may this persona review the onboarding queue?
     await enforce(res, 'review', QUEUE_REF);
     const pending = await d.mock.listRequests({ status: 'pending', type: 'first_admin' });

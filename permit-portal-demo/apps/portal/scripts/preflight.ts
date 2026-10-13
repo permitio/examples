@@ -2,12 +2,12 @@
 // (bin/demo first checks that the pdp container runs permitio/pdp-v2:0.9.16.)
 import { isDeepStrictEqual } from 'node:util';
 import type { Permit } from 'permitio';
-import { loadSeed, RESOURCE, type SeedData, TENANT } from '../src/server/model';
-import { describeError, httpRequest, scriptPermit, statusOf, syncUser, tenantExists } from './lib/admin';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { ARAGORN, collaboratorFixtures, MATRIX, type MatrixRow, personaAttributes } from './lib/fixtures';
-import { decide, describeCheck, pdpHealthStatus, pollUntil } from './lib/pdp';
-import { isMain, type Result, runCli } from './lib/report';
+import { loadSeed, RESOURCE, type SeedData, TENANT } from '#src/server/model';
+import { describeError, httpRequest, scriptPermit, statusOf, syncUser, tenantExists } from '#scripts/lib/admin';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { ARAGORN, collaboratorFixtures, MATRIX, type MatrixRow, personaAttributes } from '#scripts/lib/fixtures';
+import { decide, describeCheck, pdpHealthStatus, pollUntil } from '#scripts/lib/pdp';
+import { isMain, type Result, runCli } from '#scripts/lib/report';
 
 export interface RowResult { row: MatrixRow; allow: boolean; witnessAllow?: boolean; matched: boolean }
 export interface MatrixResult { ok: boolean; rows: RowResult[]; elapsedMs: number }

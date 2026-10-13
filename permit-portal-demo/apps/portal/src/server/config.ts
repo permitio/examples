@@ -34,7 +34,7 @@ function bool(env: NodeJS.ProcessEnv, name: string, fallback: boolean): boolean 
 }
 
 function writeMode(env: NodeJS.ProcessEnv): WriteMode {
-  const raw = env.PERMIT_WRITES?.toLowerCase() || 'fast';
+  const raw = env['PERMIT_WRITES']?.toLowerCase() || 'fast';
   if (raw !== 'fast' && raw !== 'waited') throw new Error('Invalid PERMIT_WRITES: expected fast or waited');
   return raw;
 }
@@ -50,11 +50,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
     port: positiveInt(env, 'PORT', 3000),
     // fast: writes go straight to the control plane and are confirmed by reading them back from the PDP (PdpSync).
     // waited: writes go through the PDP, which answers once it has applied them. Both say "confirmed by the local PDP".
-    permit: { apiUrl, apiKey, pdpUrl: env.PERMIT_PDP_URL || 'http://localhost:7766', proxyFacts: writes === 'waited' },
+    permit: { apiUrl, apiKey, pdpUrl: env['PERMIT_PDP_URL'] || 'http://localhost:7766', proxyFacts: writes === 'waited' },
     writes,
-    greatEagleSystemsUrl: env.GREAT_EAGLE_SYSTEMS_URL || 'http://localhost:4100',
+    greatEagleSystemsUrl: env['GREAT_EAGLE_SYSTEMS_URL'] || 'http://localhost:4100',
     demoClockEnabled: bool(env, 'DEMO_CLOCK_ENABLED', false),
     grantDemoDurationMs: positiveInt(env, 'GRANT_DEMO_DURATION_MS', 120000),
-    permitAppUrl: env.PERMIT_APP_URL || 'https://app.permit.io',
+    permitAppUrl: env['PERMIT_APP_URL'] || 'https://app.permit.io',
   };
 }

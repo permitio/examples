@@ -2,9 +2,9 @@ import { once } from 'node:events';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { PdpExplainer } from '../src/server/permit/explainer';
+import { PdpExplainer } from '#src/server/permit/explainer';
 
-interface Seen { method?: string; url?: string; authorization?: string; body: unknown }
+interface Seen { method?: string | undefined; url?: string | undefined; authorization?: string | undefined; body: unknown }
 
 const servers: Server[] = [];
 afterEach(async () => {

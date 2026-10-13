@@ -1,5 +1,5 @@
-import { formatCountdown, formatWhen } from '../format';
-import { useMeta, useNow } from '../hooks';
+import { formatCountdown, formatWhen } from '@/format';
+import { useMeta, useNow } from '@/hooks';
 
 // A quarter-second tick keeps the display within 250 ms of the real boundary, so "expired" appears
 // when access actually ends rather than up to a second later.

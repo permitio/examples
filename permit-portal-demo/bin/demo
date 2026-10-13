@@ -37,11 +37,11 @@ case "$cmd" in
   down)    need_profile; load_profile; docker compose --env-file "$pf" down ;;
   logs)    need_profile; load_profile; docker compose --env-file "$pf" logs -f --tail=200 ;;
   preflight)
-           need_profile; stack_matches; load_profile; node24; pdp_image_check; npx tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
+           need_profile; stack_matches; load_profile; node24; pdp_image_check; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
   seed)
-           need_profile; load_profile; node24; npx tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
+           need_profile; load_profile; node24; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
   reset|measure|replay)
-           need_profile; stack_matches; load_profile; node24; npx tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
-  scenario) need_profile; stack_matches; load_profile; node24; npx tsx "apps/portal/scripts/scenario-${3:?s1, s2, s4, s5 or s8}.ts" ;;
+           need_profile; stack_matches; load_profile; node24; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
+  scenario) need_profile; stack_matches; load_profile; node24; pnpm exec tsx "apps/portal/scripts/scenario-${3:?s1, s2, s4, s5 or s8}.ts" ;;
   *) usage ;;
 esac

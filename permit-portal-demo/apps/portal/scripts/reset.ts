@@ -1,17 +1,17 @@
 // Puts the demo back to its starting state, then runs preflight. Run: bin/demo reset <profile>
 // The scenario runners call runReset() in-process before their first step.
-import { loadSeed, RESOURCE, ROLE, TENANT } from '../src/server/model';
+import { loadSeed, RESOURCE, ROLE, TENANT } from '#src/server/model';
 import {
   couldNotRun, describeError, ensureAssignment, HttpError, httpRequest, ignoreNotFound, type Log, logged, scriptPermit, syncUser, tenantExists,
   upsertInstance, upsertTenant,
-} from './lib/admin';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { ARAGORN, demoData, instance } from './lib/fixtures';
-import { isMain, type Outcome, runCli } from './lib/report';
-import { runPreflight } from './preflight';
-import { resetS2 } from './reset/s2';
-import { resetS5 } from './reset/s5';
-import { resetS8 } from './reset/s8';
+} from '#scripts/lib/admin';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { ARAGORN, demoData, instance } from '#scripts/lib/fixtures';
+import { isMain, type Outcome, runCli } from '#scripts/lib/report';
+import { runPreflight } from '#scripts/preflight';
+import { resetS2 } from '#scripts/reset/s2';
+import { resetS5 } from '#scripts/reset/s5';
+import { resetS8 } from '#scripts/reset/s8';
 
 const EOMER = 'eomer';
 const GRIMA = 'grima';

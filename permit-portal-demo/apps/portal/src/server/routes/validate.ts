@@ -1,7 +1,7 @@
 import type { Request } from 'express';
-import { HttpError } from '../errors';
-import type { SeedData } from '../model';
-import { isPersona } from '../personas';
+import { HttpError } from '#src/server/errors';
+import type { SeedData } from '#src/server/model';
+import { isPersona } from '#src/server/personas';
 
 export type Body = Record<string, unknown>;
 

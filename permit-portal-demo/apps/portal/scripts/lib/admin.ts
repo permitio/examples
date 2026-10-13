@@ -1,7 +1,7 @@
 import { type Permit, PermitConnectionError, PermitContextError, PermitPDPStatusError } from 'permitio';
-import { createPermit } from '../../src/server/permit/client';
-import { MissingEnvError, type ScriptEnv } from './env';
-import type { AssignmentSpec, InstanceSpec, PermitData, TenantSpec, TupleSpec, UserSpec } from './fixtures';
+import { createPermit } from '#src/server/permit/client';
+import { MissingEnvError, type ScriptEnv } from '#scripts/lib/env';
+import type { AssignmentSpec, InstanceSpec, PermitData, TenantSpec, TupleSpec, UserSpec } from '#scripts/lib/fixtures';
 
 /** A non-2xx answer from a service the scripts call over plain HTTP (the PDP, the mock, the portal). */
 export class HttpError extends Error {
@@ -95,7 +95,7 @@ export async function ignoreNotFound(fn: () => Promise<unknown>): Promise<'done'
 /** Plain HTTP to the PDP, the mock or the portal. Statuses in `accept` are answers, any other non-2xx throws. */
 export async function httpRequest(method: 'GET' | 'POST', url: string, opts: { headers?: Record<string, string>; accept?: number[] } = {}):
   Promise<{ status: number; body: unknown }> {
-  const res = await fetch(url, { method, headers: opts.headers });
+  const res = await fetch(url, { method, headers: opts.headers ?? {} });
   const text = await res.text();
   if (!res.ok && !opts.accept?.includes(res.status)) throw new HttpError(`${method} ${url} answered ${res.status}`, res.status);
   let body: unknown = text;

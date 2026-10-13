@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadConfig } from '../src/server/config';
+import { loadConfig } from '#src/server/config';
 
 const required = { PERMIT_API_URL: 'https://api.permit.io', PERMIT_API_KEY: 'test-api-key', PROFILE: 'staging' };
 

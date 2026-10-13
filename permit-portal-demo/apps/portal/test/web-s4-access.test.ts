@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { accessState } from '../src/web/pages/s4/access';
-import type { Collaborator, DemoRequest, RequestStatus } from '../src/web/types';
+import { accessState } from '@/pages/s4/access';
+import type { Collaborator, DemoRequest, RequestStatus } from '@/types';
 
 const NOW = 1_791_280_800_000;
 

@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { HttpError, jsonBody, messageOf, statusOf, text } from './http';
-import { accessLog, compare } from './legacy/compare';
-import { grantsFor, loadMapping, type MappedGrant, versionOf } from './legacy/mapping';
-import { LEGACY_TENANT, type LegacyPermit, legacyPermit, type RoleWrite, viewBilling } from './legacy/permit';
-import { legacyAllows } from './legacy/rule';
-import type { SeedData } from './seed';
-import type { LegacyMode, LegacyState, Store } from './store';
+import { HttpError, jsonBody, messageOf, statusOf, text } from '#src/http';
+import { accessLog, compare } from '#src/legacy/compare';
+import { grantsFor, loadMapping, type MappedGrant, versionOf } from '#src/legacy/mapping';
+import { LEGACY_TENANT, type LegacyPermit, legacyPermit, type RoleWrite, viewBilling } from '#src/legacy/permit';
+import { legacyAllows } from '#src/legacy/rule';
+import type { SeedData } from '#src/seed';
+import type { LegacyMode, LegacyState, Store } from '#src/store';
 
 export interface S8Deps {
   store: Store;
@@ -40,7 +40,7 @@ const NOT_A_PERSON = 'an integration in Permit, not a person';
 
 /** Whether a Permit user's attributes mark it as a non-human principal: a connector S5 registered. */
 const isIntegration = (attributes: unknown) =>
-  typeof attributes === 'object' && attributes !== null && (attributes as Record<string, unknown>).principal_type === 'integration';
+  typeof attributes === 'object' && attributes !== null && (attributes as Record<string, unknown>)['principal_type'] === 'integration';
 
 /** A role and the resource it is on (`type:key`), or the role alone for a role in the tenant: how a held role and a grant are matched. */
 const roleKey = (role: string, resource: string | null | undefined) => (resource ? `${role} ${resource}` : role);

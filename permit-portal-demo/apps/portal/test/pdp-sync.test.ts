@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { confirmedWrites } from '../src/server/permit/confirmed-writes';
-import { holds, PdpSync, PdpSyncTimeout, PdpSyncUnavailable, type PdpView, rolesIn, SYNC_ACTION } from '../src/server/permit/pdp-sync';
-import { describeWriteError } from '../src/server/permit/writes';
+import { confirmedWrites } from '#src/server/permit/confirmed-writes';
+import { holds, PdpSync, PdpSyncTimeout, PdpSyncUnavailable, type PdpView, rolesIn, SYNC_ACTION } from '#src/server/permit/pdp-sync';
+import { describeWriteError } from '#src/server/permit/writes';
 
 const debugAnswer = (user: object, resource: object = {}) => ({ allow: false, debug: { request: { user: { key: 'x', attributes: user }, resource: { type: 'organization', attributes: resource } } } });
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -88,8 +88,8 @@ function fakeSync(held: () => PdpView) {
 
 describe('confirmedWrites', () => {
   const api = (overrides: Record<string, unknown> = {}) => ({
-    users: { get: vi.fn(), update: vi.fn(async () => ({})), assignRole: vi.fn(async () => ({})), unassignRole: vi.fn(async () => undefined), ...(overrides.users as object) },
-    resourceInstances: { get: vi.fn(), list: vi.fn(), create: vi.fn(async () => ({})), update: vi.fn(async () => ({ tenant: 'nw' })), ...(overrides.resourceInstances as object) },
+    users: { get: vi.fn(), update: vi.fn(async () => ({})), assignRole: vi.fn(async () => ({})), unassignRole: vi.fn(async () => undefined), ...(overrides['users'] as object) },
+    resourceInstances: { get: vi.fn(), list: vi.fn(), create: vi.fn(async () => ({})), update: vi.fn(async () => ({ tenant: 'nw' })), ...(overrides['resourceInstances'] as object) },
   });
 
   it('confirms a user attribute write against the PDP, probing a tenant every environment has', async () => {

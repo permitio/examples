@@ -5,9 +5,9 @@ import { ErrorBanner, Notice } from '@/components/ErrorBanner';
 import { EmptyNote, Heading, Lede } from '@/components/parts';
 import { Button } from '@/components/ui/button';
 import { CHANGE_CONFIRMED, useAction, usePersonaName, useResource } from '@/hooks';
-import { Fact, PagePlate } from '../s4/parts';
-import { RecentCalls, ScopeTags } from './parts';
-import { approverOf, type Integration, type IntegrationsResponse, revokeTargets, viewOnlyTargets } from './scope';
+import { Fact, PagePlate } from '@/pages/s4/parts';
+import { RecentCalls, ScopeTags } from '@/pages/s5/parts';
+import { approverOf, type Integration, type IntegrationsResponse, revokeTargets, viewOnlyTargets } from '@/pages/s5/scope';
 
 /**
  * What Sam may do to one integration: the EANs each button changes come from the roles Permit holds for it now, and a button

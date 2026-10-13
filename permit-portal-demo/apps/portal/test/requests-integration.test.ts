@@ -1,8 +1,8 @@
 // The integration_access request in the approval workflow: Sam approves production scope for the connector,
 // the four-eyes rule holds, and Permit decides who may approve. The PDP follows the policy (fakes-s5.ts).
 import { describe, expect, it } from 'vitest';
-import { as, askForProduction, asConnector, KEY, register, s5World, SHIRE, writesOf } from './fakes-s5';
-import { unconfirmed } from './fakes';
+import { as, askForProduction, asConnector, KEY, register, s5World, SHIRE, writesOf } from '#test/fakes-s5';
+import { unconfirmed } from '#test/fakes';
 
 const approve = (h: ReturnType<typeof s5World>, persona: string, id: string, body: object = {}) => as(h.app, persona).post(`/api/requests/${id}/approve`, body);
 

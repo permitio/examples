@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, api, decideRequest, emptyFeed, explainEvent, FEED_SIZE, getPersona, isShown, mergeFeed, setPersona } from '../src/web/api';
-import type { CheckEvent, WriteEvent } from '../src/web/types';
+import { ApiError, api, decideRequest, emptyFeed, explainEvent, FEED_SIZE, getPersona, isShown, mergeFeed, setPersona } from '@/api';
+import type { CheckEvent, WriteEvent } from '@/types';
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -110,7 +110,7 @@ describe('api client', () => {
 describe('persona storage', () => {
   it('starts as frodo when the browser storage is unavailable', async () => {
     vi.resetModules();
-    const fresh = await import('../src/web/api');
+    const fresh = await import('@/api');
 
     expect(fresh.getPersona()).toBe('frodo');
   });
@@ -119,7 +119,7 @@ describe('persona storage', () => {
     const saved = new Map([['persona', 'sam']]);
     vi.stubGlobal('localStorage', { getItem: (k: string) => saved.get(k) ?? null, setItem: (k: string, v: string) => saved.set(k, v) });
     vi.resetModules();
-    const fresh = await import('../src/web/api');
+    const fresh = await import('@/api');
 
     expect(fresh.getPersona()).toBe('sam');
     fresh.setPersona('gandalf');
@@ -205,7 +205,7 @@ describe('a portal rebuilt under an open tab', () => {
 
   it('stays quiet while every answer names the build of the first one, and says so once when another appears', async () => {
     vi.resetModules();
-    const fresh = await import('../src/web/api');
+    const fresh = await import('@/api');
     const heard = vi.fn();
     fresh.onPortalRebuilt(heard);
     const builds = [undefined, 'aaa', 'aaa', undefined, 'bbb', 'ccc'];

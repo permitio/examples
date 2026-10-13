@@ -1,5 +1,5 @@
-import type { LegacyUser, SeedAccount } from '../seed';
-import type { LegacyMapping } from './mapping';
+import type { LegacyUser, SeedAccount } from '#src/seed';
+import type { LegacyMapping } from '#src/legacy/mapping';
 
 /** One logged request seen through both sides. `could_not_check` means Permit gave no answer: never a match or a mismatch. */
 export type Outcome = 'match' | 'mismatch' | 'could_not_check';

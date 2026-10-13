@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { LegacyUser, SeedAccount } from '../seed';
+import type { LegacyUser, SeedAccount } from '#src/seed';
 
 /** One version of demo-data/legacy-mapping.json: the admins the owner confirmed, and the role each kind of code maps to (null: none). */
 export interface MappingVersion { confirmed_admins: string[]; ean_codes: string | null; child_account_codes: string | null }

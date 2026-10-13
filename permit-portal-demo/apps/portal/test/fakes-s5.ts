@@ -3,8 +3,8 @@
 // the connector registry and the shipment store, are FakeMock's (fakes.ts).
 import type { Express } from 'express';
 import request from 'supertest';
-import type { DemoRequest } from '../src/server/model';
-import { harness } from './fakes';
+import type { DemoRequest } from '#src/server/model';
+import { harness } from '#test/fakes';
 
 export const SHIRE = 'shire-freight';
 /** The connector Pippin registers: the key and name the portal's form is prefilled with. */

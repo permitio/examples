@@ -2,13 +2,13 @@ import { ClipboardCheckIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
 import { SectionHeading, SignPlate } from '@/signs/plates';
 import { Button } from '@/components/ui/button';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote, Lede } from '../components/parts';
-import { RequestDecisionForm, RequestSummary } from '../components/RequestSummary';
-import { trustFactItems } from '../format';
-import { decideAndConfirm, useAction, useResource } from '../hooks';
-import type { ReviewerQueueResponse } from '../types';
-import { FactGrid } from './org/FactGrid';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote, Lede } from '@/components/parts';
+import { RequestDecisionForm, RequestSummary } from '@/components/RequestSummary';
+import { trustFactItems } from '@/format';
+import { decideAndConfirm, useAction, useResource } from '@/hooks';
+import type { ReviewerQueueResponse } from '@/types';
+import { FactGrid } from '@/pages/org/FactGrid';
 
 /**
  * Great Eagle's onboarding reviewer queue: each first-admin request as a request card,

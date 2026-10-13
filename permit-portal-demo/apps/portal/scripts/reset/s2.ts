@@ -1,8 +1,8 @@
 import type { Permit } from 'permitio';
-import { loadSeed, type SeedData, TENANT } from '../../src/server/model';
-import { membersOf } from '../../src/server/routes/s2';
-import { ignoreNotFound, type Log, logged } from '../lib/admin';
-import { demoData } from '../lib/fixtures';
+import { loadSeed, type SeedData, TENANT } from '#src/server/model';
+import { membersOf } from '#src/server/routes/s2';
+import { ignoreNotFound, type Log, logged } from '#scripts/lib/admin';
+import { demoData } from '#scripts/lib/fixtures';
 
 /**
  * Undoes what S2 changed in Permit. Team access gives roles to every member of Shire Freight, not only to Merry,

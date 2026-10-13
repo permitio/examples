@@ -2,13 +2,13 @@ import { InboxIcon, RefreshCwIcon } from 'lucide-react';
 import { useState } from 'react';
 import { SectionHeading, SignPlate } from '@/signs/plates';
 import { Button } from '@/components/ui/button';
-import { getPersona, hasStatus } from '../api';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote, Lede } from '../components/parts';
-import { RequestDecisionForm, RequestSummary } from '../components/RequestSummary';
-import { decideAndConfirm, useAction, useResource } from '../hooks';
-import type { ApprovalsResponse, OrgDetail, RequestType } from '../types';
-import { OrgPage } from './OrgPage';
+import { getPersona, hasStatus } from '@/api';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote, Lede } from '@/components/parts';
+import { RequestDecisionForm, RequestSummary } from '@/components/RequestSummary';
+import { decideAndConfirm, useAction, useResource } from '@/hooks';
+import type { ApprovalsResponse, OrgDetail, RequestType } from '@/types';
+import { OrgPage } from '@/pages/OrgPage';
 
 /** The organization S1 builds; Éomer joins it, then takes over as its admin. */
 const S1_ORG = 'riders-of-rohan';

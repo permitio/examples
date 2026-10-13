@@ -2,8 +2,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadSeed } from '../src/seed';
-import { Store } from '../src/store';
+import { loadSeed } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const iso = (ms: number) => new Date(ms).toISOString();

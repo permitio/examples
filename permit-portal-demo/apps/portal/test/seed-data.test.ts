@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadSeed } from '../src/server/model';
+import { loadSeed } from '#src/server/model';
 
 const seed = loadSeed();
 

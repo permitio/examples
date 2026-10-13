@@ -1,8 +1,8 @@
 // What S5's Integrations pages decide from the portal's answer (GET /api/s5/integrations): which EANs "Make view-only" and
 // "Revoke" act on, whether Pippin may ask for production again, and who approved. Pure functions, so no browser is needed.
 import { describe, expect, it } from 'vitest';
-import { approverOf, canAskForProduction, hasProductionAccess, type Integration, revokeTargets, type ScopeEntry, viewOnlyTargets } from '../src/web/pages/s5/scope';
-import type { DemoRequest, RequestStatus } from '../src/web/types';
+import { approverOf, canAskForProduction, hasProductionAccess, type Integration, revokeTargets, type ScopeEntry, viewOnlyTargets } from '@/pages/s5/scope';
+import type { DemoRequest, RequestStatus } from '@/types';
 
 const client = (ean: string): ScopeEntry => ({ role: 'integration_client', resource: `ean:${ean}` });
 const reader = (ean: string): ScopeEntry => ({ role: 'integration_reader', resource: `ean:${ean}` });

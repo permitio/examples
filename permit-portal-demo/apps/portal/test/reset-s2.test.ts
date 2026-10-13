@@ -2,7 +2,7 @@
 // does not give (Team access grants to every member, not only Merry), and nothing else.
 import type { Permit } from 'permitio';
 import { describe, expect, it } from 'vitest';
-import { resetS2 } from '../scripts/reset/s2';
+import { resetS2 } from '#scripts/reset/s2';
 
 interface Row { user: string; role: string; tenant: string; resource_instance?: string }
 

@@ -246,8 +246,8 @@ export function s5World(bugs: S5Bugs = {}) {
   };
 
   const recent = () => bugs.noRecentCalls ? [] : feed.events
-    .filter((e) => e.kind === 'check' && e.user === 'shire-erp').reverse().slice(0, 10)
-    .map((e) => ({ action: e.action, resource: e.resource, allow: e.allow, at: e.id }));
+    .filter((e) => e['kind'] === 'check' && e['user'] === 'shire-erp').reverse().slice(0, 10)
+    .map((e) => ({ action: e['action'], resource: e['resource'], allow: e['allow'], at: e.id }));
   const view = () => ({
     key: 'shire-erp', name: 'Shire ERP connector', owner: 'pippin', customer: 'shire-freight', customer_name: 'Shire Freight',
     scope: scope.map((entry) => ({ role: entry.split(' ')[0], resource: entry.split(' ')[1] })),
@@ -260,7 +260,7 @@ export function s5World(bugs: S5Bugs = {}) {
     if (persona === 'pippin' && !bugs.pippinMayApprove) return [409, { error: SELF_APPROVAL }];
     if (persona === 'frodo' && !bugs.frodoMayApprove) return [403, { error: 'Permit denied approve_integration on ean:EAN-1001.', decision: 'deny' }];
     request.current = { ...pending, status: 'approved', reviewer: persona };
-    scope.push(`integration_client ${String(pending.target)}`);
+    scope.push(`integration_client ${String(pending['target'])}`);
     return [200, { request: request.current, ms: 801 }];
   };
   const change = (ean: string, level: string): Reply => {
@@ -276,7 +276,7 @@ export function s5World(bugs: S5Bugs = {}) {
     if (bugs.revokeKeepsSandbox && ean === 'EAN-SANDBOX') return [200, { ms: 0 }];
     drop('integration_client');
     drop('integration_reader');
-    if (request.current?.target === `ean:${ean}`) request.current = { ...request.current, status: 'revoked' };
+    if (request.current?.['target'] === `ean:${ean}`) request.current = { ...request.current, status: 'revoked' };
     return [200, { ms: 777 }];
   };
 
@@ -301,7 +301,7 @@ export function s5World(bugs: S5Bugs = {}) {
       return [201, request.current];
     }
     if (req.method === 'GET' && path === '/api/approvals') {
-      return [200, { requests: persona === 'sam' && request.current?.status === 'pending' ? [request.current] : [] }];
+      return [200, { requests: persona === 'sam' && request.current?.['status'] === 'pending' ? [request.current] : [] }];
     }
     if (req.method === 'POST' && path === '/api/requests/req-test-5/approve') return approve(persona);
     if (req.method === 'POST' && path === '/api/s5/integrations/shire-erp/scope') {

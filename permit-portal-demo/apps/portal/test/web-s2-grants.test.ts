@@ -2,8 +2,8 @@
 // sends it itself, and these tests pin that it speaks the same way: the persona header, a JSON body, and the server's own
 // words in an ApiError.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, setPersona } from '../src/web/api';
-import { grantRole, revokeRole } from '../src/web/pages/s2/grants';
+import { ApiError, setPersona } from '@/api';
+import { grantRole, revokeRole } from '@/pages/s2/grants';
 
 const GRANT = { user: 'merry', role: 'location_operator', resource: 'location:LOC-BYWATER' };
 

@@ -3,8 +3,8 @@ export type RequestType = 'collaborator_invite' | 'renewal' | 'first_admin' | 'm
 export type RequestStatus = 'pending' | 'approved' | 'denied' | 'canceled' | 'revoked' | 'expired';
 export interface HistoryEntry { at: string; status: RequestStatus; by: string; comment?: string }
 export interface DemoRequest {
-  id: string; type: RequestType; tenant: string; target: string; role?: string;
-  requested_for: string; initiated_by: string; reason?: string; duration_ms?: number; requested_days?: number; org_name?: string;
+  id: string; type: RequestType; tenant: string; target: string; role?: string | undefined;
+  requested_for: string; initiated_by: string; reason?: string | undefined; duration_ms?: number | undefined; requested_days?: number | undefined; org_name?: string | undefined;
   status: RequestStatus; reviewer?: string; reviewer_comment?: string; created_at: string; updated_at: string; history: HistoryEntry[];
 }
 const ALLOWED: Record<RequestStatus, readonly RequestStatus[]> = {

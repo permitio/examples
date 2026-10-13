@@ -1,5 +1,5 @@
 import { Permit } from 'permitio';
-import type { PermitSettings } from '../config';
+import type { PermitSettings } from '#src/server/config';
 
 export function createPermit(s: PermitSettings): Permit {
   // Permit SDK: the one Permit client the portal creates. `token` is the environment's API key, `pdp` is the local

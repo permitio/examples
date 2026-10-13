@@ -1,5 +1,5 @@
-import { HttpError, messageOf } from './errors';
-import type { DemoRequest, RequestStatus, RequestType, TrustFacts } from './model';
+import { HttpError, messageOf } from '#src/server/errors';
+import type { DemoRequest, RequestStatus, RequestType, TrustFacts } from '#src/server/model';
 
 export interface MockOrg { key: string; name: string; ownership_verified: boolean }
 export interface Doc { name: string; by: string; at: string }
@@ -128,7 +128,7 @@ async function call(client: MockClient, method: string, path: string, body?: unk
     res = await fetch(`${client.baseUrl.replace(/\/+$/, '')}${path}`, {
       method,
       headers: body === undefined ? {} : { 'content-type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: AbortSignal.timeout(client.timeoutMs),
     });
   } catch (e) {

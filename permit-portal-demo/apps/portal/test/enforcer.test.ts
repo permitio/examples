@@ -1,8 +1,8 @@
 import type { ICheckQuery, IResource, IUser, IUserPermissions } from 'permitio';
 import { describe, expect, it } from 'vitest';
-import { HttpError } from '../src/server/errors';
-import { EventLog } from '../src/server/events';
-import { type CheckClient, Enforcer } from '../src/server/permit/enforcer';
+import { HttpError } from '#src/server/errors';
+import { EventLog } from '#src/server/events';
+import { type CheckClient, Enforcer } from '#src/server/permit/enforcer';
 
 const resourceOf = (r: IResource | string): IResource => (typeof r === 'string' ? { type: r } : r);
 

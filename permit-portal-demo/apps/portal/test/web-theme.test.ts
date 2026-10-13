@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_THEME, otherTheme, readTheme, saveTheme, themeSwitchLabel } from '../src/web/theme';
+import { DEFAULT_THEME, otherTheme, readTheme, saveTheme, themeSwitchLabel } from '@/theme';
 
 const storageWith = (value: string | null) => () => ({ getItem: () => value, setItem: () => undefined });
 const denied = () => {

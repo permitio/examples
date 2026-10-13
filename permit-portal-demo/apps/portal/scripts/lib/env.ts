@@ -16,11 +16,11 @@ export function scriptEnv(env: NodeJS.ProcessEnv = process.env): ScriptEnv {
   const missing = REQUIRED.filter((name) => !env[name]);
   if (missing.length > 0) throw new MissingEnvError(missing);
   return {
-    profile: env.PROFILE as string,
-    apiUrl: env.PERMIT_API_URL as string,
-    apiKey: env.PERMIT_API_KEY as string,
-    pdpUrl: env.PERMIT_PDP_URL || 'http://localhost:7766',
-    greatEagleSystemsUrl: env.GREAT_EAGLE_SYSTEMS_URL || 'http://localhost:4100',
-    portalUrl: env.PORTAL_URL || 'http://localhost:3000',
+    profile: env['PROFILE'] as string,
+    apiUrl: env['PERMIT_API_URL'] as string,
+    apiKey: env['PERMIT_API_KEY'] as string,
+    pdpUrl: env['PERMIT_PDP_URL'] || 'http://localhost:7766',
+    greatEagleSystemsUrl: env['GREAT_EAGLE_SYSTEMS_URL'] || 'http://localhost:4100',
+    portalUrl: env['PORTAL_URL'] || 'http://localhost:3000',
   };
 }

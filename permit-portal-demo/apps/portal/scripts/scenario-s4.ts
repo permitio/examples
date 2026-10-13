@@ -3,16 +3,16 @@
 // the portal's API as each persona and asserts every decision and status code. It is the automated rehearsal.
 // Run: bin/demo scenario <profile> s4. SCENARIO_GRANT_MS sets Aragorn's grant: 10 s by default; the live demo uses 2 minutes.
 // Exit 0 pass, 1 fail, 2 could not run.
-import { RESOURCE, TENANT } from '../src/server/model';
-import { type ScriptEnv, scriptEnv } from './lib/env';
-import { ARAGORN } from './lib/fixtures';
-import { pollUntil } from './lib/pdp';
-import { isMain, type Outcome, type Result, runCli } from './lib/report';
-import { runReset } from './reset';
+import { RESOURCE, TENANT } from '#src/server/model';
+import { type ScriptEnv, scriptEnv } from '#scripts/lib/env';
+import { ARAGORN } from '#scripts/lib/fixtures';
+import { pollUntil } from '#scripts/lib/pdp';
+import { isMain, type Outcome, type Result, runCli } from '#scripts/lib/report';
+import { runReset } from '#scripts/reset';
 import {
   Api, approvalOf, booleanOf, errorText, type Expected, expectDecisions, expectEqual, field, isRecord, listOf, type Log, ms, numberOf,
   requestOf, runScenario, seconds, type StepContext, StepError,
-} from './scenario-runner';
+} from '#scripts/scenario-runner';
 
 const FRODO = 'frodo';
 const SAM = 'sam';
@@ -68,7 +68,7 @@ async function lastEventId(portal: Api): Promise<number> {
 async function aragornsViewDecisions(portal: Api, since: number): Promise<Array<{ allow: boolean; currentTime: number }>> {
   const events = listOf(await portal.expect(200, 'GET', `/api/events?since=${since}`, { persona: ARAGORN }), 'events');
   return events
-    .filter((e) => isRecord(e) && e.kind === 'check' && e.user === ARAGORN && e.action === 'view' && e.resource === `${RESOURCE.shipment}:${SHIPMENT}` && e.error === undefined)
+    .filter((e) => isRecord(e) && e['kind'] === 'check' && e['user'] === ARAGORN && e['action'] === 'view' && e['resource'] === `${RESOURCE.shipment}:${SHIPMENT}` && e['error'] === undefined)
     .map((e) => ({ allow: booleanOf(e, 'allow'), currentTime: numberOf(field(field(field(e, 'input'), 'user'), 'attributes'), 'current_time') }));
 }
 
@@ -178,7 +178,7 @@ function grantMsOf(raw: string | undefined): number | undefined {
 if (isMain(import.meta.url)) {
   await runCli(async () => {
     const env = scriptEnv();
-    const grantMs = grantMsOf(process.env.SCENARIO_GRANT_MS);
+    const grantMs = grantMsOf(process.env['SCENARIO_GRANT_MS']);
     if (grantMs === undefined) return { outcome: 'could-not-run', summary: `SCENARIO_GRANT_MS must be a whole number of milliseconds, at least ${MIN_GRANT_MS}` };
     return runS4(env, { grantMs, reset: () => runReset(env) });
   });

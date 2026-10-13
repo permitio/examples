@@ -34,5 +34,5 @@ export const otherTheme = (theme: Theme): Theme => (theme === 'dark' ? 'light' :
 export const themeSwitchLabel = (theme: Theme) => (otherTheme(theme) === 'light' ? 'Light mode' : 'Dark mode');
 
 export function applyTheme(theme: Theme): void {
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset['theme'] = theme;
 }

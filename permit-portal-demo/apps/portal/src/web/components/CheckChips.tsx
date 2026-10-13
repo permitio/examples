@@ -2,10 +2,10 @@
 // tag and anything else is graphite or outlined; the red DENY plate belongs to the Permit panel (Decision).
 
 import { ArrowRightIcon, BanIcon, CheckIcon, CircleDashedIcon, ClockIcon, TimerOffIcon, XIcon } from 'lucide-react';
-import type { Check, FactItem } from '../format';
-import { useMeta, useNow } from '../hooks';
-import type { Collaborator, RequestStatus } from '../types';
-import { Tag } from './parts';
+import type { Check, FactItem } from '@/format';
+import { useMeta, useNow } from '@/hooks';
+import type { Collaborator, RequestStatus } from '@/types';
+import { Tag } from '@/components/parts';
 import { cn } from '@/lib/utils';
 
 // The same tick as the Countdown beside the chip, so both flip together.

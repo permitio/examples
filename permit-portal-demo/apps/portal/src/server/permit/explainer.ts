@@ -1,5 +1,5 @@
 import type { IResource, IUser } from 'permitio';
-import { messageOf } from '../errors';
+import { messageOf } from '#src/server/errors';
 
 /** One check, exactly as the enforcer sends it to the PDP. */
 export interface CheckInput { user: IUser; action: string; resource: IResource }

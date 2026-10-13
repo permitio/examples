@@ -1,6 +1,6 @@
-import type { UserAttributes } from '../model';
-import type { EventLog } from '../events';
-import { timedWrite } from './writes';
+import type { UserAttributes } from '#src/server/model';
+import type { EventLog } from '#src/server/events';
+import { timedWrite } from '#src/server/permit/writes';
 
 export interface UsersApi { get(key: string): Promise<{ attributes?: object | null }>; update(key: string, d: { attributes: object }): Promise<unknown> }
 export interface FactsUpdate { attributes: UserAttributes; ms: number; skipped: boolean }

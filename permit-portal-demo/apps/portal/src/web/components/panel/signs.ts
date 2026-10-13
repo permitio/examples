@@ -1,7 +1,7 @@
 // The "Where <name> can go" directory above the decision log: one sign per action and resource the persona was
 // checked on, drawn from the panel's own feed, so it needs no API call of its own.
 
-import type { CheckEvent, DemoEvent } from '../../types';
+import type { CheckEvent, DemoEvent } from '@/types';
 
 /** At most this many signs: the pairs checked most recently. */
 export const SIGN_LIMIT = 8;

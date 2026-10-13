@@ -4,16 +4,16 @@ import { GateSign, SectionHeading, SignPlate, StageStrip } from '@/signs/plates'
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { api, getPersona, hasStatus } from '../api';
-import { CheckChips } from '../components/CheckChips';
-import { ErrorBanner, Notice } from '../components/ErrorBanner';
-import { EmptyNote } from '../components/parts';
-import { canChecks, trustFactItems } from '../format';
-import { CHANGE_CONFIRMED, useAction, useMeta, usePersonaName, useResource } from '../hooks';
-import type { DemoRequest, EanAssociationResponse, OrgAction, OrgDetail } from '../types';
-import { FactGrid } from './org/FactGrid';
-import { PersonPicker } from './org/PersonPicker';
-import { gateOf, pathOf, type Standing, standingOf } from './org/standing';
+import { api, getPersona, hasStatus } from '@/api';
+import { CheckChips } from '@/components/CheckChips';
+import { ErrorBanner, Notice } from '@/components/ErrorBanner';
+import { EmptyNote } from '@/components/parts';
+import { canChecks, trustFactItems } from '@/format';
+import { CHANGE_CONFIRMED, useAction, useMeta, usePersonaName, useResource } from '@/hooks';
+import type { DemoRequest, EanAssociationResponse, OrgAction, OrgDetail } from '@/types';
+import { FactGrid } from '@/pages/org/FactGrid';
+import { PersonPicker } from '@/pages/org/PersonPicker';
+import { gateOf, pathOf, type Standing, standingOf } from '@/pages/org/standing';
 
 const ORG_ACTIONS: readonly OrgAction[] = ['view_own_request', 'view_profile', 'manage_members', 'invite', 'transfer_admin', 'request_ean_association'];
 

@@ -2,16 +2,16 @@ import { ExternalLinkIcon, HistoryIcon, RefreshCwIcon } from 'lucide-react';
 import { useId, useState } from 'react';
 import { SectionHeading, SignPlate } from '@/signs/plates';
 import { cn } from '@/lib/utils';
-import { getPersona } from '../api';
-import { StatusChip } from '../components/CheckChips';
-import { ErrorBanner } from '../components/ErrorBanner';
-import { EmptyNote } from '../components/parts';
-import { RequestSummary } from '../components/RequestSummary';
-import { Button, buttonVariants } from '../components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '../components/ui/toggle-group';
-import { formatWhen } from '../format';
-import { useMeta, usePersonaName, useResource } from '../hooks';
-import type { DemoRequest } from '../types';
+import { getPersona } from '@/api';
+import { StatusChip } from '@/components/CheckChips';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { EmptyNote } from '@/components/parts';
+import { RequestSummary } from '@/components/RequestSummary';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { formatWhen } from '@/format';
+import { useMeta, usePersonaName, useResource } from '@/hooks';
+import type { DemoRequest } from '@/types';
 
 const TENANTS = ['shire-freight', 'riders-of-rohan', 'riders-of-rohan-llc'] as const;
 /** Personas of S1 open on its organization; everyone else on Shire Freight, where S4 runs. */

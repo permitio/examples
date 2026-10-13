@@ -1,7 +1,7 @@
 import type { ICheckQuery, IResource, IUser, IUserPermissions } from 'permitio';
-import { HttpError, messageOf } from '../errors';
-import type { EventLog, EventSource } from '../events';
-import type { CheckInput } from './explainer';
+import { HttpError, messageOf } from '#src/server/errors';
+import type { EventLog, EventSource } from '#src/server/events';
+import type { CheckInput } from '#src/server/permit/explainer';
 
 export interface ResourceRef { type: string; key: string; tenant: string; attributes?: Record<string, unknown> }
 

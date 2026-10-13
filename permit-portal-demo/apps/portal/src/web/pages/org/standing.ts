@@ -5,8 +5,8 @@
 import { ArrowRightIcon, DoorClosedIcon, HourglassIcon, PauseIcon, UsersIcon } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import type { PlateTone, Stage } from '@/signs/plates';
-import { formatClock } from '../../format';
-import type { DemoRequest, OrgDetail } from '../../types';
+import { formatClock } from '@/format';
+import type { DemoRequest, OrgDetail } from '@/types';
 
 /**
  * admin: Permit allows manage_members. paused and waiting: the persona holds org_admin but Permit denies it (paused

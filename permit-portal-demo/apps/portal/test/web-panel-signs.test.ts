@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resourceParts, SIGN_LIMIT, type Sign, sharedResources, signsOf } from '../src/web/components/panel/signs';
-import type { CheckEvent, DemoEvent, ReadEvent, WriteEvent } from '../src/web/types';
+import { resourceParts, SIGN_LIMIT, type Sign, sharedResources, signsOf } from '@/components/panel/signs';
+import type { CheckEvent, DemoEvent, ReadEvent, WriteEvent } from '@/types';
 
 const check = (id: number, extra: Partial<CheckEvent> = {}): CheckEvent => ({
   id,

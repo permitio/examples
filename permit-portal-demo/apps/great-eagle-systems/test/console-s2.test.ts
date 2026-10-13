@@ -6,11 +6,11 @@ import type { AddressInfo } from 'node:net';
 import express from 'express';
 import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createApp } from '../src/app';
-import { s2ConsoleRouter } from '../src/console-s2';
-import type { PortalNotifier } from '../src/portal-notifier';
-import { loadSeed } from '../src/seed';
-import { Store } from '../src/store';
+import { createApp } from '#src/app';
+import { s2ConsoleRouter } from '#src/console-s2';
+import type { PortalNotifier } from '#src/portal-notifier';
+import { loadSeed } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const FORGED_GRANT = { user: 'merry', role: 'shipper', resource: 'ean:EAN-1002' };

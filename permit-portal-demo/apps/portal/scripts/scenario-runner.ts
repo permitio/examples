@@ -1,10 +1,10 @@
 // Shared by the scenario runners (scenario-s1.ts, -s2.ts, -s4.ts, -s5.ts and -s8.ts): the step helper, a JSON client for the
 // portal and the Great Eagle systems mock, the decision assertions and the decision-panel feed. It is not a scenario
 // itself: bin/demo scenario takes s1, s2, s4, s5 or s8.
-import { describeError } from './lib/admin';
-import { ARAGORN } from './lib/fixtures';
-import { type CheckSpec, describeCheck, pollUntil } from './lib/pdp';
-import { finish, isMain, type Outcome, type Result } from './lib/report';
+import { describeError } from '#scripts/lib/admin';
+import { ARAGORN } from '#scripts/lib/fixtures';
+import { type CheckSpec, describeCheck, pollUntil } from '#scripts/lib/pdp';
+import { finish, isMain, type Outcome, type Result } from '#scripts/lib/report';
 
 export type Log = (line: string) => void;
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -47,7 +47,7 @@ function preview(value: unknown): string {
 /** The service's own error text (`{ error }`), or a short preview of what it sent instead. */
 export function errorText(body: unknown): string {
   if (body === undefined) return '(no body)';
-  const error = isRecord(body) ? body.error : undefined;
+  const error = isRecord(body) ? body['error'] : undefined;
   return typeof error === 'string' ? error : preview(body);
 }
 
@@ -78,7 +78,7 @@ export class Api {
     if (opts.body !== undefined) headers['content-type'] = 'application/json';
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
-        method, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body), signal: AbortSignal.timeout(this.timeoutMs),
+        method, headers, ...(opts.body === undefined ? {} : { body: JSON.stringify(opts.body) }), signal: AbortSignal.timeout(this.timeoutMs),
       });
       return { status: res.status, body: parsed(await res.text()) };
     } catch (err) {
@@ -192,7 +192,7 @@ const word = (allow: boolean) => (allow ? 'allow' : 'deny');
 
 /** Each check's decision from the portal's POST /api/checks/bulk: one call per persona, the persona being the user. */
 export async function decisionsOf(portal: Api, checks: readonly CheckSpec[]): Promise<boolean[]> {
-  const allows = new Array<boolean>(checks.length).fill(false);
+  const allows = checks.map(() => false);
   for (const user of new Set(checks.map((c) => c.user))) {
     const mine = checks.flatMap((check, at) => (check.user === user ? [{ check, at }] : []));
     const items = mine.map(({ check: c }) => ({

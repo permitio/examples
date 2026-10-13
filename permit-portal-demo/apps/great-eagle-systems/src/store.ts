@@ -1,8 +1,8 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { transition, type DemoRequest, type RequestStatus, type RequestType } from './requests';
-import type { SeedData, TrustFacts } from './seed';
+import { transition, type DemoRequest, type RequestStatus, type RequestType } from '#src/requests';
+import type { SeedData, TrustFacts } from '#src/seed';
 
 export interface TrustUser { key: string; name: string; facts: TrustFacts }
 export interface Org { key: string; name: string; ownership_verified: boolean }
@@ -29,7 +29,7 @@ export interface LegacyState { mode: LegacyMode; mappingVersion: 1 | 2; validati
 /** The account master signs off EAN associations itself: no person reviews them. */
 export const ACCOUNT_MASTER = 'great-eagle-account-master';
 
-interface Ean { key: string; org: string; proof?: string }
+interface Ean { key: string; org: string; proof?: string | undefined }
 interface State {
   users: TrustUser[];
   orgs: Org[];
@@ -104,7 +104,7 @@ function readState(path: string): State | undefined {
   // A store saved before S5 and S8 has none of their state: it opens with no connectors and no created shipments, and
   // the legacy app in shadow mode. A store that has their state must hold it whole.
   const upgraded: Record<string, unknown> = { integrations: [], shipments: [], legacy: { ...LEGACY_START }, ...record };
-  if (!COLLECTIONS.every((name) => Array.isArray(upgraded[name])) || !isLegacyState(upgraded.legacy)) {
+  if (!COLLECTIONS.every((name) => Array.isArray(upgraded[name])) || !isLegacyState(upgraded['legacy'])) {
     throw new Error(`The store at ${path} does not hold the expected collections. Delete it to start again from the seed.`);
   }
   return upgraded as unknown as State;
@@ -120,7 +120,7 @@ export class Store {
   private state: State;
   private readonly path: string | undefined;
 
-  constructor(private readonly seed: SeedData, options: { path?: string; at?: number } = {}) {
+  constructor(private readonly seed: SeedData, options: { path?: string | undefined; at?: number } = {}) {
     this.path = options.path;
     if (this.path !== undefined) mkdirSync(dirname(this.path), { recursive: true });
     const saved = this.path === undefined ? undefined : readState(this.path);
@@ -209,7 +209,7 @@ export class Store {
   }
 
   /** Undefined for an unknown request; throws TransitionError when the state machine does not allow the move. */
-  transitionRequest(id: string, move: { to: RequestStatus; by: string; comment?: string; duration_ms?: number }, at: number): DemoRequest | undefined {
+  transitionRequest(id: string, move: { to: RequestStatus; by: string; comment?: string | undefined; duration_ms?: number | undefined }, at: number): DemoRequest | undefined {
     const current = this.request(id);
     if (!current) return undefined;
     const next = transition(current, move.to, move.by, iso(at), move.comment, move.duration_ms);

@@ -1,13 +1,13 @@
 import { type Response, Router } from 'express';
 import type { IUserPermissions } from 'permitio';
-import type { Deps } from '../app';
-import { deniedBy, HttpError } from '../errors';
-import { RESOURCE, ROLE, type SeedData, TENANT } from '../model';
-import type { ResourceRef } from '../permit/enforcer';
-import { ensureInstanceRole, ensureNoInstanceRole } from '../permit/instance-roles';
-import { personaOf, sourceOf } from '../personas';
-import { SANDBOX_EAN } from './s5';
-import { type Body, bodyOf, text } from './validate';
+import type { Deps } from '#src/server/app';
+import { deniedBy, HttpError } from '#src/server/errors';
+import { RESOURCE, ROLE, type SeedData, TENANT } from '#src/server/model';
+import type { ResourceRef } from '#src/server/permit/enforcer';
+import { ensureInstanceRole, ensureNoInstanceRole } from '#src/server/permit/instance-roles';
+import { personaOf, sourceOf } from '#src/server/personas';
+import { SANDBOX_EAN } from '#src/server/routes/s5';
+import { type Body, bodyOf, text } from '#src/server/routes/validate';
 
 type GrantType = typeof RESOURCE.ean | typeof RESOURCE.account | typeof RESOURCE.location;
 

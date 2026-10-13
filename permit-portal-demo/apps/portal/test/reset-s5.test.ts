@@ -3,7 +3,7 @@
 // credentials, requests and shipments in their own reset.
 import type { Permit } from 'permitio';
 import { describe, expect, it } from 'vitest';
-import { resetS5 } from '../scripts/reset/s5';
+import { resetS5 } from '#scripts/reset/s5';
 
 interface FakeUser { key: string; attributes?: object }
 

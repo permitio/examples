@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
-import { HttpPortalNotifier } from '../src/portal-notifier';
+import { HttpPortalNotifier } from '#src/portal-notifier';
 
 interface Received { method: string | undefined; path: string | undefined; contentType: string | undefined; body: unknown }
 type Answer = { status: number; body: unknown } | 'never';

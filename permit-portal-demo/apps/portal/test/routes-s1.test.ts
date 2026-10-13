@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { harness, unconfirmed } from './fakes';
+import { harness, unconfirmed } from '#test/fakes';
 
 const as = (app: Express, persona: string) => ({
   get: (path: string) => request(app).get(path).set('x-demo-persona', persona),

@@ -82,7 +82,7 @@ export interface CheckEvent {
   input: unknown;
   /** Set when the check failed before the PDP answered. */
   error?: string;
-  source?: EventSource;
+  source?: EventSource | undefined;
 }
 
 export interface WriteEvent {

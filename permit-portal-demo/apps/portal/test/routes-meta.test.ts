@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { Permit } from 'permitio';
 import request from 'supertest';
 import { afterAll, describe, expect, it } from 'vitest';
-import { webBuildOf } from '../src/server/app';
-import { harness } from './fakes';
+import { webBuildOf } from '#src/server/app';
+import { harness } from '#test/fakes';
 
 describe('persona header', () => {
   it('rejects missing or unknown persona', async () => {

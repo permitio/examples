@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createApp } from '../src/app';
-import { CleanupJob } from '../src/cleanup-job';
-import type { CleanupResult, NotifyResult, PortalNotifier } from '../src/portal-notifier';
-import { loadSeed } from '../src/seed';
-import { Store } from '../src/store';
+import { createApp } from '#src/app';
+import { CleanupJob } from '#src/cleanup-job';
+import type { CleanupResult, NotifyResult, PortalNotifier } from '#src/portal-notifier';
+import { loadSeed } from '#src/seed';
+import { Store } from '#src/store';
 
 const NOW = Date.parse('2026-10-05T09:00:00.000Z');
 const iso = (ms: number) => new Date(ms).toISOString();

@@ -1,7 +1,7 @@
 // What S2's pages work out before they draw: the Team access tree, which toggle is on, and the grid's groups. No React
 // here, so it is tested without a browser (test/web-s2-team.test.ts).
 
-import type { AssignmentsResponse, Grantable, PermissionRow } from './types';
+import type { AssignmentsResponse, Grantable, PermissionRow } from '@/pages/s2/types';
 
 /** One resource of the Team access tree, with the roles the persona may give on it and what sits under it. */
 export interface TreeNode {

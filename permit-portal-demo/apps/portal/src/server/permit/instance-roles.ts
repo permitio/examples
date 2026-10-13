@@ -1,6 +1,6 @@
-import type { Deps } from '../app';
-import { statusOf } from '../errors';
-import { resumableWrite } from './writes';
+import type { Deps } from '#src/server/app';
+import { statusOf } from '#src/server/errors';
+import { resumableWrite } from '#src/server/permit/writes';
 
 /**
  * Runs one role write through {@link resumableWrite} and answers how long the PDP took to apply it, or 0 when Permit

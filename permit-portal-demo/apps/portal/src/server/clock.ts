@@ -1,4 +1,4 @@
-import { HttpError } from './errors';
+import { HttpError } from '#src/server/errors';
 
 /**
  * The time the portal sends as `current_time` with every check. It is the server's clock plus an offset

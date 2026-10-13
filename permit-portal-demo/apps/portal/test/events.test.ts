@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DemoClock } from '../src/server/clock';
-import { HttpError } from '../src/server/errors';
-import { EventLog } from '../src/server/events';
+import { DemoClock } from '#src/server/clock';
+import { HttpError } from '#src/server/errors';
+import { EventLog } from '#src/server/events';
 
 const write = (what: string) => ({ kind: 'write' as const, at: 0, what, ms: 1, ok: true });
 const check = (action: string) => ({
