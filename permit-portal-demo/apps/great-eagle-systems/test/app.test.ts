@@ -584,7 +584,7 @@ describe('presenter console', () => {
   it('has an inline script that parses', async () => {
     const { app } = setup();
     const scripts = [
-      ...(await request(app).get('/')).text.matchAll(/<script>([\s\S]*?)<\/script>/g),
+      ...(await request(app).get('/')).text.matchAll(/<script>([\s\S]*?)<\/script>/gi),
     ].map((m) => m[1] ?? '');
     expect(scripts).toHaveLength(1);
     for (const script of scripts) expect(() => new Function(script)).not.toThrow();

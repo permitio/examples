@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express, { type ErrorRequestHandler, type Express, type RequestHandler } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import type { DemoClock } from '#src/server/clock';
 import type { PortalConfig } from '#src/server/config';
 import { DeniedError, HttpError, permitUnreachable } from '#src/server/errors';
@@ -109,6 +110,14 @@ export interface Deps {
   };
 }
 
+/**
+ * Requests one client address may make in a minute. The demo's own traffic shares one address
+ * (Docker shows the host's browser tabs and scenario runners as its gateway): a visible tab polls
+ * the decision panel every 0.7 s and its page every 5 to 10 s, and a runner polls as often as every
+ * 0.2 s. That peaks near 1,000 a minute; this leaves room for it and still stops a runaway loop.
+ */
+const REQUESTS_PER_MINUTE = 3_000;
+
 /** Vite's output folder (apps/portal/dist/web). It may not exist yet: the API works without it. */
 const WEB_DIR = fileURLToPath(new URL('../../dist/web/', import.meta.url));
 
@@ -137,6 +146,16 @@ export function createApp(deps: Deps, webDir: string = WEB_DIR): Express {
   };
   const app = express();
   app.disable('x-powered-by');
+  // In front of every route, the SPA fallback too. One per app, so tests never share counts.
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit: REQUESTS_PER_MINUTE,
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: { error: 'Too many requests' },
+    }),
+  );
   app.use(express.json());
   app.get('/healthz', (_req, res) => {
     res.sendStatus(200);

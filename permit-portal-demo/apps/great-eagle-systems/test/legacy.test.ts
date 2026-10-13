@@ -1206,7 +1206,7 @@ describe('the S8 console page', () => {
 
   it('has an inline script that compiles, and that only calls routes the legacy app serves', async () => {
     const html = await page();
-    const script = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1];
+    const script = /<script>([\s\S]*?)<\/script>/i.exec(html)?.[1];
     expect(script).toBeDefined();
     // The script lives in a template literal: a backtick, "${" or backslash would have been changed
     // on the way here.

@@ -409,7 +409,7 @@ describe('the S5 console page', () => {
       expect(res.text).toContain(label);
     // The page's script lives in a template literal, where a stray "${" or backslash changes it
     // silently: it must still parse.
-    const script = /<script>([\s\S]*?)<\/script>/.exec(res.text)?.[1] ?? '';
+    const script = /<script>([\s\S]*?)<\/script>/i.exec(res.text)?.[1] ?? '';
     expect(script).not.toBe('');
     expect(() => new Script(script)).not.toThrow();
   });

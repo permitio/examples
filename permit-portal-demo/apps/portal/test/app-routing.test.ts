@@ -48,3 +48,21 @@ describe('routing', () => {
     ).toEqual({ integrations: [] });
   });
 });
+
+describe('rate limiting', () => {
+  it('limits every route, the SPA fallback included', async () => {
+    const { app } = harness();
+    for (const path of ['/healthz', '/api/meta', '/internal/nope', '/some/page']) {
+      const res = await request(app).get(path).set('x-demo-persona', 'sam');
+      expect(res.headers['ratelimit-policy'], path).toMatch(/q=3000; w=60/);
+    }
+  });
+
+  it('answers 429 in the API error shape once one client passes the limit', async () => {
+    const { app } = harness();
+    for (let i = 0; i < 3_000; i++) await request(app).get('/healthz');
+    const res = await request(app).get('/api/meta').set('x-demo-persona', 'sam');
+    expect(res.status).toBe(429);
+    expect(res.body).toEqual({ error: 'Too many requests' });
+  });
+});

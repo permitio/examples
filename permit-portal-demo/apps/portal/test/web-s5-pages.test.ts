@@ -57,10 +57,10 @@ const card = (scope: ScopeEntry[]) =>
     ),
   );
 
-/** The buttons a card offers, by their words. */
+/** The buttons a card offers, by their words: each one's text, after its icon. */
 const buttons = (html: string) =>
-  [...html.matchAll(/<button[^>]*>(.*?)<\/button>/g)].map((m) =>
-    (m[1] ?? '').replace(/<[^>]+>/g, ''),
+  [...html.matchAll(/<button[^>]*>(?:<svg[^>]*>.*?<\/svg>)?([^<]*)<\/button>/g)].map(
+    (m) => m[1] ?? '',
   );
 
 describe("Sam's integration card", () => {
