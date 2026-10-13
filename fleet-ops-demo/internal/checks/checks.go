@@ -56,6 +56,9 @@ var byScenario = []struct {
 		{"sam", "acme", "asset:acme-dal-04", "decommission", "allow"},     // the owner keeps ownership actions
 		{"quinn", "acme", "asset:acme-dal-04", "operate", "deny"},         // but not operational ones
 		{"ivy", "acme", "asset:acme-dal-04", "service_basic", "deny"},
+		// Acting for the operator, only the operator's own roles count: not a role the owner granted.
+		{"ivy", "lonestar", "asset:acme-dal-04", "service_basic", "deny"},
+		{"jordan", "lonestar", "asset:acme-dal-04", "service_advanced", "deny"},
 	}},
 	{"S8", []row{ // broker, read-only on shared trucks
 		{"skyler", "acme", "asset:acme-hou-01", "view", "allow"},

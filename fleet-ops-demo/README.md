@@ -63,7 +63,7 @@ rules, a Git repository connected to that environment through
    make verify
    make start
    ```
-   `make verify` should end with "All checks match" (51 checks). In the app, the top of the right
+   `make verify` should end with "All checks match" (53 checks). In the app, the top of the right
    panel should say "Local PDP connected" and "Custom rules loaded".
 
 | Command | What it does |
@@ -72,7 +72,7 @@ rules, a Git repository connected to that environment through
 | `make setup` | Make Permit's schema match `internal/schema` exactly (create what is missing, remove what it doesn't have), then restore the seed |
 | `make reset` | Restore the seeded data in Permit (organizations, people, instances, relationships, role assignments, people's attributes); restart the app afterwards |
 | `make apply-policy` | Install the custom rules in the GitOps branch, restart the PDP and wait for the new version |
-| `make verify` | Pre-flight: PDP up, custom rules loaded, the 51 decisions the scenarios rely on |
+| `make verify` | Pre-flight: PDP up, custom rules loaded, the 53 decisions the scenarios rely on |
 | `make start` | Build and run the app on http://localhost:3000 |
 | `make test` | Go unit tests, and the custom Rego's unit tests (`opa test --v0-compatible policy/`) |
 
@@ -193,7 +193,7 @@ filtered by user. The decision record carries `debug.acting_org` (`same_org` or
 | `cmd/sync` | `make setup` makes Permit's schema match the code and restores the seed; `make reset` (`--reset`) restores the seed only |
 | `internal/pdp` | `permitClient.Check()` and `permitClient.BulkCheck()`, the PDP debug requests, status, and waits on the PDP's data |
 | `internal/explain` | Turns the PDP's debug output into the reason, route, rule conditions and fleet rules in the panel |
-| `internal/checks`, `cmd/verify` | The 51 pre-flight checks behind `make verify` |
+| `internal/checks`, `cmd/verify` | The 53 pre-flight checks behind `make verify` |
 | `cmd/apply-policy` | Installs the custom rules in the GitOps branch, restarts the PDP and waits for the new version |
 | `internal/permitapi` | A timeout, retries and paging around every API call |
 

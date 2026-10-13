@@ -53,7 +53,10 @@ operational_actions := {"view", "operate", "service_basic", "service_advanced"}
 # requires `acting_org_ok` on every allow.
 #
 # Scenario 7: the one exception is a truck owned by one organization and operated by another. The
-# operating organization may act on it for operational actions only.
+# operating organization may act on it for operational actions only, and only through a role its own
+# people hold in it (`operator_org_allow`). A role the owner granted on the truck or its site reaches
+# the truck through relationships whatever tenant is passed, so it must not count while acting for
+# the operator: that would get around the owner/operator rule.
 # -------------------------------------------------------------------------------------------------
 
 operator_access {
@@ -79,13 +82,13 @@ acting_org_ok {
 }
 
 acting_org_ok {
-	operator_access
+	operator_org_allow
 }
 
 acting_org_code := "same_org" {
 	resource_org == acting_org
 } else := "operator_org" {
-	operator_access
+	operator_org_allow
 } else := "no_acting_org" {
 	resource_org
 	acting_org == null
@@ -103,6 +106,9 @@ acting_org_reason := sprintf("%s belongs to the acting organization '%s'", [inst
 	acting_org_code == "operator_org"
 } else := sprintf("%s belongs to organization '%s', but the request names no acting organization", [instance_key, resource_org]) {
 	acting_org_code == "no_acting_org"
+} else := sprintf("%s belongs to '%s' and is operated by the acting organization '%s', but no role the user holds in '%s' grants '%s' on it: roles, relationships and rules held through other organizations do not apply", [instance_key, resource_org, acting_org, acting_org, input.action]) {
+	acting_org_code == "acting_org_mismatch"
+	operator_access
 } else := sprintf("%s belongs to organization '%s', but the request acts for '%s': roles, relationships and rules held through other organizations do not apply", [instance_key, resource_org, acting_org]) {
 	acting_org_code == "acting_org_mismatch"
 } else := sprintf("%s is not in the PDP's data, so its organization can't be checked: denied", [instance_key]) {
