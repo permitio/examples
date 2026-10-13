@@ -1,0 +1,13 @@
+# The local container PDP the app checks against. Reads PERMIT_API_KEY from .env.
+# Attribute rules (ABAC) and custom Rego need a container PDP: the cloud PDP doesn't evaluate them.
+services:
+  pdp:
+    image: permitio/pdp-v2:0.9.16
+    container_name: fleet-ops-pdp
+    ports:
+      - "127.0.0.1:7766:7000" # PDP API: /allowed, /allowed/bulk, AuthZEN /access/v1/*
+      - "127.0.0.1:8181:8181" # embedded OPA, for reading the loaded policy and data
+    environment:
+      PDP_API_KEY: ${PERMIT_API_KEY}
+      PDP_DEBUG: "true" # each decision returns its reason in the "debug" field
+    restart: unless-stopped

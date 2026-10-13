@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fleet Ops</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <svg class="shield" viewBox="0 0 40 42" aria-hidden="true">
+        <path d="M3 5 Q20 -1 37 5 Q39.5 27 20 41 Q0.5 27 3 5 Z" fill="#fff"/>
+        <path d="M5.6 7.2 Q20 2.6 34.4 7.2 L34.2 13 H5.8 Z" fill="#BF1E2E"/>
+        <path d="M5.9 14.6 H34.1 Q33.4 28.5 20 38.2 Q6.6 28.5 5.9 14.6 Z" fill="#1C4E8C"/>
+        <text x="20" y="31.5" text-anchor="middle" fill="#fff" font-family="Overpass, sans-serif" font-weight="800" font-size="13">45</text>
+      </svg>
+      Fleet Ops
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#/" data-nav="fleet">Fleet</a>
+      <a href="#/people" data-nav="people">People</a>
+      <a href="#/access" data-nav="access">Access</a>
+      <a href="#/organizations" data-nav="organizations">Organizations</a>
+    </nav>
+    <div class="switchers">
+      <label>Organization <select id="org"></select></label>
+      <label>Signed in as <select id="user"></select></label>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main id="page" aria-live="polite"></main>
+    <aside class="log" aria-label="PDP checks">
+      <div class="log-head">
+        <h2>PDP checks</h2>
+        <button type="button" id="log-clear">Clear</button>
+      </div>
+      <p class="log-status" id="status"></p>
+      <p class="log-sub">Every check this app sends to the local PDP, newest first.</p>
+      <ol class="entries" id="log"></ol>
+    </aside>
+  </div>
+</body>
+</html>
