@@ -25,29 +25,87 @@ import { s2Router } from '#src/server/routes/s2';
 import { s4Router } from '#src/server/routes/s4';
 import { s5Router } from '#src/server/routes/s5';
 
-/** A user as api.users.sync writes it: its name and its whole attribute set, which replaces the stored one. */
-export interface UserSync { key: string; first_name?: string; last_name?: string; email?: string; attributes?: object }
+/**
+ * A user as api.users.sync writes it: its name and its whole attribute set, which replaces the
+ * stored one.
+ */
+export interface UserSync {
+  key: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  attributes?: object;
+}
 
 export interface Deps {
-  config: PortalConfig; seed: SeedData; events: EventLog; clock: DemoClock; enforcer: Enforcer;
+  config: PortalConfig;
+  seed: SeedData;
+  events: EventLog;
+  clock: DemoClock;
+  enforcer: Enforcer;
   /** Replays a recorded check against the PDP for Permit's reason, only when the panel asks (F2). */
   explainer: Explainer;
-  facts: FactsWriter; resourceFacts: ResourceFactsWriter; mock: MockClient;
+  facts: FactsWriter;
+  resourceFacts: ResourceFactsWriter;
+  mock: MockClient;
   permitApi: {
     users: {
       get(k: string): Promise<{ attributes?: object | null }>;
-      /** A role in a tenant, or on one resource instance (`resource_instance`, `type:key`). Roles on one resource go through ensureInstanceRole. */
-      assignRole(a: { user: string; role: string; tenant?: string; resource_instance?: string }): Promise<unknown>;
-      unassignRole(a: { user: string; role: string; tenant: string; resource_instance?: string }): Promise<unknown>;
-      /** Creates or replaces the user. Not confirmed on the PDP: a role write that follows is (S5's connector). */
+      /**
+       * A role in a tenant, or on one resource instance (`resource_instance`, `type:key`). Roles on
+       * one resource go through ensureInstanceRole.
+       */
+      assignRole(a: {
+        user: string;
+        role: string;
+        tenant?: string;
+        resource_instance?: string;
+      }): Promise<unknown>;
+      unassignRole(a: {
+        user: string;
+        role: string;
+        tenant: string;
+        resource_instance?: string;
+      }): Promise<unknown>;
+      /**
+       * Creates or replaces the user. Not confirmed on the PDP: a role write that follows is (S5's
+       * connector).
+       */
       sync(u: UserSync): Promise<unknown>;
       /** Deletes the user and its roles. Not confirmed on the PDP. */
       delete(key: string): Promise<unknown>;
     };
-    tenants: { get(k: string): Promise<unknown>; create(t: { key: string; name: string }): Promise<unknown> };
-    resourceInstances: { create(i: { key: string; resource: string; tenant: string; attributes?: object }): Promise<unknown>; list(p: { tenant?: string; resource?: string }): Promise<Array<{ key: string; resource: string; tenant: string; attributes?: object | null }>> };
-    /** Every role assignment that matches; a role on one resource instance carries it as `resource_instance` (`type:key`). */
-    roleAssignments: { list(p: { tenant?: string; role?: string; user?: string }): Promise<Array<{ user: string; role: string; tenant: string; resource_instance?: string }>> };
+    tenants: {
+      get(k: string): Promise<unknown>;
+      create(t: { key: string; name: string }): Promise<unknown>;
+    };
+    resourceInstances: {
+      create(i: {
+        key: string;
+        resource: string;
+        tenant: string;
+        attributes?: object;
+      }): Promise<unknown>;
+      list(p: {
+        tenant?: string;
+        resource?: string;
+      }): Promise<
+        Array<{ key: string; resource: string; tenant: string; attributes?: object | null }>
+      >;
+    };
+    /**
+     * Every role assignment that matches; a role on one resource instance carries it as
+     * `resource_instance` (`type:key`).
+     */
+    roleAssignments: {
+      list(p: {
+        tenant?: string;
+        role?: string;
+        user?: string;
+      }): Promise<
+        Array<{ user: string; role: string; tenant: string; resource_instance?: string }>
+      >;
+    };
   };
 }
 
@@ -55,13 +113,17 @@ export interface Deps {
 const WEB_DIR = fileURLToPath(new URL('../../dist/web/', import.meta.url));
 
 /**
- * Which web build this server hands out: a short hash of the built index.html, which names every hashed asset.
- * Undefined while the UI has not been built. Every /api answer carries it in `x-portal-build`, so a tab still
- * running an older build notices the portal was rebuilt and asks to be reloaded.
+ * Which web build this server hands out: a short hash of the built index.html, which names every
+ * hashed asset. Undefined while the UI has not been built. Every /api answer carries it in
+ * `x-portal-build`, so a tab still running an older build notices the portal was rebuilt and asks
+ * to be reloaded.
  */
 export function webBuildOf(webDir: string): string | undefined {
   try {
-    return createHash('sha256').update(readFileSync(join(webDir, 'index.html'))).digest('hex').slice(0, 12);
+    return createHash('sha256')
+      .update(readFileSync(join(webDir, 'index.html')))
+      .digest('hex')
+      .slice(0, 12);
   } catch {
     return undefined;
   }
@@ -80,10 +142,21 @@ export function createApp(deps: Deps, webDir: string = WEB_DIR): Express {
     res.sendStatus(200);
   });
   app.use('/internal', internalRouter(deps));
-  // The connector calls the integration API with its own credential, so it sits before the persona middleware.
+  // The connector calls the integration API with its own credential, so it sits before the persona
+  // middleware.
   app.use('/api/integration', integrationApiRouter(deps));
-  app.use('/api', announceBuild, personaMiddleware(deps.seed), requestSource, metaRouter(deps), s4Router(deps), s1Router(deps), requestsRouter(deps),
-    s2Router(deps), s5Router(deps));
+  app.use(
+    '/api',
+    announceBuild,
+    personaMiddleware(deps.seed),
+    requestSource,
+    metaRouter(deps),
+    s4Router(deps),
+    s1Router(deps),
+    requestsRouter(deps),
+    s2Router(deps),
+    s5Router(deps),
+  );
   app.use(['/api', '/internal'], notFound); // the SPA fallback below never answers for these
   app.use(express.static(webDir));
   app.get('/{*page}', spaFallback(webDir));
@@ -112,7 +185,8 @@ const onError: ErrorRequestHandler = (error: unknown, req, res, next) => {
     return;
   }
   const [status, body] = errorResponse(error);
-  // Only the route is logged: an SDK or HTTP error can carry request details, and the API key must never be logged.
+  // Only the route is logged: an SDK or HTTP error can carry request details, and the API key must
+  // never be logged.
   if (status === 500) console.error(`Unexpected error on ${req.method} ${req.path}`);
   res.status(status).json(body);
 };
@@ -120,7 +194,8 @@ const onError: ErrorRequestHandler = (error: unknown, req, res, next) => {
 function errorResponse(error: unknown): [number, { error: string; decision?: 'deny' }] {
   if (error instanceof DeniedError) return [403, { error: error.message, decision: 'deny' }];
   if (error instanceof HttpError) return [error.status, { error: error.message }];
-  if (error instanceof WriteFailedError) return [error.status === 424 ? 424 : 502, { error: error.message }];
+  if (error instanceof WriteFailedError)
+    return [error.status === 424 ? 424 : 502, { error: error.message }];
   if (error instanceof SelfApprovalError) return [409, { error: error.message }];
   const unreachable = permitUnreachable(error);
   if (unreachable) return [502, { error: unreachable }];
@@ -133,6 +208,15 @@ function errorResponse(error: unknown): [number, { error: string; decision?: 'de
 function bodyParserError(error: unknown): [number, { error: string }] | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
   const { status, type } = error as { status?: unknown; type?: unknown };
-  if (typeof status !== 'number' || status < 400 || status >= 500 || typeof type !== 'string') return undefined;
-  return [status, { error: type === 'entity.parse.failed' ? 'The request body is not valid JSON' : 'The request body could not be read' }];
+  if (typeof status !== 'number' || status < 400 || status >= 500 || typeof type !== 'string')
+    return undefined;
+  return [
+    status,
+    {
+      error:
+        type === 'entity.parse.failed'
+          ? 'The request body is not valid JSON'
+          : 'The request body could not be read',
+    },
+  ];
 }

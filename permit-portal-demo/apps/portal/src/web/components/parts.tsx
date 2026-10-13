@@ -1,6 +1,6 @@
-// Small pieces every portal page shares, drawn in the portal's design: a framed note for an
-// empty list, the rectangular state tag and a heading with a count badge. Nothing here is red: in the portal a
-// refusal reads as information, and red belongs to the Permit panel.
+// Small pieces every portal page shares, drawn in the portal's design: a framed note for an empty
+// list, the rectangular state tag and a heading with a count badge. Nothing here is red: in the
+// portal a refusal reads as information, and red belongs to the Permit panel.
 
 import type { ComponentType, ReactNode, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
@@ -9,13 +9,30 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 /** A quiet line for an empty list, framed like the list it stands in for. */
 export function EmptyNote({ children }: { children: ReactNode }) {
-  return <p className="rounded-md border border-border bg-surface px-5 py-4 text-muted-foreground">{children}</p>;
+  return (
+    <p className="rounded-md border border-border bg-surface px-5 py-4 text-muted-foreground">
+      {children}
+    </p>
+  );
 }
 
 export type TagTone = 'go' | 'graphite' | 'outline';
 
-/** A small rectangular state tag, toned like the plates: green when open, graphite or outlined otherwise. */
-export function Tag({ tone, icon: TagIcon, label, title }: { tone: TagTone; icon?: Icon; label: string; title?: string }) {
+/**
+ * A small rectangular state tag, toned like the plates: green when open, graphite or outlined
+ * otherwise.
+ */
+export function Tag({
+  tone,
+  icon: TagIcon,
+  label,
+  title,
+}: {
+  tone: TagTone;
+  icon?: Icon;
+  label: string;
+  title?: string;
+}) {
   return (
     <span
       title={title}
@@ -45,7 +62,17 @@ export function CountBadge({ count, label }: { count: number; label?: string }) 
 }
 
 /** A section heading with an optional count badge and an optional action on the right. */
-export function Heading({ id, title, count, action }: { id: string; title: string; count?: number | undefined; action?: ReactNode }) {
+export function Heading({
+  id,
+  title,
+  count,
+  action,
+}: {
+  id: string;
+  title: string;
+  count?: number | undefined;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">

@@ -6,11 +6,11 @@ services:
       PDP_API_KEY: ${PERMIT_API_KEY:?run through bin/demo so the profile is loaded}
       PDP_CONTROL_PLANE: ${PERMIT_API_URL:?run through bin/demo so the profile is loaded}
       PDP_DEBUG: ${PDP_DEBUG:-True}
-    ports: ["7766:7000"]
+    ports: ['7766:7000']
   great-eagle-systems:
     build: { context: ., dockerfile: apps/great-eagle-systems/Dockerfile }
     environment:
-      PORT: "4100"
+      PORT: '4100'
       PORTAL_INTERNAL_URL: http://portal:3000
       STORE_PATH: /data/store.json
       CLEANUP_INTERVAL_MS: ${CLEANUP_INTERVAL_MS:-3600000}
@@ -18,12 +18,12 @@ services:
       PERMIT_API_URL: ${PERMIT_API_URL}
       PERMIT_API_KEY: ${PERMIT_API_KEY}
       PERMIT_PDP_URL: http://pdp:7000
-    volumes: ["great-eagle-data:/data"]
-    ports: ["4100:4100"]
+    volumes: ['great-eagle-data:/data']
+    ports: ['4100:4100']
   portal:
     build: { context: ., dockerfile: apps/portal/Dockerfile }
     environment:
-      PORT: "3000"
+      PORT: '3000'
       PROFILE: ${PROFILE:?run through bin/demo}
       PERMIT_API_URL: ${PERMIT_API_URL}
       PERMIT_API_KEY: ${PERMIT_API_KEY}
@@ -33,7 +33,7 @@ services:
       GRANT_DEMO_DURATION_MS: ${GRANT_DEMO_DURATION_MS:-120000}
       PERMIT_WRITES: ${PERMIT_WRITES:-fast}
       PERMIT_APP_URL: ${PERMIT_APP_URL:-https://app.permit.io}
-    ports: ["3000:3000"]
+    ports: ['3000:3000']
     depends_on: [pdp, great-eagle-systems]
 volumes:
   great-eagle-data:

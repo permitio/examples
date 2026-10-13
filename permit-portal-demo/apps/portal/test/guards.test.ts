@@ -4,9 +4,12 @@ import { assertDifferentApprover, effectiveAdmins, SelfApprovalError } from '#sr
 describe('assertDifferentApprover', () => {
   const req = { initiated_by: 'frodo', requested_for: 'aragorn' };
 
-  it.each(['frodo', 'aragorn'])('refuses %s, who made the request or is its subject', (approver) => {
-    expect(() => assertDifferentApprover(req, approver)).toThrow(SelfApprovalError);
-  });
+  it.each(['frodo', 'aragorn'])(
+    'refuses %s, who made the request or is its subject',
+    (approver) => {
+      expect(() => assertDifferentApprover(req, approver)).toThrow(SelfApprovalError);
+    },
+  );
 
   it('lets anyone else through', () => {
     expect(() => assertDifferentApprover(req, 'sam')).not.toThrow();

@@ -21,10 +21,15 @@ export function Countdown({
 }) {
   const meta = useMeta();
   const now = useNow(TICK_MS);
-  if (typeof until !== 'number' || !Number.isFinite(until)) return <span className="font-bold">—</span>;
+  if (typeof until !== 'number' || !Number.isFinite(until))
+    return <span className="font-bold">—</span>;
   const left = until - (now + (demoClock ? meta.demoClock.offsetMs : 0));
   return (
-    <time className={left < 0 ? 'font-bold text-muted-foreground' : 'font-bold tabular-nums'} dateTime={new Date(until).toISOString()} title={formatWhen(until)}>
+    <time
+      className={left < 0 ? 'font-bold text-muted-foreground' : 'font-bold tabular-nums'}
+      dateTime={new Date(until).toISOString()}
+      title={formatWhen(until)}
+    >
       {left < 0 ? pastLabel : formatCountdown(left)}
     </time>
   );

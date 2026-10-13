@@ -15,10 +15,16 @@ export function FactGrid({ label, items }: { label: string; items: FactItem[] })
             key={item.key}
             className={cn(
               'flex items-start gap-1.5 rounded-sm px-3 py-2 font-bold',
-              item.ok ? 'border border-border bg-surface' : 'border border-plate-edge bg-plate text-on-plate',
+              item.ok
+                ? 'border border-border bg-surface'
+                : 'border border-plate-edge bg-plate text-on-plate',
             )}
           >
-            {item.ok ? <CheckIcon aria-hidden className="mt-1 size-4 shrink-0" /> : <CircleDashedIcon aria-hidden className="mt-1 size-4 shrink-0" />}
+            {item.ok ? (
+              <CheckIcon aria-hidden className="mt-1 size-4 shrink-0" />
+            ) : (
+              <CircleDashedIcon aria-hidden className="mt-1 size-4 shrink-0" />
+            )}
             {item.text}
           </li>
         ))}

@@ -1,16 +1,33 @@
-// The directory signs at the top of the decision panel: where the
-// persona may go, as Permit last answered, in sign green or no-entry red. The red is allowed here: this is Permit's layer.
+// The directory signs at the top of the decision panel: where the persona may go, as Permit last
+// answered, in sign green or no-entry red. The red is allowed here: this is Permit's layer.
 
 import { ArrowRightIcon, BanIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DemoEvent } from '@/types';
-import { resourceParts, type Sign, type SignAnswer, sharedResources, signsOf } from '@/components/panel/signs';
+import {
+  resourceParts,
+  type Sign,
+  type SignAnswer,
+  sharedResources,
+  signsOf,
+} from '@/components/panel/signs';
 
 /**
- * One face of a sign. When several signs name the same resource, the action leads, so one place never reads as both
- * open and closed. `turn` plays the flap: the old face folds away on its top hinge and the new one drops in.
+ * One face of a sign. When several signs name the same resource, the action leads, so one place
+ * never reads as both open and closed. `turn` plays the flap: the old face folds away on its top
+ * hinge and the new one drops in.
  */
-function SignFace({ sign, answer, shared, turn }: { sign: Sign; answer: SignAnswer; shared: boolean; turn?: 'out' | 'in' | undefined }) {
+function SignFace({
+  sign,
+  answer,
+  shared,
+  turn,
+}: {
+  sign: Sign;
+  answer: SignAnswer;
+  shared: boolean;
+  turn?: 'out' | 'in' | undefined;
+}) {
   const { type, key } = resourceParts(sign.resource);
   return (
     <div
@@ -22,7 +39,11 @@ function SignFace({ sign, answer, shared, turn }: { sign: Sign; answer: SignAnsw
         turn === 'in' && 'flap-in',
       )}
     >
-      {answer.allow ? <ArrowRightIcon aria-hidden className="size-6 shrink-0" /> : <BanIcon aria-hidden className="size-6 shrink-0" />}
+      {answer.allow ? (
+        <ArrowRightIcon aria-hidden className="size-6 shrink-0" />
+      ) : (
+        <BanIcon aria-hidden className="size-6 shrink-0" />
+      )}
       {shared ? (
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
           <span className="font-mono text-lg font-semibold break-all">{sign.action}</span>
@@ -46,11 +67,22 @@ function SignFace({ sign, answer, shared, turn }: { sign: Sign; answer: SignAnsw
 }
 
 /**
- * "Where <first name> can go": a sign per action and resource `persona` was checked on since the last "Clear view"
- * (event `after`), with Permit's newest answer. Each face is keyed by the first check of its answer, so a sign turns
- * over once when its answer changes and stays still while re-checks repeat it.
+ * "Where <first name> can go": a sign per action and resource `persona` was checked on since the
+ * last "Clear view" (event `after`), with Permit's newest answer. Each face is keyed by the first
+ * check of its answer, so a sign turns over once when its answer changes and stays still while
+ * re-checks repeat it.
  */
-export function SignDirectory({ events, persona, firstName, after }: { events: readonly DemoEvent[]; persona: string; firstName: string; after: number }) {
+export function SignDirectory({
+  events,
+  persona,
+  firstName,
+  after,
+}: {
+  events: readonly DemoEvent[];
+  persona: string;
+  firstName: string;
+  after: number;
+}) {
   const signs = signsOf(events, persona, after);
   const shared = sharedResources(signs);
   return (
@@ -67,8 +99,22 @@ export function SignDirectory({ events, persona, firstName, after }: { events: r
         <ul className="flex flex-col gap-2">
           {signs.map((sign) => (
             <li key={sign.key} className="flap">
-              {sign.previous && <SignFace key={sign.previous.since} sign={sign} answer={sign.previous} shared={shared.has(sign.resource)} turn="out" />}
-              <SignFace key={sign.answer.since} sign={sign} answer={sign.answer} shared={shared.has(sign.resource)} turn={sign.previous ? 'in' : undefined} />
+              {sign.previous && (
+                <SignFace
+                  key={sign.previous.since}
+                  sign={sign}
+                  answer={sign.previous}
+                  shared={shared.has(sign.resource)}
+                  turn="out"
+                />
+              )}
+              <SignFace
+                key={sign.answer.since}
+                sign={sign}
+                answer={sign.answer}
+                shared={shared.has(sign.resource)}
+                turn={sign.previous ? 'in' : undefined}
+              />
             </li>
           ))}
         </ul>

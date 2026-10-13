@@ -1,4 +1,14 @@
-import { ArrowRightIcon, BanIcon, HourglassIcon, ListChecksIcon, LockKeyholeIcon, RefreshCwIcon, TimerOffIcon, Undo2Icon, UploadIcon } from 'lucide-react';
+import {
+  ArrowRightIcon,
+  BanIcon,
+  HourglassIcon,
+  ListChecksIcon,
+  LockKeyholeIcon,
+  RefreshCwIcon,
+  TimerOffIcon,
+  Undo2Icon,
+  UploadIcon,
+} from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { GateSign, HiddenDetails } from '@/signs/plates';
 import { api, getPersona } from '@/api';
@@ -9,15 +19,33 @@ import { RequestSummary } from '@/components/RequestSummary';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatCountdown, formatWhen } from '@/format';
 import { PAGE_REFRESH_MS, useAction, useMeta, useNow, useResource } from '@/hooks';
-import type { BulkCheckRequest, BulkCheckResponse, Collaborator, DemoRequest, Doc, RequestStatus, ShipmentDetail, ShipmentsResponse } from '@/types';
+import type {
+  BulkCheckRequest,
+  BulkCheckResponse,
+  Collaborator,
+  DemoRequest,
+  Doc,
+  RequestStatus,
+  ShipmentDetail,
+  ShipmentsResponse,
+} from '@/types';
 import { accessState } from '@/pages/s4/access';
 import { CargoFacts, Fact, ShipmentSign } from '@/pages/s4/parts';
 import { DocumentList } from '@/pages/ShipmentDetail';
 
-/** The live checks re-run faster than the page: they are what the presenter watches change at the expiry. */
+/**
+ * The live checks re-run faster than the page: they are what the presenter watches change at the
+ * expiry.
+ */
 const LIVE_CHECKS_MS = 5_000;
 /** The quarter-second tick Countdown and GrantChip use, so the gate turns when they do. */
 const GATE_TICK_MS = 250;
@@ -35,8 +63,15 @@ const PLATES = {
   pending: { tone: 'graphite', icon: HourglassIcon, label: 'Pending' },
   ended: { tone: 'graphite', icon: TimerOffIcon, label: 'Ended' },
 } as const;
-/** An ended gate's pictogram when it did not simply run out: undo for revoked access, no entry for a refused invitation. */
-const ENDED_ICON: Partial<Record<RequestStatus, typeof TimerOffIcon>> = { revoked: Undo2Icon, denied: BanIcon, canceled: BanIcon };
+/**
+ * An ended gate's pictogram when it did not simply run out: undo for revoked access, no entry for a
+ * refused invitation.
+ */
+const ENDED_ICON: Partial<Record<RequestStatus, typeof TimerOffIcon>> = {
+  revoked: Undo2Icon,
+  denied: BanIcon,
+  canceled: BanIcon,
+};
 
 // A module constant, so every timed run posts the same body.
 const LIVE_CHECKS: BulkCheckRequest = {
@@ -48,9 +83,14 @@ const LIVE_CHECKS: BulkCheckRequest = {
 };
 
 function LiveChecks() {
-  // The first run and "Run checks" show in the decision panel; the timed re-runs go out as page refreshes.
-  const run = useResource<BulkCheckResponse>('/api/checks/bulk', { refreshMs: LIVE_CHECKS_MS, body: LIVE_CHECKS });
-  // After a failed run the chips show no result rather than the previous one: they claim what Permit says now.
+  // The first run and "Run checks" show in the decision panel; the timed re-runs go out as page
+  // refreshes.
+  const run = useResource<BulkCheckResponse>('/api/checks/bulk', {
+    refreshMs: LIVE_CHECKS_MS,
+    body: LIVE_CHECKS,
+  });
+  // After a failed run the chips show no result rather than the previous one: they claim what
+  // Permit says now.
   const latest = run.error === undefined ? run.data : undefined;
   return (
     <section aria-labelledby="live-checks-title" className="flex flex-col gap-3">
@@ -64,10 +104,15 @@ function LiveChecks() {
           </Button>
         }
       />
-      <p className="text-muted-foreground">One bulk check to Permit, run again every 5 seconds while this page is open.</p>
+      <p className="text-muted-foreground">
+        One bulk check to Permit, run again every 5 seconds while this page is open.
+      </p>
       <CheckChips
         label="Live Permit checks"
-        checks={LIVE_CHECKS.checks.map((c, i) => ({ label: `${c.action} ${c.resource.type}:${c.resource.key}`, allow: latest?.results[i]?.allow }))}
+        checks={LIVE_CHECKS.checks.map((c, i) => ({
+          label: `${c.action} ${c.resource.type}:${c.resource.key}`,
+          allow: latest?.results[i]?.allow,
+        }))}
       />
       <ErrorBanner error={run.error} />
     </section>
@@ -102,26 +147,47 @@ function noAccessText(invite: DemoRequest | undefined): string {
 
 /**
  * Aragorn's gate on the shared shipment: green "Open" with the time left while Aragorn's grant is
- * live, graphite "Pending" while the invitation waits, graphite "Ended" once it expired, was revoked or was denied, and
- * nothing when nothing was shared. While Aragorn holds a grant entry, its facts and `children` show beneath.
+ * live, graphite "Pending" while the invitation waits, graphite "Ended" once it expired, was
+ * revoked or was denied, and nothing when nothing was shared. While Aragorn holds a grant entry,
+ * its facts and `children` show beneath.
  */
-function AccessGate({ grant, invite, children }: { grant: Collaborator | undefined; invite: DemoRequest | undefined; children: ReactNode }) {
+function AccessGate({
+  grant,
+  invite,
+  children,
+}: {
+  grant: Collaborator | undefined;
+  invite: DemoRequest | undefined;
+  children: ReactNode;
+}) {
   const meta = useMeta();
   const now = useNow(GATE_TICK_MS);
-  // Grant expiries are written on the portal's demo clock, so the gate reads them against it, as Countdown does.
+  // Grant expiries are written on the portal's demo clock, so the gate reads them against it, as
+  // Countdown does.
   const demoNow = now + meta.demoClock.offsetMs;
   const state = accessState(grant, invite, demoNow);
   if (state === 'none') return null;
   const plate = PLATES[state];
-  const icon = state === 'ended' ? ((invite && ENDED_ICON[invite.status]) ?? plate.icon) : plate.icon;
+  const icon =
+    state === 'ended' ? ((invite && ENDED_ICON[invite.status]) ?? plate.icon) : plate.icon;
   const clock =
-    state === 'open' && grant !== undefined && grant.expires !== null ? { value: formatCountdown(grant.expires - demoNow), caption: 'left' } : undefined;
+    state === 'open' && grant !== undefined && grant.expires !== null
+      ? { value: formatCountdown(grant.expires - demoNow), caption: 'left' }
+      : undefined;
   return (
-    <GateSign tone={plate.tone} icon={icon} label={plate.label} title={`Your access to ${SHARED_SHIPMENT}`} clock={clock}>
+    <GateSign
+      tone={plate.tone}
+      icon={icon}
+      label={plate.label}
+      title={`Your access to ${SHARED_SHIPMENT}`}
+      clock={clock}
+    >
       {grant && (
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <dl className="flex flex-wrap gap-x-8 gap-y-3">
-            <Fact label="Access ends">{grant.expires === null ? '—' : formatWhen(grant.expires)}</Fact>
+            <Fact label="Access ends">
+              {grant.expires === null ? '—' : formatWhen(grant.expires)}
+            </Fact>
             <Fact label="Renewals used">
               {grant.renewals_used ?? '—'} of {RENEWAL_LIMIT}
             </Fact>
@@ -134,12 +200,15 @@ function AccessGate({ grant, invite, children }: { grant: Collaborator | undefin
 }
 
 /**
- * The external broker's view: Aragorn's time-boxed access to SHP-77001 as a gate sign with its clock, a live
- * bulk check, the shipment itself while Permit allows Aragorn to view it, and what was shared with Aragorn.
+ * The external broker's view: Aragorn's time-boxed access to SHP-77001 as a gate sign with its
+ * clock, a live bulk check, the shipment itself while Permit allows Aragorn to view it, and what
+ * was shared with Aragorn.
  */
 export function AragornShared() {
   const me = getPersona();
-  const shipments = useResource<ShipmentsResponse>('/api/s4/shipments', { refreshMs: PAGE_REFRESH_MS });
+  const shipments = useResource<ShipmentsResponse>('/api/s4/shipments', {
+    refreshMs: PAGE_REFRESH_MS,
+  });
   const detailPath = `/api/s4/shipments/${SHARED_SHIPMENT}`;
   const detail = useResource<ShipmentDetail>(detailPath, { refreshMs: PAGE_REFRESH_MS });
   const action = useAction();
@@ -152,13 +221,18 @@ export function AragornShared() {
   const invite = detail.data && latestInvite(detail.data.requests, me);
   const can = detail.data?.can;
 
-  // Renewal stays on offer after the grant expires: renewable_collaborator does not look at the expiry,
-  // and renewing an expired grant is the point of S4's renewal step.
+  // Renewal stays on offer after the grant expires: renewable_collaborator does not look at the
+  // expiry, and renewing an expired grant is the point of S4's renewal step.
   const requestRenewal = async (e: FormEvent) => {
     e.preventDefault();
-    // The notice changes once, when the answer arrives: cleared up front, the page would jump twice.
-    const created = await action.run(() => api.post<DemoRequest>(`${detailPath}/renewals`, { days }));
-    setNotice(created ? `Renewal for ${days} days requested. It waits for an approver.` : undefined);
+    // The notice changes once, when the answer arrives: cleared up front, the page would jump
+    // twice.
+    const created = await action.run(() =>
+      api.post<DemoRequest>(`${detailPath}/renewals`, { days }),
+    );
+    setNotice(
+      created ? `Renewal for ${days} days requested. It waits for an approver.` : undefined,
+    );
     shipments.reload();
   };
 
@@ -172,8 +246,14 @@ export function AragornShared() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ShipmentSign shipmentKey={SHARED_SHIPMENT} title={can?.view ? detail.data?.shipment.title : undefined} withDetails={can?.view === true} />
-      <Lede>Shipments that other companies shared with you. You hold no role in their organizations.</Lede>
+      <ShipmentSign
+        shipmentKey={SHARED_SHIPMENT}
+        title={can?.view ? detail.data?.shipment.title : undefined}
+        withDetails={can?.view === true}
+      />
+      <Lede>
+        Shipments that other companies shared with you. You hold no role in their organizations.
+      </Lede>
       <ErrorBanner error={action.error} onDismiss={action.clearError} />
       <Notice text={notice} onDismiss={() => setNotice(undefined)} />
       <ErrorBanner error={detail.error} />

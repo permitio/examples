@@ -3,14 +3,29 @@ import { getPersona } from '@/api';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { EmptyNote, Heading, Lede, Tag } from '@/components/parts';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useResource } from '@/hooks';
 import { PagePlate } from '@/pages/s4/parts';
 import { groupRows } from '@/pages/s2/team';
 import type { PermissionRow, PermissionsResponse } from '@/pages/s2/types';
 
 /** One kind of resource as a framed table: where, the roles held there, and the actions they allow. */
-function PermissionTable({ id, title, rows }: { id: string; title: string; rows: PermissionRow[] }) {
+function PermissionTable({
+  id,
+  title,
+  rows,
+}: {
+  id: string;
+  title: string;
+  rows: PermissionRow[];
+}) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
       <Heading id={id} title={title} count={rows.length} />
@@ -45,7 +60,10 @@ function PermissionTable({ id, title, rows }: { id: string; title: string; rows:
                   ) : (
                     <span className="flex flex-wrap gap-1.5">
                       {row.roles.map((role) => (
-                        <code key={role} className="rounded-sm border border-foreground px-2 py-0.5 font-mono text-sm font-semibold">
+                        <code
+                          key={role}
+                          className="rounded-sm border border-foreground px-2 py-0.5 font-mono text-sm font-semibold"
+                        >
                           {role}
                         </code>
                       ))}
@@ -73,16 +91,22 @@ function PermissionTable({ id, title, rows }: { id: string; title: string; rows:
 }
 
 /**
- * S2's "What I can do", for Merry: what Permit lets Merry do on each EAN, child account and location,
- * from the PDP's user-permissions answer. The route (GET /api/s2/permissions/:user) answers only for the persona asking,
- * so the page asks for the signed-in persona's own. A resource Permit does not list is not here, so Merry sees only the
- * depots Merry operates. Read when it opens and when its tab is shown again, but not on a timer. A failed read is an
- * error, never "nothing allowed".
+ * S2's "What I can do", for Merry: what Permit lets Merry do on each EAN, child account and
+ * location, from the PDP's user-permissions answer. The route (GET /api/s2/permissions/:user)
+ * answers only for the persona asking, so the page asks for the signed-in persona's own. A resource
+ * Permit does not list is not here, so Merry sees only the depots Merry operates. Read when it
+ * opens and when its tab is shown again, but not on a timer. A failed read is an error, never
+ * "nothing allowed".
  */
 export function WhatICanDo() {
-  const permissions = useResource<PermissionsResponse>(`/api/s2/permissions/${encodeURIComponent(getPersona())}`);
+  const permissions = useResource<PermissionsResponse>(
+    `/api/s2/permissions/${encodeURIComponent(getPersona())}`,
+  );
   const rows = permissions.data?.rows;
-  const aside = rows && { icon: MapPinIcon, text: `${rows.length} ${rows.length === 1 ? 'place' : 'places'}` };
+  const aside = rows && {
+    icon: MapPinIcon,
+    text: `${rows.length} ${rows.length === 1 ? 'place' : 'places'}`,
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,11 +120,20 @@ export function WhatICanDo() {
       </div>
       <ErrorBanner error={permissions.error} />
       {rows === undefined ? (
-        permissions.error === undefined && <p className="text-muted-foreground">Loading what Permit allows…</p>
+        permissions.error === undefined && (
+          <p className="text-muted-foreground">Loading what Permit allows…</p>
+        )
       ) : rows.length === 0 ? (
         <EmptyNote>You can't act on any account yet.</EmptyNote>
       ) : (
-        groupRows(rows).map((group) => <PermissionTable key={group.type} id={`permissions-${group.type}`} title={group.title} rows={group.rows} />)
+        groupRows(rows).map((group) => (
+          <PermissionTable
+            key={group.type}
+            id={`permissions-${group.type}`}
+            title={group.title}
+            rows={group.rows}
+          />
+        ))
       )}
     </div>
   );

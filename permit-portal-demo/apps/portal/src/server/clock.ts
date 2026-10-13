@@ -1,8 +1,8 @@
 import { HttpError } from '#src/server/errors';
 
 /**
- * The time the portal sends as `current_time` with every check. It is the server's clock plus an offset
- * that only the demo-clock switch (decision 14, off by default) lets the presenter move.
+ * The time the portal sends as `current_time` with every check. It is the server's clock plus an
+ * offset that only the demo-clock switch (decision 14, off by default) lets the presenter move.
  */
 export class DemoClock {
   private offset = 0;

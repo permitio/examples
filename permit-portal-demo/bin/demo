@@ -2,46 +2,116 @@
 # Usage: bin/demo <command> <profile> [args]. Profiles live in profiles/<profile>.env.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-usage() { echo "usage: bin/demo {up|down|logs|seed|reset|preflight|measure|scenario|replay} <profile> [args]"; exit 2; }
-cmd="${1:-}"; profile="${2:-}"
+usage() {
+  echo "usage: bin/demo {up|down|logs|seed|reset|preflight|measure|scenario|replay} <profile> [args]"
+  exit 2
+}
+cmd="${1:-}"
+profile="${2:-}"
 [[ -n "$cmd" ]] || usage
 # No default profile: a bare `bin/demo reset` must never touch production by accident.
-[[ -n "$profile" ]] || { echo "Name the profile explicitly, e.g. bin/demo $cmd staging"; exit 2; }
+[[ -n "$profile" ]] || {
+  echo "Name the profile explicitly, e.g. bin/demo $cmd staging"
+  exit 2
+}
 pf="profiles/${profile}.env"
-need_profile() { [[ -f "$pf" ]] || { echo "Missing $pf; see profiles/README.md"; exit 2; }; }
+need_profile() {
+  [[ -f "$pf" ]] || {
+    echo "Missing $pf; see profiles/README.md"
+    exit 2
+  }
+}
 # Scripts that use the local stack refuse to run when it is up on another profile.
 # An explicit PERMIT_PDP_URL (a second PDP on another port) skips the check.
 stack_matches() {
   [[ -z "${PERMIT_PDP_URL:-}" ]] || return 0
   local running
-  running="$(curl -s --max-time 3 -H 'x-demo-persona: sam' http://localhost:3000/api/meta 2>/dev/null \
-    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).profile||"")}catch{}})' 2>/dev/null || true)"
+  running="$(curl -s --max-time 3 -H 'x-demo-persona: sam' http://localhost:3000/api/meta 2>/dev/null |
+    node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).profile||"")}catch{}})' 2>/dev/null || true)"
   if [[ -n "$running" && "$running" != "$profile" ]]; then
-    echo "The running stack is on profile '$running', not '$profile'. Run: bin/demo up $profile"; exit 2
+    echo "The running stack is on profile '$running', not '$profile'. Run: bin/demo up $profile"
+    exit 2
   fi
 }
-load_profile() { set -a; source "$pf"; set +a; export PROFILE="$profile"; }
-node24() { node -e 'process.exit(process.versions.node.split(".")[0]==="24"?0:1)' || { echo "Use Node 24: source ~/.nvm/nvm.sh && nvm use"; exit 2; }; }
+load_profile() {
+  set -a
+  # The profile is chosen at run time; need_profile has checked that it exists.
+  # shellcheck source=/dev/null
+  source "$pf"
+  set +a
+  export PROFILE="$profile"
+}
+node24() {
+  node -e 'process.exit(process.versions.node.split(".")[0]==="24"?0:1)' || {
+    echo "Use Node 24: source ~/.nvm/nvm.sh && nvm use"
+    exit 2
+  }
+}
 pdp_image="permitio/pdp-v2:0.9.16"
 # Preflight check 1: the running pdp container uses the pinned image. No container means it could not run (2).
 pdp_image_check() {
   local id image
-  id="$(docker compose --env-file "$pf" ps -q pdp)" || { echo "Could not ask Docker for the pdp container; is Docker running?"; exit 2; }
-  [[ -n "$id" ]] || { echo "The pdp container is not running; start it with bin/demo up $profile"; exit 2; }
-  image="$(docker inspect --format '{{.Config.Image}}' "$id")" || { echo "Could not inspect the pdp container"; exit 2; }
-  [[ "$image" == "$pdp_image" ]] || { echo "FAIL: the pdp container runs $image, expected $pdp_image"; exit 1; }
+  id="$(docker compose --env-file "$pf" ps -q pdp)" || {
+    echo "Could not ask Docker for the pdp container; is Docker running?"
+    exit 2
+  }
+  [[ -n "$id" ]] || {
+    echo "The pdp container is not running; start it with bin/demo up $profile"
+    exit 2
+  }
+  image="$(docker inspect --format '{{.Config.Image}}' "$id")" || {
+    echo "Could not inspect the pdp container"
+    exit 2
+  }
+  [[ "$image" == "$pdp_image" ]] || {
+    echo "FAIL: the pdp container runs $image, expected $pdp_image"
+    exit 1
+  }
   echo "PDP image: $image"
 }
 case "$cmd" in
-  up)      need_profile; load_profile; docker compose --env-file "$pf" up -d --build ;;
-  down)    need_profile; load_profile; docker compose --env-file "$pf" down ;;
-  logs)    need_profile; load_profile; docker compose --env-file "$pf" logs -f --tail=200 ;;
-  preflight)
-           need_profile; stack_matches; load_profile; node24; pdp_image_check; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
-  seed)
-           need_profile; load_profile; node24; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
-  reset|measure|replay)
-           need_profile; stack_matches; load_profile; node24; pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}" ;;
-  scenario) need_profile; stack_matches; load_profile; node24; pnpm exec tsx "apps/portal/scripts/scenario-${3:?s1, s2, s4, s5 or s8}.ts" ;;
-  *) usage ;;
+up)
+  need_profile
+  load_profile
+  docker compose --env-file "$pf" up -d --build
+  ;;
+down)
+  need_profile
+  load_profile
+  docker compose --env-file "$pf" down
+  ;;
+logs)
+  need_profile
+  load_profile
+  docker compose --env-file "$pf" logs -f --tail=200
+  ;;
+preflight)
+  need_profile
+  stack_matches
+  load_profile
+  node24
+  pdp_image_check
+  pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}"
+  ;;
+seed)
+  need_profile
+  load_profile
+  node24
+  pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}"
+  ;;
+reset | measure | replay)
+  need_profile
+  stack_matches
+  load_profile
+  node24
+  pnpm exec tsx "apps/portal/scripts/${cmd}.ts" "${@:3}"
+  ;;
+scenario)
+  need_profile
+  stack_matches
+  load_profile
+  node24
+  pnpm exec tsx "apps/portal/scripts/scenario-${3:?s1, s2, s4, s5 or s8}.ts"
+  ;;
+*) usage ;;
 esac

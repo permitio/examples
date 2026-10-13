@@ -12,14 +12,20 @@ export interface PortalNotifier {
 }
 
 export interface NotifierOptions {
-  /** How long to wait for the portal. Its writes wait up to 5 s for the PDP, and a cleanup may make several. */
+  /**
+   * How long to wait for the portal. Its writes wait up to 5 s for the PDP, and a cleanup may make
+   * several.
+   */
   timeoutMs?: number | undefined;
   log?: (line: string) => void;
 }
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-/** The reason a fetch failed: the socket error behind undici's generic "fetch failed", when there is one. */
+/**
+ * The reason a fetch failed: the socket error behind undici's generic "fetch failed", when there is
+ * one.
+ */
 function reasonOf(error: unknown): string {
   const cause = (error as { cause?: unknown } | null)?.cause ?? error;
   const { code, message } = (cause ?? {}) as { code?: unknown; message?: unknown };
@@ -28,8 +34,8 @@ function reasonOf(error: unknown): string {
 }
 
 /**
- * Calls the portal at PORTAL_INTERNAL_URL. A failure (unreachable, timed out, or a non-2xx answer) is logged with the
- * subject and key only, and returned as { error }; nothing here throws.
+ * Calls the portal at PORTAL_INTERNAL_URL. A failure (unreachable, timed out, or a non-2xx answer)
+ * is logged with the subject and key only, and returned as { error }; nothing here throws.
  */
 export class HttpPortalNotifier implements PortalNotifier {
   private readonly baseUrl: string;
@@ -43,7 +49,11 @@ export class HttpPortalNotifier implements PortalNotifier {
   }
 
   async factsChanged(subject: Subject, key: string): Promise<NotifyResult> {
-    const answer = await this.post('/internal/facts-changed', { subject, key }, `facts-changed for ${subject} ${key}`);
+    const answer = await this.post(
+      '/internal/facts-changed',
+      { subject, key },
+      `facts-changed for ${subject} ${key}`,
+    );
     return 'error' in answer ? answer : { ok: true };
   }
 
@@ -57,7 +67,11 @@ export class HttpPortalNotifier implements PortalNotifier {
     return this.fail('cleanup-expired', 'portal answered without a removed count');
   }
 
-  private async post(path: string, payload: object, what: string): Promise<{ body: unknown } | { error: string }> {
+  private async post(
+    path: string,
+    payload: object,
+    what: string,
+  ): Promise<{ body: unknown } | { error: string }> {
     let response: Response;
     try {
       response = await fetch(`${this.baseUrl}${path}`, {
@@ -68,12 +82,20 @@ export class HttpPortalNotifier implements PortalNotifier {
       });
     } catch (error) {
       const timedOut = (error as { name?: unknown } | null)?.name === 'TimeoutError';
-      return this.fail(what, timedOut ? `portal did not answer within ${this.timeoutMs} ms` : `portal unreachable: ${reasonOf(error)}`);
+      return this.fail(
+        what,
+        timedOut
+          ? `portal did not answer within ${this.timeoutMs} ms`
+          : `portal unreachable: ${reasonOf(error)}`,
+      );
     }
     const body: unknown = await response.json().catch(() => undefined);
     if (!response.ok) {
       const message = (body as { error?: unknown } | undefined)?.error;
-      return this.fail(what, `portal answered ${response.status}: ${typeof message === 'string' ? message : response.statusText}`);
+      return this.fail(
+        what,
+        `portal answered ${response.status}: ${typeof message === 'string' ? message : response.statusText}`,
+      );
     }
     return { body };
   }

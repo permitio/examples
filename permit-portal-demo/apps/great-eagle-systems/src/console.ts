@@ -1,9 +1,10 @@
-// The presenter console: self-contained pages (inline CSS and JS; only the web fonts come from elsewhere), each driving
-// only this service's own API. GET / is the main console; GET /s2, /s5 and /s8 are the scenario pages (console-s2.ts,
-// console-s5.ts, console-s8.ts). Every page is built with consolePage(), so they all wear the Great Eagle systems
-// surface and one header, whose links lead from page to page: the night concourse by default,
-// with a CSS-only switch in the header for the light one. The inline scripts and stylesheets avoid backticks, "${" and
-// backslashes, since they live in template literals.
+// The presenter console: self-contained pages (inline CSS and JS; only the web fonts come from
+// elsewhere), each driving only this service's own API. GET / is the main console; GET /s2, /s5 and
+// /s8 are the scenario pages (console-s2.ts, console-s5.ts, console-s8.ts). Every page is built
+// with consolePage(), so they all wear the Great Eagle systems surface and one header, whose links
+// lead from page to page: the night concourse by default, with a CSS-only switch in the header for
+// the light one. The inline scripts and stylesheets avoid backticks, "${" and backslashes, since
+// they live in template literals.
 
 const BRAND = 'Great Eagle systems (simulated)';
 
@@ -16,7 +17,10 @@ export const CONSOLE_PAGES = [
 ] as const;
 export type ConsolePageKey = (typeof CONSOLE_PAGES)[number]['page'];
 
-/** What one console page brings to the shell. Every value is trusted HTML, CSS or script from this service's own code. */
+/**
+ * What one console page brings to the shell. Every value is trusted HTML, CSS or script from this
+ * service's own code.
+ */
 export interface ConsolePageSpec {
   /** The header link that is this page. */
   page: ConsolePageKey;
@@ -379,9 +383,15 @@ const STYLE = `
   .pages a[aria-current="page"] { border-bottom-color: var(--ink); color: var(--ink); }
 `;
 
-/** One console page: the shared head and header (with the link to every page), then the page's own sections and script. */
+/**
+ * One console page: the shared head and header (with the link to every page), then the page's own
+ * sections and script.
+ */
 export function consolePage(p: ConsolePageSpec): string {
-  const links = CONSOLE_PAGES.map(({ page, href, label }) => `<a href="${href}"${page === p.page ? ' aria-current="page"' : ''}>${label}</a>`).join('');
+  const links = CONSOLE_PAGES.map(
+    ({ page, href, label }) =>
+      `<a href="${href}"${page === p.page ? ' aria-current="page"' : ''}>${label}</a>`,
+  ).join('');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -417,7 +427,10 @@ ${p.script === undefined ? '' : `<script>${p.script}</script>\n`}</body>
 `;
 }
 
-/** The main console's grid: the trust service beside organizations and the account master, the cleanup job across. */
+/**
+ * The main console's grid: the trust service beside organizations and the account master, the
+ * cleanup job across.
+ */
 const MAIN_STYLE = `
   @media (min-width: 48rem) {
     main { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -760,7 +773,10 @@ setInterval(refresh, 2000);
 setInterval(renderCleanup, 250);
 `;
 
-/** The main console, at GET /: the trust service, organizations, the account master and the cleanup job. */
+/**
+ * The main console, at GET /: the trust service, organizations, the account master and the cleanup
+ * job.
+ */
 export const CONSOLE_HTML = consolePage({
   page: 'console',
   lead: 'Presenter console. A change here is sent to the portal, which writes it to Permit.',

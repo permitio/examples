@@ -1,6 +1,10 @@
-// Shapes of S2's API answers (routes/s2.ts), mirrored here so the browser bundle carries no server code.
+// Shapes of S2's API answers (routes/s2.ts), mirrored here so the browser bundle carries no server
+// code.
 
-/** One grant Permit lets this persona make: a role on a resource (`type:key`), with the resource above it (`null` for an EAN). */
+/**
+ * One grant Permit lets this persona make: a role on a resource (`type:key`), with the resource
+ * above it (`null` for an EAN).
+ */
 export interface Grantable {
   role: string;
   resource: string;
@@ -14,19 +18,28 @@ export interface TeamResponse {
   grantable: Grantable[];
 }
 
-/** GET /api/s2/members/:user/assignments: the member's roles on single resources, as far as the persona asking could give or take them away. */
+/**
+ * GET /api/s2/members/:user/assignments: the member's roles on single resources, as far as the
+ * persona asking could give or take them away.
+ */
 export interface AssignmentsResponse {
   assignments: Array<{ role: string; resource: string }>;
 }
 
-/** The body of POST and DELETE /api/s2/grants: give, or take away, `role` on `resource` (`type:key`) for the member `user`. */
+/**
+ * The body of POST and DELETE /api/s2/grants: give, or take away, `role` on `resource` (`type:key`)
+ * for the member `user`.
+ */
 export interface GrantBody {
   user: string;
   role: string;
   resource: string;
 }
 
-/** What POST and DELETE /api/s2/grants answer: how long the PDP took to confirm the change, or 0 when it was already so. */
+/**
+ * What POST and DELETE /api/s2/grants answer: how long the PDP took to confirm the change, or 0
+ * when it was already so.
+ */
 export interface GrantResponse {
   ms: number;
 }
@@ -39,7 +52,10 @@ export interface PermissionRow {
   actions: string[];
 }
 
-/** GET /api/s2/permissions/:user, which answers only for the persona asking: EANs first, then child accounts, then locations. */
+/**
+ * GET /api/s2/permissions/:user, which answers only for the persona asking: EANs first, then child
+ * accounts, then locations.
+ */
 export interface PermissionsResponse {
   rows: PermissionRow[];
 }

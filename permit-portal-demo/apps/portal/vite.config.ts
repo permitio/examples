@@ -16,6 +16,7 @@ export default defineConfig({
       output: { manualChunks: (id) => (id.includes('/node_modules/') ? 'vendor' : undefined) },
     },
   },
-  // '/api/' with the slash: a bare '/api' prefix would also send the UI's own module /api.ts to the backend.
+  // '/api/' with the slash: a bare '/api' prefix would also send the UI's own module /api.ts to the
+  // backend.
   server: { proxy: { '/api/': 'http://localhost:3000' } },
 });

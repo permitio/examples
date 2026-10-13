@@ -1,6 +1,7 @@
-// The presenter console's S2 page and its API tester. "Send a grant as Frodo" runs on the
-// server side of these systems: the portal has no CORS, so a browser page on this origin could not call it with
-// x-demo-persona. The page asks these systems, and they send the one fixed forged grant to the portal.
+// The presenter console's S2 page and its API tester. "Send a grant as Frodo" runs on the server
+// side of these systems: the portal has no CORS, so a browser page on this origin could not call it
+// with x-demo-persona. The page asks these systems, and they send the one fixed forged grant to the
+// portal.
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
@@ -15,7 +16,13 @@ import { Store } from '#src/store';
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const FORGED_GRANT = { user: 'merry', role: 'shipper', resource: 'ean:EAN-1002' };
 
-interface Received { method: string | undefined; path: string | undefined; persona: string | undefined; contentType: string | undefined; body: unknown }
+interface Received {
+  method: string | undefined;
+  path: string | undefined;
+  persona: string | undefined;
+  contentType: string | undefined;
+  body: unknown;
+}
 type Answer = { status: number; body: unknown } | { status: number; text: string } | 'never';
 
 const closers: Array<() => Promise<void>> = [];
@@ -30,26 +37,42 @@ async function portalStub(answer: Answer) {
     let raw = '';
     for await (const chunk of req) raw += String(chunk);
     received.push({
-      method: req.method, path: req.url, persona: req.headers['x-demo-persona'] as string | undefined,
-      contentType: req.headers['content-type'], body: raw ? JSON.parse(raw) : undefined,
+      method: req.method,
+      path: req.url,
+      persona: req.headers['x-demo-persona'] as string | undefined,
+      contentType: req.headers['content-type'],
+      body: raw ? JSON.parse(raw) : undefined,
     });
     if (answer === 'never') return;
-    if ('text' in answer) res.writeHead(answer.status, { 'content-type': 'text/html' }).end(answer.text);
-    else res.writeHead(answer.status, { 'content-type': 'application/json' }).end(JSON.stringify(answer.body));
+    if ('text' in answer)
+      res.writeHead(answer.status, { 'content-type': 'text/html' }).end(answer.text);
+    else
+      res
+        .writeHead(answer.status, { 'content-type': 'application/json' })
+        .end(JSON.stringify(answer.body));
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const close = () => new Promise<void>((resolve) => {
-    server.closeAllConnections();
-    server.close(() => resolve());
-  });
+  const close = () =>
+    new Promise<void>((resolve) => {
+      server.closeAllConnections();
+      server.close(() => resolve());
+    });
   closers.push(close);
   return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}`, received, close };
 }
 
 /** The console app with its S2 tester pointed at `portalUrl`. */
 function app(portalUrl: string) {
-  const notifier: PortalNotifier = { factsChanged: async () => ({ ok: true }), runCleanup: async () => ({ removed: 0 }) };
-  return createApp({ store: new Store(loadSeed(), { at: NOW }), notifier, now: () => NOW, portalUrl });
+  const notifier: PortalNotifier = {
+    factsChanged: async () => ({ ok: true }),
+    runCleanup: async () => ({ removed: 0 }),
+  };
+  return createApp({
+    store: new Store(loadSeed(), { at: NOW }),
+    notifier,
+    now: () => NOW,
+    portalUrl,
+  });
 }
 
 const DENIED = { error: 'Permit denied grant_shipper on ean:EAN-1002.', decision: 'deny' };
@@ -60,7 +83,15 @@ describe('POST /api/s2/forged-grant', () => {
     const res = await request(app(portal.url)).post('/api/s2/forged-grant');
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: 403, body: DENIED });
-    expect(portal.received).toEqual([{ method: 'POST', path: '/api/s2/grants', persona: 'frodo', contentType: 'application/json', body: FORGED_GRANT }]);
+    expect(portal.received).toEqual([
+      {
+        method: 'POST',
+        path: '/api/s2/grants',
+        persona: 'frodo',
+        contentType: 'application/json',
+        body: FORGED_GRANT,
+      },
+    ]);
   });
 
   it('relays any status as it came: a grant the portal accepted is shown as accepted, not as refused', async () => {
@@ -83,7 +114,15 @@ describe('POST /api/s2/forged-grant', () => {
       .post('/api/s2/forged-grant?as=sam')
       .send({ user: 'frodo', role: 'account_admin', resource: 'ean:EAN-1001', persona: 'sam' });
     expect(res.body.status).toBe(403);
-    expect(portal.received).toEqual([{ method: 'POST', path: '/api/s2/grants', persona: 'frodo', contentType: 'application/json', body: FORGED_GRANT }]);
+    expect(portal.received).toEqual([
+      {
+        method: 'POST',
+        path: '/api/s2/grants',
+        persona: 'frodo',
+        contentType: 'application/json',
+        body: FORGED_GRANT,
+      },
+    ]);
   });
 
   it('copes with a trailing slash on the portal address', async () => {
@@ -136,7 +175,7 @@ describe('GET /s2', () => {
     expect(html).toContain('id="answer-body"');
   });
 
-  it("asks these systems, same origin, never the portal: the portal has no CORS and the page must not need it", async () => {
+  it('asks these systems, same origin, never the portal: the portal has no CORS and the page must not need it', async () => {
     const html = await page();
     const script = /<script>([\s\S]*?)<\/script>/.exec(html)?.[1] ?? '';
     expect(script).toContain("fetch('/api/s2/forged-grant'");

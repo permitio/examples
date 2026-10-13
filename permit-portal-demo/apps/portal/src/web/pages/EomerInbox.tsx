@@ -15,9 +15,9 @@ const S1_ORG = 'riders-of-rohan';
 const INBOX_TYPES: ReadonlySet<RequestType> = new Set(['member_invite', 'admin_transfer']);
 
 /**
- * Invitations addressed to this persona, each a request card with an Accept button. Once they have accepted one, the
- * organization page follows. A single read on arrival finds out whether an earlier acceptance already made them a
- * member, because changing persona clears page state.
+ * Invitations addressed to this persona, each a request card with an Accept button. Once they have
+ * accepted one, the organization page follows. A single read on arrival finds out whether an
+ * earlier acceptance already made them a member, because changing persona clears page state.
  */
 export function EomerInbox() {
   const me = getPersona();
@@ -26,8 +26,8 @@ export function EomerInbox() {
   const action = useAction();
   const [notice, setNotice] = useState<string>();
   const [acceptedOrg, setAcceptedOrg] = useState<string>();
-  // Bumped on every acceptance so the organization view below re-reads at once, instead of showing the roles from
-  // before the handover until its next refresh.
+  // Bumped on every acceptance so the organization view below re-reads at once, instead of showing
+  // the roles from before the handover until its next refresh.
   const [accepted, setAccepted] = useState(0);
 
   const accept = async (id: string) => {
@@ -44,7 +44,13 @@ export function EomerInbox() {
   const orgKey = acceptedOrg ?? (isMember ? S1_ORG : undefined);
   // A 404 only means the organization has not been created yet.
   const membershipError = hasStatus(membership.error, 404) ? undefined : membership.error;
-  const waiting = invitations === undefined ? undefined : { icon: InboxIcon, text: invitations.length === 0 ? 'Nothing waiting' : `${invitations.length} waiting` };
+  const waiting =
+    invitations === undefined
+      ? undefined
+      : {
+          icon: InboxIcon,
+          text: invitations.length === 0 ? 'Nothing waiting' : `${invitations.length} waiting`,
+        };
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,7 +78,12 @@ export function EomerInbox() {
         ) : (
           invitations.map((r) => (
             <RequestSummary key={r.id} request={r}>
-              <RequestDecisionForm busy={action.busy} approveLabel="Accept" canDeny={false} onDecide={() => accept(r.id)} />
+              <RequestDecisionForm
+                busy={action.busy}
+                approveLabel="Accept"
+                canDeny={false}
+                onDecide={() => accept(r.id)}
+              />
             </RequestSummary>
           ))
         )}

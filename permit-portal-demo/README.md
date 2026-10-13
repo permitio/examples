@@ -13,13 +13,13 @@ The persona menu at the top of the portal stands in for sign-in. In production, 
 
 ## The scenarios
 
-| | Scenario | Who |
-|---|---|---|
-| S1 | A new organization, the company's checks, and its first admin | Éowyn, Gandalf, Éomer |
-| S2 | Delegated administration across EANs, child accounts and locations | Sam, Merry, Frodo |
-| S4 | An external collaborator, with approval and automatic expiry | Frodo, Sam, Aragorn |
-| S5 | An integration acting for a customer: approval, review, change and revoke | Pippin, Sam |
-| S8 | A legacy app moving to Permit: validation, coexistence, revocation and audit | Sam, Frodo |
+|     | Scenario                                                                     | Who                   |
+| --- | ---------------------------------------------------------------------------- | --------------------- |
+| S1  | A new organization, the company's checks, and its first admin                | Éowyn, Gandalf, Éomer |
+| S2  | Delegated administration across EANs, child accounts and locations           | Sam, Merry, Frodo     |
+| S4  | An external collaborator, with approval and automatic expiry                 | Frodo, Sam, Aragorn   |
+| S5  | An integration acting for a customer: approval, review, change and revoke    | Pippin, Sam           |
+| S8  | A legacy app moving to Permit: validation, coexistence, revocation and audit | Sam, Frodo            |
 
 Each scenario has an automated runner (`bin/demo scenario <profile> <s1|s2|s4|s5|s8>`) that walks it through the portal's API in ten checks.
 
@@ -41,17 +41,17 @@ Reset to the starting state between runs with `bin/demo reset demo`.
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `bin/demo up <profile>` | Builds and starts the stack |
-| `bin/demo down <profile>` | Stops it |
-| `bin/demo logs <profile>` | Follows the containers' logs |
-| `bin/demo seed <profile>` | Creates or updates the policy, the demo data and the preflight fixtures in Permit; safe to re-run |
-| `bin/demo preflight <profile>` | Checks the PDP, the policy (a matrix of expected allows and denies) and the demo's starting state |
-| `bin/demo reset <profile>` | Puts the demo back in its starting state, then runs preflight |
-| `bin/demo scenario <profile> <s1\|s2\|s4\|s5\|s8>` | Runs one scenario end to end |
+| Command                                                                                        | What it does                                                                                          |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `bin/demo up <profile>`                                                                        | Builds and starts the stack                                                                           |
+| `bin/demo down <profile>`                                                                      | Stops it                                                                                              |
+| `bin/demo logs <profile>`                                                                      | Follows the containers' logs                                                                          |
+| `bin/demo seed <profile>`                                                                      | Creates or updates the policy, the demo data and the preflight fixtures in Permit; safe to re-run     |
+| `bin/demo preflight <profile>`                                                                 | Checks the PDP, the policy (a matrix of expected allows and denies) and the demo's starting state     |
+| `bin/demo reset <profile>`                                                                     | Puts the demo back in its starting state, then runs preflight                                         |
+| `bin/demo scenario <profile> <s1\|s2\|s4\|s5\|s8>`                                             | Runs one scenario end to end                                                                          |
 | `bin/demo replay <profile> --since <ISO time, or 30m, 2h> [--action view_billing] [--details]` | Re-asks the decisions in Permit's audit log against today's policy, and lists those that would change |
-| `bin/demo measure <profile>` | Times checks and changes against the PDP |
+| `bin/demo measure <profile>`                                                                   | Times checks and changes against the PDP                                                              |
 
 Optional settings for the stack are in [`.env.example`](.env.example).
 
@@ -75,3 +75,5 @@ The demo uses `permitio` 3.0.0, built from the open [permit-node pull request #1
 pnpm lint
 pnpm test
 ```
+
+`pnpm fix` applies the fixes oxlint and oxfmt can make. Comments wrap at 100 columns: oxfmt rewraps JSDoc comments, and a local oxlint rule, `tools/comment-width.ts`, rewraps `//` comments.

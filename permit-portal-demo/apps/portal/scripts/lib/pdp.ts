@@ -6,7 +6,14 @@ import type { ScriptEnv } from '#scripts/lib/env';
 export type Attributes = Record<string, unknown>;
 
 /** One authorization question: who, what, and on which resource instance. */
-export interface CheckSpec { user: string; action: string; type: string; key: string; tenant: string; extra?: Attributes | undefined }
+export interface CheckSpec {
+  user: string;
+  action: string;
+  type: string;
+  key: string;
+  tenant: string;
+  extra?: Attributes | undefined;
+}
 
 /** Every check sends the time as a user attribute, never in `context`. */
 export function checkUser(key: string, now = Date.now()): IUser {
@@ -14,13 +21,25 @@ export function checkUser(key: string, now = Date.now()): IUser {
 }
 
 /** Every check sends the resource key as the `id` attribute, since rules cannot read the key itself. */
-export function checkResource(type: string, key: string, tenant: string, extra: Attributes = {}): IResource {
+export function checkResource(
+  type: string,
+  key: string,
+  tenant: string,
+  extra: Attributes = {},
+): IResource {
   return { type, key, tenant, attributes: { ...extra, id: key } };
 }
 
-/** Permit check: may this user do this action on this resource? permit.check, as the portal sends it (preflight's policy matrix). */
+/**
+ * Permit check: may this user do this action on this resource? permit.check, as the portal sends it
+ * (preflight's policy matrix).
+ */
 export function decide(permit: Permit, c: CheckSpec, now = Date.now()): Promise<boolean> {
-  return permit.check(checkUser(c.user, now), c.action, checkResource(c.type, c.key, c.tenant, c.extra));
+  return permit.check(
+    checkUser(c.user, now),
+    c.action,
+    checkResource(c.type, c.key, c.tenant, c.extra),
+  );
 }
 
 export function describeCheck(c: CheckSpec): string {
@@ -34,12 +53,27 @@ export async function pdpHealthStatus(pdpUrl: string): Promise<number> {
   return res.status;
 }
 
-/** What the PDP's POST /allowed returns. With PDP_DEBUG on, `debug` holds Permit's code and reason per model. */
-export interface AllowedResponse { allow?: boolean; debug?: Record<string, unknown> | null }
+/**
+ * What the PDP's POST /allowed returns. With PDP_DEBUG on, `debug` holds Permit's code and reason
+ * per model.
+ */
+export interface AllowedResponse {
+  allow?: boolean;
+  debug?: Record<string, unknown> | null;
+}
 
 /** Sends the same input as permit.check straight to the PDP, to read the debug block the SDK drops. */
-export async function explain(env: Pick<ScriptEnv, 'pdpUrl' | 'apiKey'>, c: CheckSpec, now = Date.now()): Promise<AllowedResponse> {
-  const body = { user: checkUser(c.user, now), action: c.action, resource: checkResource(c.type, c.key, c.tenant, c.extra), context: {} };
+export async function explain(
+  env: Pick<ScriptEnv, 'pdpUrl' | 'apiKey'>,
+  c: CheckSpec,
+  now = Date.now(),
+): Promise<AllowedResponse> {
+  const body = {
+    user: checkUser(c.user, now),
+    action: c.action,
+    resource: checkResource(c.type, c.key, c.tenant, c.extra),
+    context: {},
+  };
   const res = await fetch(`${env.pdpUrl}/allowed`, {
     method: 'POST',
     headers: { authorization: `Bearer ${env.apiKey}`, 'content-type': 'application/json' },
@@ -50,8 +84,11 @@ export async function explain(env: Pick<ScriptEnv, 'pdpUrl' | 'apiKey'>, c: Chec
 }
 
 /** Calls `probe` until `done` holds or the deadline passes. A bounded poll, never a fixed sleep. */
-export async function pollUntil<T>(probe: () => Promise<T>, done: (value: T) => boolean, opts: { timeoutMs: number; intervalMs: number }):
-  Promise<{ ok: boolean; value: T; elapsedMs: number }> {
+export async function pollUntil<T>(
+  probe: () => Promise<T>,
+  done: (value: T) => boolean,
+  opts: { timeoutMs: number; intervalMs: number },
+): Promise<{ ok: boolean; value: T; elapsedMs: number }> {
   const start = performance.now();
   for (;;) {
     const value = await probe();

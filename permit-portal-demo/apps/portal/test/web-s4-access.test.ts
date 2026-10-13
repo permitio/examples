@@ -4,7 +4,13 @@ import type { Collaborator, DemoRequest, RequestStatus } from '@/types';
 
 const NOW = 1_791_280_800_000;
 
-const grant = (over: Partial<Collaborator> = {}): Collaborator => ({ user: 'aragorn', expires: NOW + 60_000, renewals_used: 0, active: true, ...over });
+const grant = (over: Partial<Collaborator> = {}): Collaborator => ({
+  user: 'aragorn',
+  expires: NOW + 60_000,
+  renewals_used: 0,
+  active: true,
+  ...over,
+});
 
 const invite = (status: RequestStatus): DemoRequest => ({
   id: 'req-1',
@@ -53,9 +59,12 @@ describe("Aragorn's gate on the shared shipment", () => {
     expect(accessState(grant(), invite('pending'), NOW)).toBe('open');
   });
 
-  it.each(['approved', 'expired', 'revoked', 'denied', 'canceled'] as const)('is ended without a grant once the invitation is %s', (status) => {
-    expect(accessState(undefined, invite(status), NOW)).toBe('ended');
-  });
+  it.each(['approved', 'expired', 'revoked', 'denied', 'canceled'] as const)(
+    'is ended without a grant once the invitation is %s',
+    (status) => {
+      expect(accessState(undefined, invite(status), NOW)).toBe('ended');
+    },
+  );
 
   it('is none when nothing was ever shared', () => {
     expect(accessState(undefined, undefined, NOW)).toBe('none');

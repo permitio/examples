@@ -1,7 +1,13 @@
 // Shapes of the portal HTTP API, mirrored here so the browser bundle carries no server code.
 
 export type RequestType =
-  | 'collaborator_invite' | 'renewal' | 'first_admin' | 'member_invite' | 'admin_transfer' | 'ean_association' | 'integration_access';
+  | 'collaborator_invite'
+  | 'renewal'
+  | 'first_admin'
+  | 'member_invite'
+  | 'admin_transfer'
+  | 'ean_association'
+  | 'integration_access';
 export type RequestStatus = 'pending' | 'approved' | 'denied' | 'canceled' | 'revoked' | 'expired';
 
 export interface HistoryEntry {
@@ -62,8 +68,9 @@ export interface Meta {
 }
 
 /**
- * What made the portal record an event: something the presenter did, a page re-reading itself in the background
- * (requests sent with `x-demo-source: refresh`), or a guard the portal runs on its own, such as the last-admin check.
+ * What made the portal record an event: something the presenter did, a page re-reading itself in
+ * the background (requests sent with `x-demo-source: refresh`), or a guard the portal runs on its
+ * own, such as the last-admin check.
  */
 export type EventSource = 'action' | 'refresh' | 'guard';
 
@@ -97,9 +104,9 @@ export interface WriteEvent {
 }
 
 /**
- * A question the PDP answers with a list, not a yes or no: S2's "What I can do" reads a user's permissions. It carries the
- * request as it was sent and how many entries came back, and no decision: the panel shows it without one, makes no sign
- * of it and has no reason to replay.
+ * A question the PDP answers with a list, not a yes or no: S2's "What I can do" reads a user's
+ * permissions. It carries the request as it was sent and how many entries came back, and no
+ * decision: the panel shows it without one, makes no sign of it and has no reason to replay.
  */
 export interface ReadEvent {
   id: number;
@@ -159,11 +166,18 @@ export interface ShipmentsResponse {
   shared: DemoRequest[];
 }
 
-export type ShipmentAction = 'view' | 'upload_docs' | 'invite_collaborator' | 'approve_collaborator' | 'revoke_collaborator' | 'request_renewal';
+export type ShipmentAction =
+  | 'view'
+  | 'upload_docs'
+  | 'invite_collaborator'
+  | 'approve_collaborator'
+  | 'revoke_collaborator'
+  | 'request_renewal';
 
 export interface Collaborator {
   user: string;
-  // Null-tolerant: a requested_for whose grant entry is gone (revoked, or cleaned up) may come back without one.
+  // Null-tolerant: a requested_for whose grant entry is gone (revoked, or cleaned up) may come back
+  // without one.
   expires: number | null;
   renewals_used: number | null;
   active: boolean;
@@ -205,7 +219,10 @@ export interface DenyResponse {
   request: DemoRequest;
 }
 
-/** GET /api/cleanup/status, the mock's cleanup job proxied unchanged. Times are epoch ms, null before the first run. */
+/**
+ * GET /api/cleanup/status, the mock's cleanup job proxied unchanged. Times are epoch ms, null
+ * before the first run.
+ */
 export interface CleanupStatus {
   intervalMs: number;
   lastRunAt: number | null;
@@ -225,7 +242,13 @@ export interface CreateOrgResponse {
   request: DemoRequest;
 }
 
-export type OrgAction = 'view_own_request' | 'view_profile' | 'manage_members' | 'invite' | 'transfer_admin' | 'request_ean_association';
+export type OrgAction =
+  | 'view_own_request'
+  | 'view_profile'
+  | 'manage_members'
+  | 'invite'
+  | 'transfer_admin'
+  | 'request_ean_association';
 
 /** GET /api/s1/organizations/:key */
 export interface OrgDetail {

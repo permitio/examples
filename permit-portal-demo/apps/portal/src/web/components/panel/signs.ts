@@ -1,5 +1,5 @@
-// The "Where <name> can go" directory above the decision log: one sign per action and resource the persona was
-// checked on, drawn from the panel's own feed, so it needs no API call of its own.
+// The "Where <name> can go" directory above the decision log: one sign per action and resource the
+// persona was checked on, drawn from the panel's own feed, so it needs no API call of its own.
 
 import type { CheckEvent, DemoEvent } from '@/types';
 
@@ -11,7 +11,10 @@ export interface SignAnswer {
   allow: boolean;
   /** The newest check in the run: the number the sign shows, as the log's entry carries it. */
   id: number;
-  /** The first check in the run. It names the sign's face, so the face turns over once per change, not per re-check. */
+  /**
+   * The first check in the run. It names the sign's face, so the face turns over once per change,
+   * not per re-check.
+   */
   since: number;
 }
 
@@ -35,11 +38,17 @@ interface Pair {
 }
 
 /**
- * One sign for each distinct action and resource `user` was checked on after event `after` (the last "Clear view"),
- * whatever made the check run: a background re-check counts, which is how a sign turns over when a grant expires.
- * Signs keep the order their pairs first appeared in; past `limit`, the pairs checked longest ago are left out.
+ * One sign for each distinct action and resource `user` was checked on after event `after` (the
+ * last "Clear view"), whatever made the check run: a background re-check counts, which is how a
+ * sign turns over when a grant expires. Signs keep the order their pairs first appeared in; past
+ * `limit`, the pairs checked longest ago are left out.
  */
-export function signsOf(events: readonly DemoEvent[], user: string, after: number, limit = SIGN_LIMIT): Sign[] {
+export function signsOf(
+  events: readonly DemoEvent[],
+  user: string,
+  after: number,
+  limit = SIGN_LIMIT,
+): Sign[] {
   const checks = events
     .filter((e): e is CheckEvent => e.kind === 'check' && e.user === user && e.id > after)
     .sort((a, b) => a.id - b.id);
@@ -70,7 +79,10 @@ export function signsOf(events: readonly DemoEvent[], user: string, after: numbe
   return signs.filter((s) => kept.has(s.key));
 }
 
-/** Resources more than one sign is about: those signs lead with their action, so one place never reads two ways. */
+/**
+ * Resources more than one sign is about: those signs lead with their action, so one place never
+ * reads two ways.
+ */
 export function sharedResources(signs: readonly Sign[]): Set<string> {
   const seen = new Set<string>();
   const shared = new Set<string>();
@@ -81,8 +93,13 @@ export function sharedResources(signs: readonly Sign[]): Set<string> {
   return shared;
 }
 
-/** A recorded resource, `type:key`, split at its first colon; one without a type keeps its whole name as the key. */
+/**
+ * A recorded resource, `type:key`, split at its first colon; one without a type keeps its whole
+ * name as the key.
+ */
 export function resourceParts(resource: string): { type: string | undefined; key: string } {
   const colon = resource.indexOf(':');
-  return colon === -1 ? { type: undefined, key: resource } : { type: resource.slice(0, colon), key: resource.slice(colon + 1) };
+  return colon === -1
+    ? { type: undefined, key: resource }
+    : { type: resource.slice(0, colon), key: resource.slice(colon + 1) };
 }

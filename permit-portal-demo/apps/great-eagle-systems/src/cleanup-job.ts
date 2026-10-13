@@ -3,11 +3,18 @@ import type { CleanupResult, PortalNotifier } from '#src/portal-notifier';
 export const DEFAULT_CLEANUP_INTERVAL_MS = 600_000;
 
 /** Times are epoch ms; null means "not yet" (or, for nextRunAt, that the job is stopped). */
-export interface CleanupStatus { intervalMs: number; lastRunAt: number | null; nextRunAt: number | null; lastRemoved: number | null; lastError: string | null }
+export interface CleanupStatus {
+  intervalMs: number;
+  lastRunAt: number | null;
+  nextRunAt: number | null;
+  lastRemoved: number | null;
+  lastError: string | null;
+}
 
 /**
- * Housekeeping that asks the portal to remove expired grant entries, every `intervalMs`. It is not the security control:
- * a grant stops working at its expiry whether or not this has run. A failed run is recorded and the schedule carries on.
+ * Housekeeping that asks the portal to remove expired grant entries, every `intervalMs`. It is not
+ * the security control: a grant stops working at its expiry whether or not this has run. A failed
+ * run is recorded and the schedule carries on.
  */
 export class CleanupJob {
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -45,7 +52,10 @@ export class CleanupJob {
     }
   }
 
-  /** Runs the cleanup now. A call made while a run is in flight shares that run instead of starting another. */
+  /**
+   * Runs the cleanup now. A call made while a run is in flight shares that run instead of starting
+   * another.
+   */
   runNow(): Promise<CleanupResult> {
     this.inFlight ??= this.run().finally(() => {
       this.inFlight = undefined;
@@ -54,7 +64,13 @@ export class CleanupJob {
   }
 
   status(): CleanupStatus {
-    return { intervalMs: this.intervalMs, lastRunAt: this.lastRunAt, nextRunAt: this.nextRunAt, lastRemoved: this.lastRemoved, lastError: this.lastError };
+    return {
+      intervalMs: this.intervalMs,
+      lastRunAt: this.lastRunAt,
+      nextRunAt: this.nextRunAt,
+      lastRemoved: this.lastRemoved,
+      lastError: this.lastError,
+    };
   }
 
   private schedule(): void {
@@ -67,7 +83,9 @@ export class CleanupJob {
 
   private async run(): Promise<CleanupResult> {
     const startedAt = this.now();
-    const result = await this.notifier.runCleanup().catch((error: unknown): CleanupResult => ({ error: error instanceof Error ? error.message : String(error) }));
+    const result = await this.notifier.runCleanup().catch((error: unknown): CleanupResult => ({
+      error: error instanceof Error ? error.message : String(error),
+    }));
     this.lastRunAt = startedAt;
     if ('error' in result) {
       this.lastRemoved = null;

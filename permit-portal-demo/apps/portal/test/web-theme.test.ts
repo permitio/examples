@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_THEME, otherTheme, readTheme, saveTheme, themeSwitchLabel } from '@/theme';
 
-const storageWith = (value: string | null) => () => ({ getItem: () => value, setItem: () => undefined });
+const storageWith = (value: string | null) => () => ({
+  getItem: () => value,
+  setItem: () => undefined,
+});
 const denied = () => {
   throw new Error('SecurityError: storage is disabled');
 };
@@ -32,7 +35,10 @@ describe('theme preference', () => {
 
   it('saves a choice, and does not fail when the storage refuses it', () => {
     const saved = new Map<string, string>();
-    saveTheme('light', () => ({ getItem: (k) => saved.get(k) ?? null, setItem: (k, v) => void saved.set(k, v) }));
+    saveTheme('light', () => ({
+      getItem: (k) => saved.get(k) ?? null,
+      setItem: (k, v) => void saved.set(k, v),
+    }));
     expect(saved.get('theme')).toBe('light');
 
     expect(() => saveTheme('light', denied)).not.toThrow();

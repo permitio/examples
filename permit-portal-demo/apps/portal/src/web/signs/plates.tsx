@@ -1,26 +1,24 @@
 // The portal's sign system: graphite plates with full-white type, sign green for
 // open, and never no-entry red in the portal (the Red Stays in Permit rule).
 
-import type { ComponentType, ReactNode, SVGProps } from "react"
-import { CheckIcon } from "lucide-react"
+import type { ComponentType, ReactNode, SVGProps } from 'react';
+import { CheckIcon } from 'lucide-react';
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
-type Icon = ComponentType<SVGProps<SVGSVGElement>>
+type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-/**
- * A full-height sign: an identifier and its details, with an optional status segment.
- */
+/** A full-height sign: an identifier and its details, with an optional status segment. */
 export function SignPlate({
   id,
   title,
   children,
   aside,
 }: {
-  id: string
-  title: string
-  children?: ReactNode
-  aside?: { icon: Icon; text: string } | undefined
+  id: string;
+  title: string;
+  children?: ReactNode;
+  aside?: { icon: Icon; text: string } | undefined;
 }) {
   return (
     <section
@@ -42,10 +40,10 @@ export function SignPlate({
         </div>
       )}
     </section>
-  )
+  );
 }
 
-export type PlateTone = "go" | "graphite"
+export type PlateTone = 'go' | 'graphite';
 
 /** The square state plate that leads a gate sign: green "Open", or graphite for any other state. */
 export function StatePlate({
@@ -53,21 +51,21 @@ export function StatePlate({
   icon: PlateIcon,
   label,
 }: {
-  tone: PlateTone
-  icon: Icon
-  label: string
+  tone: PlateTone;
+  icon: Icon;
+  label: string;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-sm px-4 py-3 text-lg font-extrabold",
-        tone === "go" ? "bg-go text-on-state" : "border border-plate-edge bg-plate text-on-plate",
+        'flex items-center gap-2 rounded-sm px-4 py-3 text-lg font-extrabold',
+        tone === 'go' ? 'bg-go text-on-state' : 'border border-plate-edge bg-plate text-on-plate',
       )}
     >
       <PlateIcon aria-hidden className="size-6" />
       {label}
     </div>
-  )
+  );
 }
 
 /**
@@ -84,14 +82,14 @@ export function GateSign({
   action,
   children,
 }: {
-  tone: PlateTone
-  icon: Icon
-  label: string
-  title: string
-  detail?: string
-  clock?: { value: string; caption: string } | undefined
-  action?: ReactNode
-  children?: ReactNode
+  tone: PlateTone;
+  icon: Icon;
+  label: string;
+  title: string;
+  detail?: string;
+  clock?: { value: string; caption: string } | undefined;
+  action?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -111,66 +109,66 @@ export function GateSign({
       </div>
       {children}
     </section>
-  )
+  );
 }
 
 export interface Stage {
-  label: string
-  detail: string
-  when?: string
-  state: "done" | "current" | "next"
+  label: string;
+  detail: string;
+  when?: string;
+  state: 'done' | 'current' | 'next';
 }
 
 /**
- * Fixed-scale stages on one baseline. `compact` sizes each cell to its
- * text so a request's lifecycle fits in its header, where a status chip would otherwise sit.
+ * Fixed-scale stages on one baseline. `compact` sizes each cell to its text so a request's
+ * lifecycle fits in its header, where a status chip would otherwise sit.
  */
 export function StageStrip({
   label,
   stages,
   compact = false,
 }: {
-  label: string
-  stages: Stage[]
-  compact?: boolean
+  label: string;
+  stages: Stage[];
+  compact?: boolean;
 }) {
   return (
     <ol
       aria-label={label}
       className={cn(
-        compact ? "flex flex-wrap gap-1.5" : "grid grid-cols-2 gap-2",
-        !compact && (stages.length >= 4 ? "sm:grid-cols-4" : "sm:grid-cols-3"),
+        compact ? 'flex flex-wrap gap-1.5' : 'grid grid-cols-2 gap-2',
+        !compact && (stages.length >= 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'),
       )}
     >
       {stages.map((stage) => {
-        const muted = stage.state !== "current" && "text-muted-foreground"
+        const muted = stage.state !== 'current' && 'text-muted-foreground';
         return (
           <li
             key={stage.label}
-            aria-current={stage.state === "current" ? "step" : undefined}
+            aria-current={stage.state === 'current' ? 'step' : undefined}
             className={cn(
-              "flex flex-col rounded-sm",
-              compact ? "px-2.5 py-1.5 text-sm" : "px-3 py-2",
-              stage.state === "current"
-                ? "border border-plate-edge bg-plate text-on-plate"
-                : "border border-border bg-surface",
+              'flex flex-col rounded-sm',
+              compact ? 'px-2.5 py-1.5 text-sm' : 'px-3 py-2',
+              stage.state === 'current'
+                ? 'border border-plate-edge bg-plate text-on-plate'
+                : 'border border-border bg-surface',
             )}
           >
             <span className="flex items-center gap-1.5 font-bold">
-              {stage.state === "done" && (
-                <CheckIcon aria-hidden className={compact ? "size-3.5" : "size-4"} />
+              {stage.state === 'done' && (
+                <CheckIcon aria-hidden className={compact ? 'size-3.5' : 'size-4'} />
               )}
               {stage.label}
             </span>
-            <span className={cn(!compact && "text-sm", muted)}>{stage.detail}</span>
+            <span className={cn(!compact && 'text-sm', muted)}>{stage.detail}</span>
             {stage.when !== undefined && (
-              <span className={cn(!compact && "text-sm", muted)}>{stage.when}</span>
+              <span className={cn(!compact && 'text-sm', muted)}>{stage.when}</span>
             )}
           </li>
-        )
+        );
       })}
     </ol>
-  )
+  );
 }
 
 /** A heading for a section of a portal page, with an optional action on the right. */
@@ -179,9 +177,9 @@ export function SectionHeading({
   title,
   action,
 }: {
-  id: string
-  title: string
-  action?: ReactNode
+  id: string;
+  title: string;
+  action?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -190,7 +188,7 @@ export function SectionHeading({
       </h2>
       {action}
     </div>
-  )
+  );
 }
 
 /** What a page shows in place of details it may no longer show. */
@@ -199,9 +197,9 @@ export function HiddenDetails({
   title,
   children,
 }: {
-  icon: Icon
-  title: string
-  children: ReactNode
+  icon: Icon;
+  title: string;
+  children: ReactNode;
 }) {
   return (
     <section
@@ -214,5 +212,5 @@ export function HiddenDetails({
         <div className="max-w-[60ch] text-base text-muted-foreground">{children}</div>
       </div>
     </section>
-  )
+  );
 }

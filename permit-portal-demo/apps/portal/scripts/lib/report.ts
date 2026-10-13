@@ -3,12 +3,22 @@ import { fileURLToPath } from 'node:url';
 import { couldNotRun, describeError } from '#scripts/lib/admin';
 
 export type Outcome = 'pass' | 'fail' | 'could-not-run';
-export interface Result { outcome: Outcome; summary: string }
+export interface Result {
+  outcome: Outcome;
+  summary: string;
+}
 
 const EXIT_CODE: Record<Outcome, number> = { pass: 0, fail: 1, 'could-not-run': 2 };
-const LABEL: Record<Outcome, string> = { pass: 'PASS', fail: 'FAIL', 'could-not-run': 'COULD NOT RUN' };
+const LABEL: Record<Outcome, string> = {
+  pass: 'PASS',
+  fail: 'FAIL',
+  'could-not-run': 'COULD NOT RUN',
+};
 
-/** Prints the outcome and exits: 0 pass, 1 fail, 2 could not run. "Could not run" is never reported as a pass. */
+/**
+ * Prints the outcome and exits: 0 pass, 1 fail, 2 could not run. "Could not run" is never reported
+ * as a pass.
+ */
 export function finish(outcome: Outcome, summary: string): never {
   const line = `\n${LABEL[outcome]}: ${summary}`;
   if (outcome === 'pass') console.log(line);
@@ -21,7 +31,10 @@ export function outcomeOf(err: unknown): Outcome {
   return couldNotRun(err) ? 'could-not-run' : 'fail';
 }
 
-/** True when the module at `metaUrl` is the file node was started with, rather than a module another script imported. */
+/**
+ * True when the module at `metaUrl` is the file node was started with, rather than a module another
+ * script imported.
+ */
 export function isMain(metaUrl: string): boolean {
   const entry = process.argv[1];
   if (entry === undefined) return false;

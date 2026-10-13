@@ -16,7 +16,10 @@ describe('demo-data/seed.json', () => {
       const ean = seed.eans.find((e) => e.key === shipment.ean);
       expect(ean, `${shipment.key}: unknown EAN ${shipment.ean}`).toBeDefined();
       const owner = seed.organizations.find((o) => o.key === ean?.org);
-      expect(owner?.key, `${shipment.key}: ${shipment.ean} is not owned by ${shipment.tenant}`).toBe(shipment.tenant);
+      expect(
+        owner?.key,
+        `${shipment.key}: ${shipment.ean} is not owned by ${shipment.tenant}`,
+      ).toBe(shipment.tenant);
     }
   });
 
@@ -24,16 +27,22 @@ describe('demo-data/seed.json', () => {
     const personas = new Set(seed.personas.map((p) => p.key));
     expect(seed.requests.length).toBeGreaterThan(0);
     for (const request of seed.requests) {
-      expect(personas.has(request.requested_for), `${request.id}: unknown persona ${request.requested_for}`).toBe(true);
+      expect(
+        personas.has(request.requested_for),
+        `${request.id}: unknown persona ${request.requested_for}`,
+      ).toBe(true);
     }
   });
 
-  it.each(['eowyn', 'eomer', 'grima', 'sam', 'frodo'])('gives %s a complete set of trust facts', (key) => {
-    const persona = seed.personas.find((p) => p.key === key);
-    expect(persona?.facts).toEqual({
-      identity_verified: expect.any(Boolean),
-      duplicate_check: expect.stringMatching(/^(clear|suspected|confirmed)$/),
-      risk_state: expect.stringMatching(/^(ok|suspended)$/),
-    });
-  });
+  it.each(['eowyn', 'eomer', 'grima', 'sam', 'frodo'])(
+    'gives %s a complete set of trust facts',
+    (key) => {
+      const persona = seed.personas.find((p) => p.key === key);
+      expect(persona?.facts).toEqual({
+        identity_verified: expect.any(Boolean),
+        duplicate_check: expect.stringMatching(/^(clear|suspected|confirmed)$/),
+        risk_state: expect.stringMatching(/^(ok|suspended)$/),
+      });
+    },
+  );
 });

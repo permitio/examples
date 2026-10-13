@@ -1,17 +1,40 @@
 import { consolePage } from '#src/console';
 
-/** The three runs the page offers, in order: what each sends to the portal's integration API as the connector. */
+/**
+ * The three runs the page offers, in order: what each sends to the portal's integration API as the
+ * connector.
+ */
 const RUNS = [
-  { id: 'create-1001', op: 'create', ean: 'EAN-1001', label: 'Create on EAN-1001', call: 'POST /api/integration/shipments' },
-  { id: 'create-1002', op: 'create', ean: 'EAN-1002', label: 'Create on EAN-1002', call: 'POST /api/integration/shipments' },
-  { id: 'list-1001', op: 'list', ean: 'EAN-1001', label: 'List on EAN-1001', call: 'GET /api/integration/shipments?ean=EAN-1001' },
+  {
+    id: 'create-1001',
+    op: 'create',
+    ean: 'EAN-1001',
+    label: 'Create on EAN-1001',
+    call: 'POST /api/integration/shipments',
+  },
+  {
+    id: 'create-1002',
+    op: 'create',
+    ean: 'EAN-1002',
+    label: 'Create on EAN-1002',
+    call: 'POST /api/integration/shipments',
+  },
+  {
+    id: 'list-1001',
+    op: 'list',
+    ean: 'EAN-1001',
+    label: 'List on EAN-1001',
+    call: 'GET /api/integration/shipments?ean=EAN-1001',
+  },
 ] as const;
 
-const ROWS = RUNS.map((run) => `        <tr data-run="${run.id}" data-op="${run.op}" data-ean="${run.ean}">
+const ROWS = RUNS.map(
+  (run) => `        <tr data-run="${run.id}" data-op="${run.op}" data-ean="${run.ean}">
           <td><button class="btn" type="button" disabled>${run.label}</button></td>
           <td class="call"><code>${run.call}</code><span>ean ${run.ean}</span></td>
           <td class="answer"><span class="status" aria-live="polite"></span><pre hidden></pre></td>
-        </tr>`).join('\n');
+        </tr>`,
+).join('\n');
 
 const MAIN = `  <div id="banner" role="alert"></div>
   <section aria-labelledby="page-title">
@@ -165,9 +188,9 @@ setInterval(refresh, 2000);
 `;
 
 /**
- * The presenter console's S5 page (GET /s5): runs the connector against the portal's integration API with the
- * credential these systems hold. Create on EAN-1001, create on EAN-1002 and list on EAN-1001,
- * each answered with the portal's status and body as they came.
+ * The presenter console's S5 page (GET /s5): runs the connector against the portal's integration
+ * API with the credential these systems hold. Create on EAN-1001, create on EAN-1002 and list on
+ * EAN-1001, each answered with the portal's status and body as they came.
  */
 export function renderS5Console(): string {
   return consolePage({

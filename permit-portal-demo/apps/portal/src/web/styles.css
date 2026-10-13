@@ -1,15 +1,15 @@
 /* The portal's design: airport wayfinding. The portal is a concourse of graphite sign plates with white
    type; Permit is its own sign family in purple; state is a green "open" or red "no entry" plate. */
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "./shadcn-tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './shadcn-tailwind.css';
 
 @custom-variant dark {
-  &:where([data-theme="dark"], [data-theme="dark"] *) {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
     @slot;
   }
   @media (prefers-color-scheme: dark) {
-    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
       @slot;
     }
   }
@@ -40,9 +40,9 @@
   --permit-ink: #6a23bd;
   --permit-rule: #a99cbd;
 
-  --font-sign: "Overpass", "Helvetica Neue", Arial, sans-serif;
-  --font-permit: "Manrope", "Segoe UI", system-ui, sans-serif;
-  --font-code: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-sign: 'Overpass', 'Helvetica Neue', Arial, sans-serif;
+  --font-permit: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   --background: var(--ground);
   --foreground: var(--ink);
@@ -68,7 +68,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     --ground: #121619;
     --surface: #1a2025;
     --ink: #e9edef;
@@ -90,7 +90,7 @@
   }
 }
 
-:root[data-theme="dark"] {
+:root[data-theme='dark'] {
   --ground: #121619;
   --surface: #1a2025;
   --ink: #e9edef;
@@ -266,20 +266,20 @@ a {
 
 /* Filled buttons are plates too: in dark they carry the plate edge so their shape reads on the
    ground (the edge equals the fill in light). */
-[data-slot="button"].bg-primary {
+[data-slot='button'].bg-primary {
   border-color: var(--plate-edge);
 }
 
 /* A disabled button keeps a legible label (4.5:1) on a muted fill instead of fading to half
    opacity. */
-[data-slot="button"]:disabled {
+[data-slot='button']:disabled {
   border-color: var(--border);
   background-color: var(--muted);
   color: var(--muted-foreground);
   opacity: 1;
 }
 
-[data-slot="dropdown-menu-content"] {
+[data-slot='dropdown-menu-content'] {
   --tw-ring-color: var(--border);
 }
 

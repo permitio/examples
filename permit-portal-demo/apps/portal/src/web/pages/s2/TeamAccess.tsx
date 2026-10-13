@@ -10,11 +10,28 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { CHANGE_CONFIRMED, useAction, useResource } from '@/hooks';
 import { PagePlate } from '@/pages/s4/parts';
 import { grantRole, revokeRole } from '@/pages/s2/grants';
-import { grantKey, NO_TOGGLES, roleLabel, type ToggleState, toggleStateFor, type TreeNode, treeOf, withConfirmed } from '@/pages/s2/team';
+import {
+  grantKey,
+  NO_TOGGLES,
+  roleLabel,
+  type ToggleState,
+  toggleStateFor,
+  type TreeNode,
+  treeOf,
+  withConfirmed,
+} from '@/pages/s2/team';
 import type { AssignmentsResponse, TeamResponse } from '@/pages/s2/types';
 
-/** One resource of the tree: its name and key, a toggle for each role Permit lets the persona give there, and what sits under it. */
-function Branch({ node, held, busy, onToggle }: {
+/**
+ * One resource of the tree: its name and key, a toggle for each role Permit lets the persona give
+ * there, and what sits under it.
+ */
+function Branch({
+  node,
+  held,
+  busy,
+  onToggle,
+}: {
   node: TreeNode;
   held: ReadonlySet<string>;
   busy: boolean;
@@ -54,13 +71,15 @@ function Branch({ node, held, busy, onToggle }: {
 
 /**
  * S2's Team access, for Sam and Frodo: pick a member, then give or take away roles on EANs, child
- * accounts and locations. The tree holds only what Permit lets the persona grant (GET /api/s2/team is built from one bulk
- * check), so Frodo sees EAN-1001 and what sits under it and nothing else, and the toggles that are on are the member's
- * roles within that same scope (the assignments read is checked the same way). Each toggle asks the portal to check
- * `grant_<role>` on that exact resource first, and the notice comes once the PDP holds the change. The page reads when it
- * opens, when a person is picked, on Refresh and when its tab is shown again, but not on a timer, and not after a change:
- * once the PDP confirms one, the toggle flips from what is on screen (see team.ts), since reading the assignments again
- * would repeat the `grant_` check on every one of them in the decision panel and bury the check and the write of the change.
+ * accounts and locations. The tree holds only what Permit lets the persona grant (GET /api/s2/team
+ * is built from one bulk check), so Frodo sees EAN-1001 and what sits under it and nothing else,
+ * and the toggles that are on are the member's roles within that same scope (the assignments read
+ * is checked the same way). Each toggle asks the portal to check `grant_<role>` on that exact
+ * resource first, and the notice comes once the PDP holds the change. The page reads when it opens,
+ * when a person is picked, on Refresh and when its tab is shown again, but not on a timer, and not
+ * after a change: once the PDP confirms one, the toggle flips from what is on screen (see team.ts),
+ * since reading the assignments again would repeat the `grant_` check on every one of them in the
+ * decision panel and bury the check and the write of the change.
  */
 export function TeamAccess() {
   const me = getPersona();
@@ -73,10 +92,13 @@ export function TeamAccess() {
   // People to give roles to: the organization's members except the persona who is signed in.
   const people = (team.data?.members ?? []).filter((m) => m.key !== me);
   const member = people.find((m) => m.key === choice);
-  const assignments = useResource<AssignmentsResponse>(member === undefined ? null : `/api/s2/members/${encodeURIComponent(member.key)}/assignments`);
+  const assignments = useResource<AssignmentsResponse>(
+    member === undefined ? null : `/api/s2/members/${encodeURIComponent(member.key)}/assignments`,
+  );
 
-  // The toggles are the page's own copy of the member's assignments: taken afresh from each read, and kept in step with the
-  // changes the PDP confirms in between. Setting state while rendering is React's way to reset it when what it came from changes.
+  // The toggles are the page's own copy of the member's assignments: taken afresh from each read,
+  // and kept in step with the changes the PDP confirms in between. Setting state while rendering is
+  // React's way to reset it when what it came from changes.
   const shown = toggleStateFor(toggles, assignments.data);
   if (shown !== toggles) setToggles(shown);
 
@@ -89,11 +111,13 @@ export function TeamAccess() {
   const toggle = async (role: string, resource: string, on: boolean) => {
     if (member === undefined) return;
     const grant = { user: member.key, role, resource };
-    // The notice changes once, when the answer arrives: cleared up front, the page would jump twice.
+    // The notice changes once, when the answer arrives: cleared up front, the page would jump
+    // twice.
     const done = await action.run(() => (on ? grantRole(grant) : revokeRole(grant)));
     setNotice(done !== undefined ? CHANGE_CONFIRMED : undefined);
-    // A confirmed change, a repeat of one Permit already had included, shows on its toggle without a second read. A refusal or
-    // any other failure leaves the toggle where it was, and its words are in the banner.
+    // A confirmed change, a repeat of one Permit already had included, shows on its toggle without
+    // a second read. A refusal or any other failure leaves the toggle where it was, and its words
+    // are in the banner.
     if (done !== undefined) setToggles((t) => withConfirmed(t, role, resource, on));
   };
 
@@ -103,12 +127,18 @@ export function TeamAccess() {
   };
 
   const tree = treeOf(team.data?.grantable ?? []);
-  const aside = team.data && people.length > 0 ? { icon: UsersIcon, text: `${people.length} ${people.length === 1 ? 'person' : 'people'}` } : undefined;
+  const aside =
+    team.data && people.length > 0
+      ? { icon: UsersIcon, text: `${people.length} ${people.length === 1 ? 'person' : 'people'}` }
+      : undefined;
 
   return (
     <div className="flex flex-col gap-6">
       <PagePlate title="Team access" aside={aside} />
-      <Lede>Roles for the people in your organization, on its EANs, child accounts and locations. Permit decides which ones you may grant.</Lede>
+      <Lede>
+        Roles for the people in your organization, on its EANs, child accounts and locations. Permit
+        decides which ones you may grant.
+      </Lede>
       <ErrorBanner error={team.error} />
       {team.data === undefined ? (
         team.error === undefined && <p className="text-muted-foreground">Loading your team…</p>
@@ -173,11 +203,22 @@ export function TeamAccess() {
               <Notice text={notice} onDismiss={() => setNotice(undefined)} />
               <ErrorBanner error={assignments.error} />
               {assignments.data === undefined ? (
-                assignments.error === undefined && <p className="text-muted-foreground">Loading {member.name}'s access…</p>
+                assignments.error === undefined && (
+                  <p className="text-muted-foreground">Loading {member.name}'s access…</p>
+                )
               ) : (
-                <ul aria-label={`Roles for ${member.name}`} className="flex flex-col rounded-md border border-border bg-surface [&>li:last-child>div:first-child]:border-b-0">
+                <ul
+                  aria-label={`Roles for ${member.name}`}
+                  className="flex flex-col rounded-md border border-border bg-surface [&>li:last-child>div:first-child]:border-b-0"
+                >
                   {tree.map((node) => (
-                    <Branch key={node.resource} node={node} held={shown.held} busy={action.busy} onToggle={toggle} />
+                    <Branch
+                      key={node.resource}
+                      node={node}
+                      held={shown.held}
+                      busy={action.busy}
+                      onToggle={toggle}
+                    />
                   ))}
                 </ul>
               )}

@@ -1,6 +1,6 @@
-// S2's two writes as the page sends them. POST goes through the shared client; DELETE has no helper there, so grants.ts
-// sends it itself, and these tests pin that it speaks the same way: the persona header, a JSON body, and the server's own
-// words in an ApiError.
+// S2's two writes as the page sends them. POST goes through the shared client; DELETE has no helper
+// there, so grants.ts sends it itself, and these tests pin that it speaks the same way: the persona
+// header, a JSON body, and the server's own words in an ApiError.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, setPersona } from '@/api';
 import { grantRole, revokeRole } from '@/pages/s2/grants';
@@ -8,7 +8,10 @@ import { grantRole, revokeRole } from '@/pages/s2/grants';
 const GRANT = { user: 'merry', role: 'location_operator', resource: 'location:LOC-BYWATER' };
 
 function jsonResponse(status: number, body: unknown): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 function stubFetch(response: () => Response) {
@@ -17,7 +20,8 @@ function stubFetch(response: () => Response) {
   return fetchMock;
 }
 
-const headersOf = (init: RequestInit | undefined) => (init?.headers ?? {}) as Record<string, string>;
+const headersOf = (init: RequestInit | undefined) =>
+  (init?.headers ?? {}) as Record<string, string>;
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -30,7 +34,10 @@ describe('grantRole', () => {
     await expect(grantRole(GRANT)).resolves.toEqual({ ms: 640 });
     const [path, init] = fetchMock.mock.calls[0] ?? [];
     expect(path).toBe('/api/s2/grants');
-    expect(init).toMatchObject({ method: 'POST', headers: { 'content-type': 'application/json', 'x-demo-persona': 'sam' } });
+    expect(init).toMatchObject({
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-demo-persona': 'sam' },
+    });
     expect(JSON.parse(String(init?.body))).toEqual(GRANT);
   });
 
@@ -48,7 +55,10 @@ describe('revokeRole', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [path, init] = fetchMock.mock.calls[0] ?? [];
     expect(path).toBe('/api/s2/grants');
-    expect(init).toMatchObject({ method: 'DELETE', headers: { 'content-type': 'application/json', 'x-demo-persona': 'sam' } });
+    expect(init).toMatchObject({
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', 'x-demo-persona': 'sam' },
+    });
     expect(JSON.parse(String(init?.body))).toEqual(GRANT);
   });
 
@@ -64,11 +74,22 @@ describe('revokeRole', () => {
   });
 
   it("throws an ApiError with the status, Permit's own words and the decision when the portal refuses", async () => {
-    stubFetch(() => jsonResponse(403, { error: 'Permit denied grant_location_operator on location:LOC-MICHEL.', decision: 'deny' }));
+    stubFetch(() =>
+      jsonResponse(403, {
+        error: 'Permit denied grant_location_operator on location:LOC-MICHEL.',
+        decision: 'deny',
+      }),
+    );
     setPersona('frodo');
-    const error = await revokeRole({ ...GRANT, resource: 'location:LOC-MICHEL' }).catch((e: unknown) => e);
+    const error = await revokeRole({ ...GRANT, resource: 'location:LOC-MICHEL' }).catch(
+      (e: unknown) => e,
+    );
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ status: 403, message: 'Permit denied grant_location_operator on location:LOC-MICHEL.', decision: 'deny' });
+    expect(error).toMatchObject({
+      status: 403,
+      message: 'Permit denied grant_location_operator on location:LOC-MICHEL.',
+      decision: 'deny',
+    });
   });
 
   it('surfaces a 424 text unchanged, with no decision', async () => {
@@ -92,11 +113,23 @@ describe('the DELETE helper and the shared client agree on a refusal', () => {
   it('turns the same 403 into the same ApiError', async () => {
     const body = { error: 'Permit denied grant_shipper on ean:EAN-1002.', decision: 'deny' };
     stubFetch(() => jsonResponse(403, body));
-    const viaPost = await grantRole({ ...GRANT, role: 'shipper', resource: 'ean:EAN-1002' }).catch((e: unknown) => e);
-    const viaDelete = await revokeRole({ ...GRANT, role: 'shipper', resource: 'ean:EAN-1002' }).catch((e: unknown) => e);
+    const viaPost = await grantRole({ ...GRANT, role: 'shipper', resource: 'ean:EAN-1002' }).catch(
+      (e: unknown) => e,
+    );
+    const viaDelete = await revokeRole({
+      ...GRANT,
+      role: 'shipper',
+      resource: 'ean:EAN-1002',
+    }).catch((e: unknown) => e);
     expect(viaDelete).toBeInstanceOf(ApiError);
-    expect({ status: (viaDelete as ApiError).status, message: (viaDelete as ApiError).message, decision: (viaDelete as ApiError).decision }).toEqual({
-      status: (viaPost as ApiError).status, message: (viaPost as ApiError).message, decision: (viaPost as ApiError).decision,
+    expect({
+      status: (viaDelete as ApiError).status,
+      message: (viaDelete as ApiError).message,
+      decision: (viaDelete as ApiError).decision,
+    }).toEqual({
+      status: (viaPost as ApiError).status,
+      message: (viaPost as ApiError).message,
+      decision: (viaPost as ApiError).decision,
     });
   });
 });

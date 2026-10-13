@@ -7,7 +7,8 @@
     <script>
       // Before the first paint: a light choice saved by theme.ts (key "theme"); dark otherwise, as in theme.ts.
       try {
-        if (localStorage.getItem('theme') === 'light') document.documentElement.dataset.theme = 'light';
+        if (localStorage.getItem('theme') === 'light')
+          document.documentElement.dataset.theme = 'light';
       } catch (e) {}
     </script>
     <link

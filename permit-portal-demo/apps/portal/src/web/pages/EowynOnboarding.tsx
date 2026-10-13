@@ -27,19 +27,36 @@ function CreateOrganization({ onCreated }: { onCreated: (key: string) => void })
   const action = useAction();
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const created = await action.run(() => api.post<CreateOrgResponse>('/api/s1/organizations', { name: name.trim() }));
+    const created = await action.run(() =>
+      api.post<CreateOrgResponse>('/api/s1/organizations', { name: name.trim() }),
+    );
     if (created) onCreated(created.org?.key ?? S1_ORG);
   };
   return (
     <div className="flex flex-col gap-6">
       <SignPlate id="create-title" title="Create your organization" />
-      <Lede>Register your company to manage its accounts and shipments. Great Eagle checks a new organization before anyone becomes its admin.</Lede>
+      <Lede>
+        Register your company to manage its accounts and shipments. Great Eagle checks a new
+        organization before anyone becomes its admin.
+      </Lede>
       <StageStrip label="How registration works" stages={REGISTRATION} />
-      <form aria-label="Organization details" onSubmit={submit} className="flex flex-col gap-4 rounded-md border border-border bg-surface px-5 py-4">
+      <form
+        aria-label="Organization details"
+        onSubmit={submit}
+        className="flex flex-col gap-4 rounded-md border border-border bg-surface px-5 py-4"
+      >
         <Field className="max-w-md">
           <FieldLabel htmlFor="org-name">Organization name</FieldLabel>
-          <Input id="org-name" value={name} required className="h-9 text-base md:text-base" onChange={(e) => setName(e.target.value)} />
-          <FieldDescription>Great Eagle's reviewers and your colleagues see this name.</FieldDescription>
+          <Input
+            id="org-name"
+            value={name}
+            required
+            className="h-9 text-base md:text-base"
+            onChange={(e) => setName(e.target.value)}
+          />
+          <FieldDescription>
+            Great Eagle's reviewers and your colleagues see this name.
+          </FieldDescription>
         </Field>
         <div>
           <Button type="submit" size="lg" disabled={action.busy || name.trim() === ''}>
@@ -55,11 +72,16 @@ function CreateOrganization({ onCreated }: { onCreated: (key: string) => void })
 
 /**
  * Éowyn's page. GET /api/s1/organizations/riders-of-rohan decides what Éowyn sees: a 404 means the
- * organization does not exist yet, so Éowyn gets the form to create it; any other answer shows the organization.
+ * organization does not exist yet, so Éowyn gets the form to create it; any other answer shows the
+ * organization.
  */
 export function EowynOnboarding() {
-  const [view, setView] = useState<{ kind: 'org'; key: string } | { kind: 'create' }>({ kind: 'org', key: S1_ORG });
+  const [view, setView] = useState<{ kind: 'org'; key: string } | { kind: 'create' }>({
+    kind: 'org',
+    key: S1_ORG,
+  });
   const showCreate = useCallback(() => setView({ kind: 'create' }), []);
-  if (view.kind === 'create') return <CreateOrganization onCreated={(key) => setView({ kind: 'org', key })} />;
+  if (view.kind === 'create')
+    return <CreateOrganization onCreated={(key) => setView({ kind: 'org', key })} />;
   return <OrgPage orgKey={view.key} onMissing={showCreate} />;
 }

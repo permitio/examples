@@ -14,7 +14,8 @@ export function bodyOf(req: Request): Body {
 /** A required, non-blank text field, trimmed. */
 export function text(body: Body, name: string): string {
   const value = body[name];
-  if (typeof value !== 'string' || value.trim() === '') throw new HttpError(400, `${name} is required`);
+  if (typeof value !== 'string' || value.trim() === '')
+    throw new HttpError(400, `${name} is required`);
   return value.trim();
 }
 
@@ -35,6 +36,7 @@ export function personaKey(body: Body, name: string, seed: SeedData): string {
 
 export function positiveInt(body: Body, name: string): number {
   const value = body[name];
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) throw new HttpError(400, `${name} must be a positive whole number`);
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)
+    throw new HttpError(400, `${name} must be a positive whole number`);
   return value;
 }

@@ -2,7 +2,13 @@
 // answering with the user key.
 
 import { Field, FieldLabel } from '@/components/ui/field';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface PersonPickerProps {
@@ -17,7 +23,15 @@ interface PersonPickerProps {
 }
 
 /** One of `options` (user keys), each shown by its persona's name. */
-export function PersonPicker({ id, label, value, options, nameOf, onChange, className }: PersonPickerProps) {
+export function PersonPicker({
+  id,
+  label,
+  value,
+  options,
+  nameOf,
+  onChange,
+  className,
+}: PersonPickerProps) {
   const items = options.map((key) => ({ value: key, label: nameOf(key) }));
   return (
     <Field className={cn('max-w-md', className)}>

@@ -5,8 +5,25 @@ import { EventLog } from '#src/server/events';
 
 const write = (what: string) => ({ kind: 'write' as const, at: 0, what, ms: 1, ok: true });
 const check = (action: string) => ({
-  kind: 'check' as const, at: 0, user: 'aragorn', action, resource: 'shipment:SHP-77001', tenant: 'shire-freight', source: 'action' as const, allow: false, ms: 1,
-  input: { user: { key: 'aragorn', attributes: { current_time: 0 } }, action, resource: { type: 'shipment', key: 'SHP-77001', tenant: 'shire-freight', attributes: { id: 'SHP-77001' } } },
+  kind: 'check' as const,
+  at: 0,
+  user: 'aragorn',
+  action,
+  resource: 'shipment:SHP-77001',
+  tenant: 'shire-freight',
+  source: 'action' as const,
+  allow: false,
+  ms: 1,
+  input: {
+    user: { key: 'aragorn', attributes: { current_time: 0 } },
+    action,
+    resource: {
+      type: 'shipment',
+      key: 'SHP-77001',
+      tenant: 'shire-freight',
+      attributes: { id: 'SHP-77001' },
+    },
+  },
 });
 
 function thrown(run: () => void): unknown {

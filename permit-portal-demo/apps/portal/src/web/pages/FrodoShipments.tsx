@@ -13,7 +13,11 @@ function ShipmentRow({ shipment, onOpen }: { shipment: Shipment; onOpen: () => v
   const facts = factsOf(shipment.key);
   return (
     <li className="border-b border-border last:border-b-0">
-      <button type="button" onClick={onOpen} className="flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left outline-offset-[-3px] hover:bg-muted">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left outline-offset-[-3px] hover:bg-muted"
+      >
         <span className="flex min-w-0 flex-1 flex-col gap-3 @2xl:flex-row @2xl:items-center @2xl:gap-6">
           <span className="flex min-w-0 flex-col gap-1.5 @2xl:w-72 @2xl:shrink-0">
             <span className="text-2xl leading-none font-black tracking-tight">{shipment.key}</span>
@@ -35,11 +39,15 @@ function ShipmentRow({ shipment, onOpen }: { shipment: Shipment; onOpen: () => v
   );
 }
 
-/** The shipments Permit lets this persona view (GET /api/s4/shipments filters them); one opens its detail. */
+/**
+ * The shipments Permit lets this persona view (GET /api/s4/shipments filters them); one opens its
+ * detail.
+ */
 export function FrodoShipments() {
   const meta = useMeta();
   const [open, setOpen] = useState<string | null>(null);
-  // The list is read only while it is on screen, so an open shipment does not also re-run the list filter.
+  // The list is read only while it is on screen, so an open shipment does not also re-run the list
+  // filter.
   const list = useResource<ShipmentsResponse>(open === null ? '/api/s4/shipments' : null);
 
   if (open !== null) return <ShipmentDetail shipmentKey={open} onBack={() => setOpen(null)} />;
@@ -55,7 +63,9 @@ export function FrodoShipments() {
         {shipments === undefined ? (
           list.error === undefined && <p className="text-muted-foreground">Loading shipments…</p>
         ) : shipments.length === 0 ? (
-          <EmptyNote>Permit allows you to view none of the {meta.shipments.length} shipments.</EmptyNote>
+          <EmptyNote>
+            Permit allows you to view none of the {meta.shipments.length} shipments.
+          </EmptyNote>
         ) : (
           <>
             <p className="text-muted-foreground">

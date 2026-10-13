@@ -8,21 +8,44 @@ import { cn } from '@/lib/utils';
 /** The open tab: one of the persona's pages, by its index in their list, or Evidence. */
 export type PortalTab = number | 'evidence';
 
-function Tab({ current, onSelect, children }: { current: boolean; onSelect: () => void; children: ReactNode }) {
+function Tab({
+  current,
+  onSelect,
+  children,
+}: {
+  current: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={current}
       onClick={onSelect}
-      className={cn('-mb-px cursor-pointer border-b-[3px] pb-2 font-bold', current ? 'border-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}
+      className={cn(
+        '-mb-px cursor-pointer border-b-[3px] pb-2 font-bold',
+        current
+          ? 'border-foreground'
+          : 'border-transparent text-muted-foreground hover:text-foreground',
+      )}
     >
       {children}
     </button>
   );
 }
 
-export function PortalHeader({ titles, tab, onTab, firstName }: { titles: readonly string[]; tab: PortalTab; onTab: (tab: PortalTab) => void; firstName: string }) {
+export function PortalHeader({
+  titles,
+  tab,
+  onTab,
+  firstName,
+}: {
+  titles: readonly string[];
+  tab: PortalTab;
+  onTab: (tab: PortalTab) => void;
+  firstName: string;
+}) {
   const onEvidence = tab === 'evidence';
   return (
     <div className="flex flex-col gap-3">
@@ -43,7 +66,9 @@ export function PortalHeader({ titles, tab, onTab, firstName }: { titles: readon
         </div>
         <p className="flex items-center gap-1.5 pb-2.5 text-sm text-muted-foreground">
           <InfoIcon aria-hidden className="size-4 shrink-0" />
-          {onEvidence ? 'The request record the portal keeps for the demo.' : `The portal shows only what Permit allows ${firstName} to see.`}
+          {onEvidence
+            ? 'The request record the portal keeps for the demo.'
+            : `The portal shows only what Permit allows ${firstName} to see.`}
         </p>
       </div>
     </div>

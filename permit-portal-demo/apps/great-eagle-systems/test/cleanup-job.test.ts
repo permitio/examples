@@ -5,7 +5,8 @@ import type { CleanupResult } from '#src/portal-notifier';
 const T0 = Date.parse('2026-10-05T09:00:00.000Z');
 const INTERVAL = 60_000;
 
-const cleanupJob = (runCleanup: () => Promise<CleanupResult>) => new CleanupJob(INTERVAL, { runCleanup }, () => Date.now());
+const cleanupJob = (runCleanup: () => Promise<CleanupResult>) =>
+  new CleanupJob(INTERVAL, { runCleanup }, () => Date.now());
 
 describe('CleanupJob', () => {
   beforeEach(() => {
@@ -17,7 +18,13 @@ describe('CleanupJob', () => {
   });
 
   it('has no last run and no next run until it is started', () => {
-    expect(cleanupJob(async () => ({ removed: 0 })).status()).toEqual({ intervalMs: INTERVAL, lastRunAt: null, nextRunAt: null, lastRemoved: null, lastError: null });
+    expect(cleanupJob(async () => ({ removed: 0 })).status()).toEqual({
+      intervalMs: INTERVAL,
+      lastRunAt: null,
+      nextRunAt: null,
+      lastRemoved: null,
+      lastError: null,
+    });
   });
 
   it('start() runs the cleanup every intervalMs and moves nextRunAt on after each run', async () => {
@@ -32,7 +39,10 @@ describe('CleanupJob', () => {
     expect(job.status()).toMatchObject({ lastRunAt: T0 + INTERVAL, nextRunAt: T0 + 2 * INTERVAL });
     await vi.advanceTimersByTimeAsync(INTERVAL);
     expect(runCleanup).toHaveBeenCalledTimes(2);
-    expect(job.status()).toMatchObject({ lastRunAt: T0 + 2 * INTERVAL, nextRunAt: T0 + 3 * INTERVAL });
+    expect(job.status()).toMatchObject({
+      lastRunAt: T0 + 2 * INTERVAL,
+      nextRunAt: T0 + 3 * INTERVAL,
+    });
 
     job.start(); // already started: no second schedule
     await vi.advanceTimersByTimeAsync(INTERVAL);
@@ -50,12 +60,23 @@ describe('CleanupJob', () => {
     vi.setSystemTime(T0 + 5_000);
     expect(await job.runNow()).toEqual({ removed: 3 });
     expect(runCleanup).toHaveBeenCalledTimes(1);
-    expect(job.status()).toEqual({ intervalMs: INTERVAL, lastRunAt: T0 + 5_000, nextRunAt: null, lastRemoved: 3, lastError: null });
+    expect(job.status()).toEqual({
+      intervalMs: INTERVAL,
+      lastRunAt: T0 + 5_000,
+      nextRunAt: null,
+      lastRemoved: 3,
+      lastError: null,
+    });
   });
 
   it('makes one call for overlapping runNow() calls, such as a double click', async () => {
     let finish: (result: CleanupResult) => void = () => undefined;
-    const runCleanup = vi.fn(() => new Promise<CleanupResult>((resolve) => { finish = resolve; }));
+    const runCleanup = vi.fn(
+      () =>
+        new Promise<CleanupResult>((resolve) => {
+          finish = resolve;
+        }),
+    );
     const job = cleanupJob(runCleanup);
     const first = job.runNow();
     const second = job.runNow();
@@ -71,7 +92,8 @@ describe('CleanupJob', () => {
   });
 
   it('records a failing portal in lastError, and the schedule carries on', async () => {
-    const runCleanup = vi.fn<() => Promise<CleanupResult>>()
+    const runCleanup = vi
+      .fn<() => Promise<CleanupResult>>()
       .mockResolvedValueOnce({ removed: 1 })
       .mockResolvedValueOnce({ error: 'portal unreachable: ECONNREFUSED' })
       .mockRejectedValueOnce(new Error('boom'))
@@ -81,8 +103,15 @@ describe('CleanupJob', () => {
     await vi.advanceTimersByTimeAsync(INTERVAL);
     expect(job.status()).toMatchObject({ lastRemoved: 1, lastError: null });
     await vi.advanceTimersByTimeAsync(INTERVAL);
-    // The failed run's count is unknown, so the previous run's count is not shown as if it were this one's.
-    expect(job.status()).toEqual({ intervalMs: INTERVAL, lastRunAt: T0 + 2 * INTERVAL, nextRunAt: T0 + 3 * INTERVAL, lastRemoved: null, lastError: 'portal unreachable: ECONNREFUSED' });
+    // The failed run's count is unknown, so the previous run's count is not shown as if it were
+    // this one's.
+    expect(job.status()).toEqual({
+      intervalMs: INTERVAL,
+      lastRunAt: T0 + 2 * INTERVAL,
+      nextRunAt: T0 + 3 * INTERVAL,
+      lastRemoved: null,
+      lastError: 'portal unreachable: ECONNREFUSED',
+    });
     await vi.advanceTimersByTimeAsync(INTERVAL);
     expect(job.status()).toMatchObject({ lastError: 'boom', nextRunAt: T0 + 4 * INTERVAL });
     await vi.advanceTimersByTimeAsync(INTERVAL);
@@ -98,7 +127,13 @@ describe('CleanupJob', () => {
     await vi.advanceTimersByTimeAsync(INTERVAL + 10_000);
     job.reset();
     const restartedAt = T0 + INTERVAL + 10_000;
-    expect(job.status()).toEqual({ intervalMs: INTERVAL, lastRunAt: null, nextRunAt: restartedAt + INTERVAL, lastRemoved: null, lastError: null });
+    expect(job.status()).toEqual({
+      intervalMs: INTERVAL,
+      lastRunAt: null,
+      nextRunAt: restartedAt + INTERVAL,
+      lastRemoved: null,
+      lastError: null,
+    });
     await vi.advanceTimersByTimeAsync(INTERVAL - 1);
     expect(runCleanup).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);

@@ -1,4 +1,11 @@
-import { ArrowLeftIcon, BrushCleaningIcon, FileTextIcon, RefreshCwIcon, SendIcon, UserMinusIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  BrushCleaningIcon,
+  FileTextIcon,
+  RefreshCwIcon,
+  SendIcon,
+  UserMinusIcon,
+} from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { api } from '@/api';
 import { CheckChips, GrantChip, StatusChip } from '@/components/CheckChips';
@@ -9,11 +16,39 @@ import { RequestDecisionForm, RequestSummary } from '@/components/RequestSummary
 import { Button } from '@/components/ui/button';
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { canChecks, formatWhen, requestDuration } from '@/format';
-import { CHANGE_CONFIRMED, decideAndConfirm, PAGE_REFRESH_MS, useAction, usePersonaName, useResource } from '@/hooks';
-import type { ApprovalsResponse, CleanupStatus, DemoRequest, ShipmentDetail as Detail, Doc, RevokeResponse, ShipmentAction } from '@/types';
+import {
+  CHANGE_CONFIRMED,
+  decideAndConfirm,
+  PAGE_REFRESH_MS,
+  useAction,
+  usePersonaName,
+  useResource,
+} from '@/hooks';
+import type {
+  ApprovalsResponse,
+  CleanupStatus,
+  DemoRequest,
+  ShipmentDetail as Detail,
+  Doc,
+  RevokeResponse,
+  ShipmentAction,
+} from '@/types';
 import { CargoFacts, ShipmentSign } from '@/pages/s4/parts';
 
 const RENEWAL_LIMIT = 2;
@@ -29,10 +64,17 @@ const SHIPMENT_ACTIONS: readonly ShipmentAction[] = [
 const EXTERNAL_USERS = ['aragorn'];
 
 /** Invites an external user, in place as a bordered panel. The approver sets the duration. */
-function InviteForm({ busy, onInvite }: { busy: boolean; onInvite: (user: string, reason: string) => void }) {
+function InviteForm({
+  busy,
+  onInvite,
+}: {
+  busy: boolean;
+  onInvite: (user: string, reason: string) => void;
+}) {
   const nameOf = usePersonaName();
   const [user, setUser] = useState(EXTERNAL_USERS[0] ?? '');
-  // Pre-filled so the presenter does not type on a live share; a placeholder looked like a value and was not one.
+  // Pre-filled so the presenter does not type on a live share; a placeholder looked like a value
+  // and was not one.
   const [reason, setReason] = useState('customs clearance');
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -78,7 +120,14 @@ function InviteForm({ busy, onInvite }: { busy: boolean; onInvite: (user: string
         </Field>
         <Field>
           <FieldLabel htmlFor="invite-reason">Reason</FieldLabel>
-          <Input id="invite-reason" value={reason} required autoComplete="off" className="h-9 text-base md:text-base" onChange={(e) => setReason(e.target.value)} />
+          <Input
+            id="invite-reason"
+            value={reason}
+            required
+            autoComplete="off"
+            className="h-9 text-base md:text-base"
+            onChange={(e) => setReason(e.target.value)}
+          />
         </Field>
       </FieldGroup>
       <Button type="submit" size="lg" className="w-fit" disabled={busy || reason.trim() === ''}>
@@ -120,7 +169,9 @@ export function DocumentList({ documents }: { documents: Doc[] }) {
                   </span>
                 </TableCell>
                 <TableCell className="px-4 py-2.5">{nameOf(d.by)}</TableCell>
-                <TableCell className="px-4 py-2.5 text-right text-muted-foreground">{formatWhen(d.at)}</TableCell>
+                <TableCell className="px-4 py-2.5 text-right text-muted-foreground">
+                  {formatWhen(d.at)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -128,7 +179,10 @@ export function DocumentList({ documents }: { documents: Doc[] }) {
       </div>
       <ul className="flex flex-col rounded-md border border-border bg-surface sm:hidden">
         {documents.map((d, i) => (
-          <li key={`${d.name}-${i}`} className="flex items-start gap-2 border-b border-border px-4 py-3 last:border-b-0">
+          <li
+            key={`${d.name}-${i}`}
+            className="flex items-start gap-2 border-b border-border px-4 py-3 last:border-b-0"
+          >
             <FileTextIcon aria-hidden className="mt-1 size-4 shrink-0" />
             <div className="flex min-w-0 flex-col">
               <span className="font-semibold break-words">{d.name}</span>
@@ -164,7 +218,10 @@ function PendingInvitation({ request }: { request: DemoRequest }) {
   );
 }
 
-/** The mock's cleanup job. It sits beside the grants to show that an expired entry is still there until it runs. */
+/**
+ * The mock's cleanup job. It sits beside the grants to show that an expired entry is still there
+ * until it runs.
+ */
 function CleanupLine() {
   const status = useResource<CleanupStatus>('/api/cleanup/status', { refreshMs: PAGE_REFRESH_MS });
   if (status.data === undefined) {
@@ -184,28 +241,48 @@ function CleanupLine() {
       <span>
         Cleanup job: last run {lastRunAt === null ? 'never' : formatWhen(lastRunAt)}, next run in{' '}
         <Countdown until={nextRunAt} pastLabel="due now" />
-        {status.data.lastError && <span className="font-bold text-foreground"> Last run failed: {status.data.lastError}</span>}
+        {status.data.lastError && (
+          <span className="font-bold text-foreground">
+            {' '}
+            Last run failed: {status.data.lastError}
+          </span>
+        )}
       </span>
     </p>
   );
 }
 
-export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; onBack: () => void }) {
+export function ShipmentDetail({
+  shipmentKey,
+  onBack,
+}: {
+  shipmentKey: string;
+  onBack: () => void;
+}) {
   const nameOf = usePersonaName();
   const path = `/api/s4/shipments/${encodeURIComponent(shipmentKey)}`;
-  // Read when it opens, after each action, when the tab is shown again and on Refresh, but not on a timer: each read
-  // asks Permit six questions, and a timer would fill the Audit Log with checks nobody made.
+  // Read when it opens, after each action, when the tab is shown again and on Refresh, but not on a
+  // timer: each read asks Permit six questions, and a timer would fill the Audit Log with checks
+  // nobody made.
   const detail = useResource<Detail>(path);
   const action = useAction();
   const [notice, setNotice] = useState<string>();
 
-  const pendingInvitations = detail.data?.requests.filter((r) => r.type === 'collaborator_invite' && r.status === 'pending') ?? [];
-  const pendingRenewals = detail.data?.requests.filter((r) => r.type === 'renewal' && r.status === 'pending') ?? [];
-  // Which pending renewals this persona may decide is Permit's call (approve_renewal), made by GET /api/approvals.
+  const pendingInvitations =
+    detail.data?.requests.filter(
+      (r) => r.type === 'collaborator_invite' && r.status === 'pending',
+    ) ?? [];
+  const pendingRenewals =
+    detail.data?.requests.filter((r) => r.type === 'renewal' && r.status === 'pending') ?? [];
+  // Which pending renewals this persona may decide is Permit's call (approve_renewal), made by GET
+  // /api/approvals.
   // It is read only while a renewal is pending here, and again whenever that set changes.
-  const approvals = useResource<ApprovalsResponse>(pendingRenewals.length > 0 ? '/api/approvals' : null, {
-    key: pendingRenewals.map((r) => r.id).join(','),
-  });
+  const approvals = useResource<ApprovalsResponse>(
+    pendingRenewals.length > 0 ? '/api/approvals' : null,
+    {
+      key: pendingRenewals.map((r) => r.id).join(','),
+    },
+  );
 
   const decide = async (id: string, verdict: 'approve' | 'deny', comment: string) => {
     await decideAndConfirm(action.run, setNotice, id, verdict, comment);
@@ -213,8 +290,14 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
   };
 
   const invite = async (user: string, reason: string) => {
-    const created = await action.run(() => api.post<DemoRequest>(`${path}/invitations`, { user, reason }));
-    setNotice(created ? `Invitation sent to ${nameOf(user)}. Access starts once an approver approves it and sets how long it lasts.` : undefined);
+    const created = await action.run(() =>
+      api.post<DemoRequest>(`${path}/invitations`, { user, reason }),
+    );
+    setNotice(
+      created
+        ? `Invitation sent to ${nameOf(user)}. Access starts once an approver approves it and sets how long it lasts.`
+        : undefined,
+    );
     if (created) detail.reload();
   };
 
@@ -232,7 +315,11 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" onClick={onBack} className="flex w-fit cursor-pointer items-center gap-1.5 font-bold underline-offset-4 hover:underline">
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex w-fit cursor-pointer items-center gap-1.5 font-bold underline-offset-4 hover:underline"
+        >
           <ArrowLeftIcon aria-hidden className="size-4" />
           Back to shipments
         </button>
@@ -258,14 +345,19 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
 
           <section aria-labelledby="allowed-title" className="flex flex-col gap-3">
             <Heading id="allowed-title" title="What Permit allows you on this shipment" />
-            <CheckChips label="Permit decisions for this shipment" checks={canChecks(can, SHIPMENT_ACTIONS)} />
+            <CheckChips
+              label="Permit decisions for this shipment"
+              checks={canChecks(can, SHIPMENT_ACTIONS)}
+            />
           </section>
 
           <section aria-labelledby="collaborators-title" className="flex flex-col gap-3">
             <Heading id="collaborators-title" title="Collaborators" />
             {can?.invite_collaborator && <InviteForm busy={busy} onInvite={invite} />}
             {data.collaborators.length === 0 && pendingInvitations.length === 0 && (
-              <EmptyNote>No collaborators yet. An invitation gives access only after an approver approves it.</EmptyNote>
+              <EmptyNote>
+                No collaborators yet. An invitation gives access only after an approver approves it.
+              </EmptyNote>
             )}
             {data.collaborators.length > 0 && (
               <div className="overflow-x-auto rounded-md border border-border bg-surface">
@@ -298,9 +390,12 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
                     {data.collaborators.map((c) => (
                       <TableRow key={c.user} className="hover:bg-transparent">
                         <TableCell className="px-4 py-2.5">
-                          <span className="font-semibold">{nameOf(c.user)}</span> <span className="text-muted-foreground">{c.user}</span>
+                          <span className="font-semibold">{nameOf(c.user)}</span>{' '}
+                          <span className="text-muted-foreground">{c.user}</span>
                         </TableCell>
-                        <TableCell className="px-4 py-2.5">{c.expires === null ? '—' : formatWhen(c.expires)}</TableCell>
+                        <TableCell className="px-4 py-2.5">
+                          {c.expires === null ? '—' : formatWhen(c.expires)}
+                        </TableCell>
                         <TableCell className="px-4 py-2.5">
                           <Countdown until={c.expires} demoClock />
                         </TableCell>
@@ -313,7 +408,12 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
                         {can?.revoke_collaborator && (
                           <TableCell className="px-4 py-2.5 text-right">
                             {c.expires !== null && (
-                              <Button variant="outline" size="lg" disabled={busy} onClick={() => revoke(c.user)}>
+                              <Button
+                                variant="outline"
+                                size="lg"
+                                disabled={busy}
+                                onClick={() => revoke(c.user)}
+                              >
                                 <UserMinusIcon data-icon="inline-start" />
                                 Revoke
                               </Button>
@@ -327,7 +427,10 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
               </div>
             )}
             {pendingInvitations.length > 0 && (
-              <ul aria-label="Invitations waiting for an approver" className="flex flex-col rounded-md border border-border bg-surface">
+              <ul
+                aria-label="Invitations waiting for an approver"
+                className="flex flex-col rounded-md border border-border bg-surface"
+              >
                 {pendingInvitations.map((r) => (
                   <PendingInvitation key={r.id} request={r} />
                 ))}
@@ -338,14 +441,25 @@ export function ShipmentDetail({ shipmentKey, onBack }: { shipmentKey: string; o
 
           {pendingRenewals.length > 0 && (
             <section aria-labelledby="renewals-title" className="flex flex-col gap-3">
-              <Heading id="renewals-title" title="Pending renewals" count={pendingRenewals.length} />
+              <Heading
+                id="renewals-title"
+                title="Pending renewals"
+                count={pendingRenewals.length}
+              />
               <ErrorBanner error={approvals.error} />
               {pendingRenewals.map((r) => (
                 <RequestSummary key={r.id} request={r}>
                   {canDecide(r.id) ? (
-                    <RequestDecisionForm busy={busy} onDecide={(verdict, comment) => decide(r.id, verdict, comment)} />
+                    <RequestDecisionForm
+                      busy={busy}
+                      onDecide={(verdict, comment) => decide(r.id, verdict, comment)}
+                    />
                   ) : (
-                    <p className="text-muted-foreground">{approvals.data ? 'Waiting for an approver.' : 'Checking whether you may approve it…'}</p>
+                    <p className="text-muted-foreground">
+                      {approvals.data
+                        ? 'Waiting for an approver.'
+                        : 'Checking whether you may approve it…'}
+                    </p>
                   )}
                 </RequestSummary>
               ))}

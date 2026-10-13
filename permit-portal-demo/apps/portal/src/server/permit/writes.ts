@@ -22,8 +22,15 @@ function failedWrite(events: EventLog, what: string, ms: number, e: unknown): Wr
   return new WriteFailedError(error, statusOf(e));
 }
 
-/** Runs one waited write, records it for the decision panel and measures how long the PDP took to apply it. */
-export async function timedWrite<T>(events: EventLog, what: string, fn: () => Promise<T>): Promise<{ result: T; ms: number }> {
+/**
+ * Runs one waited write, records it for the decision panel and measures how long the PDP took to
+ * apply it.
+ */
+export async function timedWrite<T>(
+  events: EventLog,
+  what: string,
+  fn: () => Promise<T>,
+): Promise<{ result: T; ms: number }> {
   const start = performance.now();
   try {
     const result = await fn();
@@ -36,12 +43,18 @@ export async function timedWrite<T>(events: EventLog, what: string, fn: () => Pr
 }
 
 /**
- * A waited write inside a multi-write flow that a retry repeats after a 424. The PDP may not have confirmed a write
- * that still landed, so the repeat may meet Permit's `alreadyDone` answer (409 for a create, 404 for an unassign): the
- * step is done, and is recorded as "… (already done)". Permit takes a repeated role on one resource with success, so
- * that repeat is simply written and confirmed again; its 409 stays a tolerated answer. Answers how long the write took.
+ * A waited write inside a multi-write flow that a retry repeats after a 424. The PDP may not have
+ * confirmed a write that still landed, so the repeat may meet Permit's `alreadyDone` answer (409
+ * for a create, 404 for an unassign): the step is done, and is recorded as "… (already done)".
+ * Permit takes a repeated role on one resource with success, so that repeat is simply written and
+ * confirmed again; its 409 stays a tolerated answer. Answers how long the write took.
  */
-export async function resumableWrite(events: EventLog, what: string, alreadyDone: 404 | 409, fn: () => Promise<unknown>): Promise<number> {
+export async function resumableWrite(
+  events: EventLog,
+  what: string,
+  alreadyDone: 404 | 409,
+  fn: () => Promise<unknown>,
+): Promise<number> {
   const start = performance.now();
   let done = what;
   try {

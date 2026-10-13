@@ -2,25 +2,31 @@
   "name": "permit-portal-demo",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=24 <25"
+  "imports": {
+    "#tools/*": "./tools/*.ts"
   },
-  "packageManager": "pnpm@12.9.1",
   "scripts": {
     "test": "vitest run",
-    "lint": "pnpm run lint:oxlint && pnpm run lint:types",
+    "lint": "pnpm run lint:oxlint && pnpm run lint:format && pnpm run lint:types",
     "lint:oxlint": "oxlint --deny-warnings .",
-    "lint:types": "tsc -p apps/portal/tsconfig.json && tsc -p apps/great-eagle-systems/tsconfig.json",
-    "fix": "oxlint --fix .",
+    "lint:format": "oxfmt --check .",
+    "lint:types": "tsc -p apps/portal/tsconfig.json && tsc -p apps/great-eagle-systems/tsconfig.json && tsc -p tools/tsconfig.json",
+    "fix": "oxlint --fix . && oxfmt --write .",
     "build:web": "pnpm --filter @permit-demo/portal run build"
   },
   "devDependencies": {
+    "@oxlint/plugins": "1.87.0",
     "@types/node": "24.19.1",
     "@types/supertest": "6.0.3",
+    "oxfmt": "0.72.0",
     "oxlint": "1.87.0",
     "supertest": "7.3.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.0.3"
-  }
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "packageManager": "pnpm@12.9.1"
 }

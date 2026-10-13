@@ -1,7 +1,8 @@
 import { consolePage } from '#src/console';
 
-// The page's own sections, style and script. Like the shell's, they live in template literals: no backticks, "${" or
-// backslashes in them. The script uses string concatenation, and "…" and "–" as themselves.
+// The page's own sections, style and script. Like the shell's, they live in template literals: no
+// backticks, "${" or backslashes in them. The script uses string concatenation, and "…" and "–" as
+// themselves.
 
 const MAIN = `  <div id="banner" role="alert"></div>
   <section class="users" aria-labelledby="users-title">
@@ -401,8 +402,9 @@ setInterval(refresh, 2000);
 `;
 
 /**
- * The presenter console's S8 page (GET /s8): the legacy billing app, with its users table, the mapping validation and
- * sync, the mode switch, a request to try and the latest decisions. It drives only /api/legacy/….
+ * The presenter console's S8 page (GET /s8): the legacy billing app, with its users table, the
+ * mapping validation and sync, the mode switch, a request to try and the latest decisions. It
+ * drives only /api/legacy/….
  */
 export function renderS8Console(): string {
   return consolePage({

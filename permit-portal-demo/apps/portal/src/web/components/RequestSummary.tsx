@@ -1,5 +1,6 @@
 // A request as Great Eagle's workflow records it, drawn as the portal's request sign: its facts
-// beside a lifecycle strip built from the request's history, with the decision form inside the same frame.
+// beside a lifecycle strip built from the request's history, with the decision form inside the same
+// frame.
 
 import { CheckIcon, XIcon } from 'lucide-react';
 import { type ReactNode, useId, useState } from 'react';
@@ -11,7 +12,13 @@ import type { DemoRequest, RequestStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const STAGE_LABEL: Record<RequestStatus, string> = {
   pending: 'Requested',
@@ -22,8 +29,13 @@ const STAGE_LABEL: Record<RequestStatus, string> = {
   expired: 'Expired',
 };
 
-/** The account master signs EAN associations off itself (apps/great-eagle-systems/src/store.ts, ACCOUNT_MASTER). */
-const SYSTEM_NAMES: Record<string, string> = { 'great-eagle-account-master': 'Great Eagle account master' };
+/**
+ * The account master signs EAN associations off itself (apps/great-eagle-systems/src/store.ts,
+ * ACCOUNT_MASTER).
+ */
+const SYSTEM_NAMES: Record<string, string> = {
+  'great-eagle-account-master': 'Great Eagle account master',
+};
 
 function useNameOf(): (key: string) => string {
   const nameOf = usePersonaName();
@@ -46,9 +58,14 @@ interface Fact {
 
 const code = (text: string) => <code className="font-mono text-[0.95em]">{text}</code>;
 
-/** A production request reads: the developer who asked, the connector it is for, the EAN and what the connector could do there. */
+/**
+ * A production request reads: the developer who asked, the connector it is for, the EAN and what
+ * the connector could do there.
+ */
 function integrationFacts(request: DemoRequest, nameOf: (key: string) => string): Fact[] {
-  const ean = request.target.startsWith('ean:') ? request.target.slice('ean:'.length) : request.target;
+  const ean = request.target.startsWith('ean:')
+    ? request.target.slice('ean:'.length)
+    : request.target;
   return [
     { label: 'Developer', value: nameOf(request.initiated_by) },
     { label: 'Connector', value: code(request.requested_for) },
@@ -58,9 +75,9 @@ function integrationFacts(request: DemoRequest, nameOf: (key: string) => string)
 }
 
 /**
- * The request's lifecycle from its history: Requested, then each decision, with the latest step as the graphite
- * current cell. An undecided request ends on a current "Pending" cell. Never green: in the portal green means only
- * an open gate.
+ * The request's lifecycle from its history: Requested, then each decision, with the latest step as
+ * the graphite current cell. An undecided request ends on a current "Pending" cell. Never green: in
+ * the portal green means only an open gate.
  */
 export function RequestStages({ request }: { request: DemoRequest }) {
   const nameOf = useNameOf();
@@ -72,14 +89,26 @@ export function RequestStages({ request }: { request: DemoRequest }) {
     when: formatWhen(entry.at),
     state: !pending && index === last ? 'current' : 'done',
   }));
-  if (pending) stages.push({ label: 'Pending', detail: 'Waiting for a decision', state: 'current' });
+  if (pending)
+    stages.push({ label: 'Pending', detail: 'Waiting for a decision', state: 'current' });
   return <StageStrip label={`${titleOf(request)} stages`} stages={stages} compact />;
 }
 
-/** What, on what, for whom, who started it, why and for how long; actions passed as children sit in the same frame. */
-export function RequestSummary({ request, children }: { request: DemoRequest; children?: ReactNode }) {
+/**
+ * What, on what, for whom, who started it, why and for how long; actions passed as children sit in
+ * the same frame.
+ */
+export function RequestSummary({
+  request,
+  children,
+}: {
+  request: DemoRequest;
+  children?: ReactNode;
+}) {
   const nameOf = useNameOf();
-  const duration = requestDuration(request) ?? (request.type === 'collaborator_invite' ? 'set by the approver' : undefined);
+  const duration =
+    requestDuration(request) ??
+    (request.type === 'collaborator_invite' ? 'set by the approver' : undefined);
   const facts: Fact[] = isIntegrationAccess(request)
     ? integrationFacts(request, nameOf)
     : [
@@ -89,7 +118,8 @@ export function RequestSummary({ request, children }: { request: DemoRequest; ch
       ];
   if (request.reason) facts.push({ label: 'Reason', value: request.reason, wide: true });
   if (duration) facts.push({ label: 'Duration', value: duration });
-  if (request.reviewer_comment) facts.push({ label: 'Reviewer comment', value: `"${request.reviewer_comment}"`, wide: true });
+  if (request.reviewer_comment)
+    facts.push({ label: 'Reviewer comment', value: `"${request.reviewer_comment}"`, wide: true });
   return (
     <article className="flex flex-col gap-3 rounded-md border border-border bg-surface px-5 py-4">
       <h3 className="text-lg font-extrabold">{titleOf(request)}</h3>
@@ -97,7 +127,10 @@ export function RequestSummary({ request, children }: { request: DemoRequest; ch
           panel, the columns grew too narrow for a name or a target such as shipment:SHP-77001. */}
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-3">
         {facts.map((fact) => (
-          <div key={fact.label} className={cn('flex min-w-0 flex-col', fact.wide && 'sm:col-span-3')}>
+          <div
+            key={fact.label}
+            className={cn('flex min-w-0 flex-col', fact.wide && 'sm:col-span-3')}
+          >
             <dt className="text-sm text-muted-foreground">{fact.label}</dt>
             <dd className="font-semibold break-words">{fact.value}</dd>
           </div>
@@ -123,7 +156,14 @@ interface DecisionFormProps {
 }
 
 /** Approve or deny one request, with a comment that goes on the request record. */
-export function RequestDecisionForm({ busy, onDecide, durations, approveLabel = 'Approve', canDeny = true, commentRequiredToDeny = false }: DecisionFormProps) {
+export function RequestDecisionForm({
+  busy,
+  onDecide,
+  durations,
+  approveLabel = 'Approve',
+  canDeny = true,
+  commentRequiredToDeny = false,
+}: DecisionFormProps) {
   const id = useId();
   const [comment, setComment] = useState('');
   const [durationMs, setDurationMs] = useState(durations?.[0]?.ms);
@@ -158,8 +198,16 @@ export function RequestDecisionForm({ busy, onDecide, durations, approveLabel = 
           )}
           {canDeny && (
             <Field className={cn(!items && 'sm:col-span-2')}>
-              <FieldLabel htmlFor={`${id}-comment`}>{commentRequiredToDeny ? 'Comment (required to deny)' : 'Comment (optional)'}</FieldLabel>
-              <Input id={`${id}-comment`} value={comment} autoComplete="off" className="h-9 text-base md:text-base" onChange={(e) => setComment(e.target.value)} />
+              <FieldLabel htmlFor={`${id}-comment`}>
+                {commentRequiredToDeny ? 'Comment (required to deny)' : 'Comment (optional)'}
+              </FieldLabel>
+              <Input
+                id={`${id}-comment`}
+                value={comment}
+                autoComplete="off"
+                className="h-9 text-base md:text-base"
+                onChange={(e) => setComment(e.target.value)}
+              />
             </Field>
           )}
         </div>
@@ -170,7 +218,12 @@ export function RequestDecisionForm({ busy, onDecide, durations, approveLabel = 
           {approveLabel}
         </Button>
         {canDeny && (
-          <Button size="lg" variant="outline" disabled={busy || denyBlocked} onClick={() => onDecide('deny', comment)}>
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={busy || denyBlocked}
+            onClick={() => onDecide('deny', comment)}
+          >
             <XIcon data-icon="inline-start" />
             Deny
           </Button>

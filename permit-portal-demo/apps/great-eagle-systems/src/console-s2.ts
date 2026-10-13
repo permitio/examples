@@ -2,20 +2,28 @@ import { Router } from 'express';
 import { consolePage } from '#src/console';
 
 /**
- * The grant S2's tester forges: Frodo administers EAN-1001 only, and gives Merry shipper on EAN-1002,
- * which is outside Frodo's scope. It is fixed: the tester sends this grant and nothing a caller could choose.
+ * The grant S2's tester forges: Frodo administers EAN-1001 only, and gives Merry shipper on
+ * EAN-1002, which is outside Frodo's scope. It is fixed: the tester sends this grant and nothing a
+ * caller could choose.
  */
 const FORGED_AS = 'frodo';
 const FORGED_GRANT = { user: 'merry', role: 'shipper', resource: 'ean:EAN-1002' } as const;
-/** The portal's grants API, which the tester calls, and the route of these systems that the page calls. */
+/**
+ * The portal's grants API, which the tester calls, and the route of these systems that the page
+ * calls.
+ */
 const PORTAL_GRANTS_PATH = '/api/s2/grants';
 const TESTER_PATH = '/api/s2/forged-grant';
 /** A grant the portal accepts waits up to 5 s for the PDP; a refused one answers at once. */
 const DEFAULT_TIMEOUT_MS = 15_000;
 
-/** Why a fetch to the portal failed: a timeout, or the socket error behind undici's generic "fetch failed". */
+/**
+ * Why a fetch to the portal failed: a timeout, or the socket error behind undici's generic "fetch
+ * failed".
+ */
 function reasonOf(error: unknown, timeoutMs: number): string {
-  if ((error as { name?: unknown } | null)?.name === 'TimeoutError') return `no answer within ${timeoutMs} ms`;
+  if ((error as { name?: unknown } | null)?.name === 'TimeoutError')
+    return `no answer within ${timeoutMs} ms`;
   const cause = (error as { cause?: unknown } | null)?.cause ?? error;
   const { code, message } = (cause ?? {}) as { code?: unknown; message?: unknown };
   if (typeof message === 'string' && message !== '') return message;
@@ -23,13 +31,20 @@ function reasonOf(error: unknown, timeoutMs: number): string {
 }
 
 /**
- * S2's API tester, "Send a grant as Frodo": POST /api/s2/forged-grant sends the forged grant to the portal's grants API
- * as Frodo (`x-demo-persona: frodo`) and answers `{ status, body }`, the portal's own answer verbatim, for the page to
- * show; a portal that does not answer is a 502 `{ error }`. It runs here, on the server side, because the portal has no
- * CORS: a browser page on this origin could not call it with that header. It takes no input, so it cannot be used to send
+ * S2's API tester, "Send a grant as Frodo": POST /api/s2/forged-grant sends the forged grant to the
+ * portal's grants API as Frodo (`x-demo-persona: frodo`) and answers `{ status, body }`, the
+ * portal's own answer verbatim, for the page to show; a portal that does not answer is a 502 `{
+ * error }`. It runs here, on the server side, because the portal has no CORS: a browser page on
+ * this origin could not call it with that header. It takes no input, so it cannot be used to send
  * any other grant. app.ts mounts it at the root.
  */
-export function s2ConsoleRouter({ portalUrl, timeoutMs = DEFAULT_TIMEOUT_MS }: { portalUrl: string; timeoutMs?: number }): Router {
+export function s2ConsoleRouter({
+  portalUrl,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}: {
+  portalUrl: string;
+  timeoutMs?: number;
+}): Router {
   const base = portalUrl.replace(/\/+$/, '');
   const r = Router();
   r.post(TESTER_PATH, async (_req, res) => {
@@ -59,14 +74,18 @@ export function s2ConsoleRouter({ portalUrl, timeoutMs = DEFAULT_TIMEOUT_MS }: {
   return r;
 }
 
-const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const PAGE_STYLE = `
   /* The portal's answer, in the table's own mono type: it wraps rather than scrolls, so a long reason stays readable. */
   .plain pre { margin: 0; font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
 `;
 
-/** The page's script lives in a template literal: no backticks, "${" or backslashes in it, so it names the route (TESTER_PATH) itself. */
+/**
+ * The page's script lives in a template literal: no backticks, "${" or backslashes in it, so it
+ * names the route (TESTER_PATH) itself.
+ */
 const PAGE_SCRIPT = `
 'use strict';
 const byId = (id) => document.getElementById(id);
@@ -100,8 +119,8 @@ byId('send-grant').addEventListener('click', async () => {
 `;
 
 /**
- * The presenter console's S2 page (GET /s2): the API tester that sends Frodo's forged grant to the portal,
- * showing the request and then the portal's status and body.
+ * The presenter console's S2 page (GET /s2): the API tester that sends Frodo's forged grant to the
+ * portal, showing the request and then the portal's status and body.
  */
 export function renderS2Console(): string {
   return consolePage({

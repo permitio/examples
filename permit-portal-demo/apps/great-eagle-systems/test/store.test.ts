@@ -8,7 +8,13 @@ import { Store } from '#src/store';
 const NOW = Date.parse('2026-10-07T09:00:00.000Z');
 const iso = (ms: number) => new Date(ms).toISOString();
 const SECRET = 'a'.repeat(64);
-const connector = { key: 'shire-erp', name: 'Shire ERP connector', owner: 'pippin', customer: 'shire-freight', secret: SECRET };
+const connector = {
+  key: 'shire-erp',
+  name: 'Shire ERP connector',
+  owner: 'pippin',
+  customer: 'shire-freight',
+  secret: SECRET,
+};
 
 const dirs: string[] = [];
 const tempStorePath = () => {
@@ -32,7 +38,8 @@ describe('integrations (S5)', () => {
   it('finds no connector for an unknown, shorter or empty secret', () => {
     const store = new Store(loadSeed(), { at: NOW });
     store.addIntegration(connector, NOW);
-    for (const secret of ['b'.repeat(64), SECRET.slice(1), '']) expect(store.findIntegrationBySecret(secret), JSON.stringify(secret)).toBeUndefined();
+    for (const secret of ['b'.repeat(64), SECRET.slice(1), ''])
+      expect(store.findIntegrationBySecret(secret), JSON.stringify(secret)).toBeUndefined();
   });
 
   it("refuses a key that is taken, so a registration never hands back another connector's secret", () => {
@@ -46,9 +53,21 @@ describe('integrations (S5)', () => {
 describe('shipments the connector creates (S5)', () => {
   it('round-trip: numbered from SHP-80001 and listed by EAN', () => {
     const store = new Store(loadSeed(), { at: NOW });
-    const first = store.addShipment({ ean: 'EAN-1001', title: 'Created by Shire ERP connector', created_by: 'shire-erp' }, NOW);
-    const second = store.addShipment({ ean: 'EAN-SANDBOX', title: 'Test', created_by: 'shire-erp' }, NOW + 1_000);
-    expect(first).toEqual({ key: 'SHP-80001', ean: 'EAN-1001', title: 'Created by Shire ERP connector', created_by: 'shire-erp', created_at: iso(NOW) });
+    const first = store.addShipment(
+      { ean: 'EAN-1001', title: 'Created by Shire ERP connector', created_by: 'shire-erp' },
+      NOW,
+    );
+    const second = store.addShipment(
+      { ean: 'EAN-SANDBOX', title: 'Test', created_by: 'shire-erp' },
+      NOW + 1_000,
+    );
+    expect(first).toEqual({
+      key: 'SHP-80001',
+      ean: 'EAN-1001',
+      title: 'Created by Shire ERP connector',
+      created_by: 'shire-erp',
+      created_at: iso(NOW),
+    });
     expect(second.key).toBe('SHP-80002');
     expect(store.listShipments('EAN-1001')).toEqual([first]);
     expect(store.listShipments('EAN-SANDBOX')).toEqual([second]);
@@ -60,7 +79,11 @@ describe('the legacy app (S8)', () => {
   it('round-trip: starts in shadow mode with mapping 1, and keeps what setLegacy changes', () => {
     const store = new Store(loadSeed(), { at: NOW });
     expect(store.getLegacy()).toEqual({ mode: 'shadow', mappingVersion: 1, validations: 0 });
-    expect(store.setLegacy({ mode: 'both' })).toEqual({ mode: 'both', mappingVersion: 1, validations: 0 });
+    expect(store.setLegacy({ mode: 'both' })).toEqual({
+      mode: 'both',
+      mappingVersion: 1,
+      validations: 0,
+    });
     store.setLegacy({ mappingVersion: 2, validations: 3 });
     expect(store.getLegacy()).toEqual({ mode: 'both', mappingVersion: 2, validations: 3 });
   });
@@ -77,7 +100,9 @@ describe('reset', () => {
     expect(store.findIntegrationBySecret(SECRET)).toBeUndefined();
     expect(store.listShipments('EAN-1001')).toEqual([]);
     expect(store.getLegacy()).toEqual({ mode: 'shadow', mappingVersion: 1, validations: 0 });
-    expect(store.addShipment({ ean: 'EAN-1001', title: 't', created_by: 'shire-erp' }, NOW).key).toBe('SHP-80001');
+    expect(
+      store.addShipment({ ean: 'EAN-1001', title: 't', created_by: 'shire-erp' }, NOW).key,
+    ).toBe('SHP-80001');
   });
 });
 
@@ -86,7 +111,10 @@ describe('persistence of the new state', () => {
     const path = tempStorePath();
     const store = new Store(loadSeed(), { path, at: NOW });
     const integration = store.addIntegration(connector, NOW);
-    const shipment = store.addShipment({ ean: 'EAN-1001', title: 't', created_by: 'shire-erp' }, NOW);
+    const shipment = store.addShipment(
+      { ean: 'EAN-1001', title: 't', created_by: 'shire-erp' },
+      NOW,
+    );
     store.setLegacy({ mode: 'both' });
     const restarted = new Store(loadSeed(), { path, at: NOW + 60_000 });
     expect(restarted.listIntegrations()).toEqual([integration]);
@@ -97,7 +125,12 @@ describe('persistence of the new state', () => {
   it('opens a store saved before S5 and S8 with no integrations, no shipments and the legacy app in shadow mode', () => {
     const path = tempStorePath();
     new Store(loadSeed(), { path, at: NOW }).updateUserFacts('eowyn', { risk_state: 'suspended' });
-    const { integrations: _i, shipments: _s, legacy: _l, ...older } = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
+    const {
+      integrations: _i,
+      shipments: _s,
+      legacy: _l,
+      ...older
+    } = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
     writeFileSync(path, JSON.stringify(older));
     const opened = new Store(loadSeed(), { path, at: NOW });
     expect(opened.userFacts('eowyn')?.risk_state).toBe('suspended');
@@ -109,7 +142,11 @@ describe('persistence of the new state', () => {
     const path = tempStorePath();
     new Store(loadSeed(), { path, at: NOW });
     const saved = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>;
-    for (const broken of [{ integrations: {} }, { shipments: null }, { legacy: { mode: 'off', mappingVersion: 1, validations: 0 } }]) {
+    for (const broken of [
+      { integrations: {} },
+      { shipments: null },
+      { legacy: { mode: 'off', mappingVersion: 1, validations: 0 } },
+    ]) {
       writeFileSync(path, JSON.stringify({ ...saved, ...broken }));
       expect(() => new Store(loadSeed(), { path, at: NOW }), JSON.stringify(broken)).toThrow(path);
     }

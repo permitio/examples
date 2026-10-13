@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '#src/server/config';
 
-const required = { PERMIT_API_URL: 'https://api.permit.io', PERMIT_API_KEY: 'test-api-key', PROFILE: 'staging' };
+const required = {
+  PERMIT_API_URL: 'https://api.permit.io',
+  PERMIT_API_KEY: 'test-api-key',
+  PROFILE: 'staging',
+};
 
 function messageOf(run: () => unknown): string {
   try {
@@ -21,7 +25,12 @@ describe('loadConfig', () => {
     expect(loadConfig(required)).toEqual({
       profile: 'staging',
       port: 3000,
-      permit: { apiUrl: 'https://api.permit.io', apiKey: 'test-api-key', pdpUrl: 'http://localhost:7766', proxyFacts: false },
+      permit: {
+        apiUrl: 'https://api.permit.io',
+        apiKey: 'test-api-key',
+        pdpUrl: 'http://localhost:7766',
+        proxyFacts: false,
+      },
       writes: 'fast',
       greatEagleSystemsUrl: 'http://localhost:4100',
       demoClockEnabled: false,
@@ -43,7 +52,12 @@ describe('loadConfig', () => {
     expect(loadConfig(env)).toEqual({
       profile: 'staging',
       port: 3100,
-      permit: { apiUrl: 'https://api.permit.io', apiKey: 'test-api-key', pdpUrl: 'http://pdp:7000', proxyFacts: false },
+      permit: {
+        apiUrl: 'https://api.permit.io',
+        apiKey: 'test-api-key',
+        pdpUrl: 'http://pdp:7000',
+        proxyFacts: false,
+      },
       writes: 'fast',
       greatEagleSystemsUrl: 'http://great-eagle-systems:4100',
       demoClockEnabled: true,

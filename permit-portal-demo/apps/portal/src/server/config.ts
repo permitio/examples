@@ -1,8 +1,19 @@
-export interface PermitSettings { apiUrl: string; apiKey: string; pdpUrl: string; proxyFacts: boolean }
+export interface PermitSettings {
+  apiUrl: string;
+  apiKey: string;
+  pdpUrl: string;
+  proxyFacts: boolean;
+}
 export type WriteMode = 'fast' | 'waited';
 export interface PortalConfig {
-  profile: string; port: number; permit: PermitSettings; writes: WriteMode; greatEagleSystemsUrl: string;
-  demoClockEnabled: boolean; grantDemoDurationMs: number; permitAppUrl: string;
+  profile: string;
+  port: number;
+  permit: PermitSettings;
+  writes: WriteMode;
+  greatEagleSystemsUrl: string;
+  demoClockEnabled: boolean;
+  grantDemoDurationMs: number;
+  permitAppUrl: string;
 }
 
 const REQUIRED_HINTS = {
@@ -22,7 +33,8 @@ function positiveInt(env: NodeJS.ProcessEnv, name: string, fallback: number): nu
   const raw = env[name];
   if (!raw) return fallback;
   const value = /^\d+$/.test(raw) ? Number(raw) : Number.NaN;
-  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`Invalid ${name}: expected a positive integer`);
+  if (!Number.isSafeInteger(value) || value <= 0)
+    throw new Error(`Invalid ${name}: expected a positive integer`);
   return value;
 }
 
@@ -35,11 +47,15 @@ function bool(env: NodeJS.ProcessEnv, name: string, fallback: boolean): boolean 
 
 function writeMode(env: NodeJS.ProcessEnv): WriteMode {
   const raw = env['PERMIT_WRITES']?.toLowerCase() || 'fast';
-  if (raw !== 'fast' && raw !== 'waited') throw new Error('Invalid PERMIT_WRITES: expected fast or waited');
+  if (raw !== 'fast' && raw !== 'waited')
+    throw new Error('Invalid PERMIT_WRITES: expected fast or waited');
   return raw;
 }
 
-/** The portal's settings. Inside Compose they come from docker-compose.yml and the profile bin/demo loads. */
+/**
+ * The portal's settings. Inside Compose they come from docker-compose.yml and the profile bin/demo
+ * loads.
+ */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
   const apiUrl = required(env, 'PERMIT_API_URL');
   const apiKey = required(env, 'PERMIT_API_KEY');
@@ -48,9 +64,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
   return {
     profile,
     port: positiveInt(env, 'PORT', 3000),
-    // fast: writes go straight to the control plane and are confirmed by reading them back from the PDP (PdpSync).
-    // waited: writes go through the PDP, which answers once it has applied them. Both say "confirmed by the local PDP".
-    permit: { apiUrl, apiKey, pdpUrl: env['PERMIT_PDP_URL'] || 'http://localhost:7766', proxyFacts: writes === 'waited' },
+    // fast: writes go straight to the control plane and are confirmed by reading them back from the
+    // PDP (PdpSync). waited: writes go through the PDP, which answers once it has applied them.
+    // Both say "confirmed by the local PDP".
+    permit: {
+      apiUrl,
+      apiKey,
+      pdpUrl: env['PERMIT_PDP_URL'] || 'http://localhost:7766',
+      proxyFacts: writes === 'waited',
+    },
     writes,
     greatEagleSystemsUrl: env['GREAT_EAGLE_SYSTEMS_URL'] || 'http://localhost:4100',
     demoClockEnabled: bool(env, 'DEMO_CLOCK_ENABLED', false),

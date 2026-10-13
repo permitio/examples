@@ -7,14 +7,29 @@ import { Button } from '@/components/ui/button';
 import { CHANGE_CONFIRMED, useAction, usePersonaName, useResource } from '@/hooks';
 import { Fact, PagePlate } from '@/pages/s4/parts';
 import { RecentCalls, ScopeTags } from '@/pages/s5/parts';
-import { approverOf, type Integration, type IntegrationsResponse, revokeTargets, viewOnlyTargets } from '@/pages/s5/scope';
+import {
+  approverOf,
+  type Integration,
+  type IntegrationsResponse,
+  revokeTargets,
+  viewOnlyTargets,
+} from '@/pages/s5/scope';
 
 /**
- * What Sam may do to one integration: the EANs each button changes come from the roles Permit holds for it now, and a button
- * is offered only when it would change something. Already view-only, it offers no "Make view-only"; with no access left, it
- * offers neither, and the scope line says every call is denied.
+ * What Sam may do to one integration: the EANs each button changes come from the roles Permit holds
+ * for it now, and a button is offered only when it would change something. Already view-only, it
+ * offers no "Make view-only"; with no access left, it offers neither, and the scope line says every
+ * call is denied.
  */
-export function IntegrationCard({ integration, busy, onChange }: { integration: Integration; busy: boolean; onChange: (level: 'read' | 'none') => void }) {
+export function IntegrationCard({
+  integration,
+  busy,
+  onChange,
+}: {
+  integration: Integration;
+  busy: boolean;
+  onChange: (level: 'read' | 'none') => void;
+}) {
   const nameOf = usePersonaName();
   const approver = approverOf(integration.requests);
   const waiting = integration.requests.some((request) => request.status === 'pending');
@@ -29,7 +44,11 @@ export function IntegrationCard({ integration, busy, onChange }: { integration: 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-3">
         <Fact label="Owner">{nameOf(integration.owner)}</Fact>
         <Fact label="Approved by">
-          {approver !== undefined ? nameOf(approver) : waiting ? 'Waiting in Approvals' : 'No production access asked for'}
+          {approver !== undefined
+            ? nameOf(approver)
+            : waiting
+              ? 'Waiting in Approvals'
+              : 'No production access asked for'}
         </Fact>
         <Fact label="Acts for">{integration.customer_name}</Fact>
       </dl>
@@ -62,9 +81,9 @@ export function IntegrationCard({ integration, busy, onChange }: { integration: 
 }
 
 /**
- * S5's Integrations for Sam, the organization admin: each integration with its owner, approver and scope,
- * to make view-only or revoke. Each button asks Permit for approve_integration on every EAN it changes, then writes the
- * roles, and the page answers once the PDP holds the change.
+ * S5's Integrations for Sam, the organization admin: each integration with its owner, approver and
+ * scope, to make view-only or revoke. Each button asks Permit for approve_integration on every EAN
+ * it changes, then writes the roles, and the page answers once the PDP holds the change.
  */
 export function SamIntegrations() {
   const list = useResource<IntegrationsResponse>('/api/s5/integrations');
@@ -73,21 +92,44 @@ export function SamIntegrations() {
   const integrations = list.data?.integrations;
 
   const change = async (integration: Integration, level: 'read' | 'none') => {
-    const eans = level === 'read' ? viewOnlyTargets(integration.scope) : revokeTargets(integration.scope);
-    // One change per EAN, in order. A refusal or a failure stops the rest, and a second click takes up what is left.
+    const eans =
+      level === 'read' ? viewOnlyTargets(integration.scope) : revokeTargets(integration.scope);
+    // One change per EAN, in order. A refusal or a failure stops the rest, and a second click takes
+    // up what is left.
     const done = await action.run(async () => {
-      for (const ean of eans) await api.post<{ ms: number }>(`/api/s5/integrations/${encodeURIComponent(integration.key)}/scope`, { ean, level });
+      for (const ean of eans)
+        await api.post<{ ms: number }>(
+          `/api/s5/integrations/${encodeURIComponent(integration.key)}/scope`,
+          { ean, level },
+        );
       return true;
     });
-    // The notice changes once, when the answer arrives: cleared up front, the page would jump twice.
-    setNotice(done ? `${level === 'read' ? `${integration.name} is view-only on ${eans.join(', ')}.` : `${integration.name} no longer has any access.`} ${CHANGE_CONFIRMED}` : undefined);
+    // The notice changes once, when the answer arrives: cleared up front, the page would jump
+    // twice.
+    setNotice(
+      done
+        ? `${level === 'read' ? `${integration.name} is view-only on ${eans.join(', ')}.` : `${integration.name} no longer has any access.`} ${CHANGE_CONFIRMED}`
+        : undefined,
+    );
     list.reload();
   };
 
   return (
     <div className="flex flex-col gap-6">
-      <PagePlate title="Integrations" aside={integrations && { icon: PlugIcon, text: integrations.length === 1 ? '1 integration' : `${integrations.length} integrations` }} />
-      <Lede>The integrations acting for your organization: who owns each one, who approved it and what it may do.</Lede>
+      <PagePlate
+        title="Integrations"
+        aside={
+          integrations && {
+            icon: PlugIcon,
+            text:
+              integrations.length === 1 ? '1 integration' : `${integrations.length} integrations`,
+          }
+        }
+      />
+      <Lede>
+        The integrations acting for your organization: who owns each one, who approved it and what
+        it may do.
+      </Lede>
       <section aria-labelledby="integrations-title" className="flex flex-col gap-3">
         <Heading
           id="integrations-title"
@@ -106,10 +148,17 @@ export function SamIntegrations() {
         {integrations === undefined ? (
           list.error === undefined && <p className="text-muted-foreground">Loading integrations…</p>
         ) : integrations.length === 0 ? (
-          <EmptyNote>No integration is registered yet. Pippin registers one on the Integrations page.</EmptyNote>
+          <EmptyNote>
+            No integration is registered yet. Pippin registers one on the Integrations page.
+          </EmptyNote>
         ) : (
           integrations.map((integration) => (
-            <IntegrationCard key={integration.key} integration={integration} busy={action.busy} onChange={(level) => change(integration, level)} />
+            <IntegrationCard
+              key={integration.key}
+              integration={integration}
+              busy={action.busy}
+              onChange={(level) => change(integration, level)}
+            />
           ))
         )}
       </section>

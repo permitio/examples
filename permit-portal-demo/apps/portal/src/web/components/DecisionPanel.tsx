@@ -1,4 +1,9 @@
-import { ChevronRightIcon, DatabaseZapIcon, PanelRightCloseIcon, PanelRightOpenIcon } from 'lucide-react';
+import {
+  ChevronRightIcon,
+  DatabaseZapIcon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
+} from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { api, emptyFeed, explainEvent, type FeedState, isShown, mergeFeed } from '@/api';
@@ -16,7 +21,8 @@ import { Switch } from '@/components/ui/switch';
 const POLL_MS = 700;
 
 /** A block of the PDP's own words: JSON on Permit's code tint, scrolling past 20rem. */
-const CODE = 'max-h-80 overflow-auto rounded-sm bg-muted px-3 py-2.5 font-mono text-[0.78rem] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]';
+const CODE =
+  'max-h-80 overflow-auto rounded-sm bg-muted px-3 py-2.5 font-mono text-[0.78rem] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]';
 
 function pretty(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -33,11 +39,15 @@ function DetailPart({ title, children }: { title: string; children: ReactNode })
   );
 }
 
-type Explanation = { state: 'loading' } | { state: 'done'; result: ExplainResponse } | { state: 'failed'; error: unknown };
+type Explanation =
+  | { state: 'loading' }
+  | { state: 'done'; result: ExplainResponse }
+  | { state: 'failed'; error: unknown };
 
 /**
- * Permit's reason for one recorded check, asked for when the row is opened: the portal replays the check's input
- * on the PDP now (POST /api/events/:id/explain). When the replay decides differently, the data changed since.
+ * Permit's reason for one recorded check, asked for when the row is opened: the portal replays the
+ * check's input on the PDP now (POST /api/events/:id/explain). When the replay decides differently,
+ * the data changed since.
  */
 function PdpReason({ event }: { event: CheckEvent }) {
   const [explanation, setExplanation] = useState<Explanation>({ state: 'loading' });
@@ -57,29 +67,39 @@ function PdpReason({ event }: { event: CheckEvent }) {
     };
   }, [event.id]);
 
-  if (explanation.state === 'loading') return <p className="text-sm text-muted-foreground">loading…</p>;
+  if (explanation.state === 'loading')
+    return <p className="text-sm text-muted-foreground">loading…</p>;
   if (explanation.state === 'failed') return <ErrorBanner error={explanation.error} />;
   const { reason, allow } = explanation.result;
   const note = typeof allow === 'boolean' ? replayNote(event.allow, allow) : undefined;
   const legend = ruleLegend(reason);
-  // The check's time and any grant expiry, from the input and from the request as the PDP evaluated it.
+  // The check's time and any grant expiry, from the input and from the request as the PDP evaluated
+  // it.
   const times = timeLegend([event.input, reason]);
   // The reason is the replay's, so it is framed in red when the replay denies.
   const denied = (typeof allow === 'boolean' ? allow : event.allow) === false;
   return (
     <>
       {note && (
-        <p className="rounded-sm border border-permit-ink bg-card px-3 py-2 text-sm font-bold" role="note">
+        <p
+          className="rounded-sm border border-permit-ink bg-card px-3 py-2 text-sm font-bold"
+          role="note"
+        >
           {note}
         </p>
       )}
       {reason === null || reason === undefined ? (
         <p className="text-sm text-muted-foreground">The PDP returned no reason for this check.</p>
       ) : (
-        <pre className={cn(CODE, denied && 'border border-deny bg-background')}>{pretty(reason)}</pre>
+        <pre className={cn(CODE, denied && 'border border-deny bg-background')}>
+          {pretty(reason)}
+        </pre>
       )}
       {legend.length > 0 && (
-        <dl className="flex flex-col gap-0.5 font-mono text-[0.8rem]" aria-label="Rule names in the reason">
+        <dl
+          className="flex flex-col gap-0.5 font-mono text-[0.8rem]"
+          aria-label="Rule names in the reason"
+        >
           {legend.map((rule) => (
             <div key={rule.encoded} className="flex flex-wrap gap-x-1.5">
               <dt>{rule.encoded}</dt>
@@ -92,7 +112,10 @@ function PdpReason({ event }: { event: CheckEvent }) {
       )}
       {times.length > 0 && (
         <DetailPart title="Times in this check, as clock times">
-          <dl className="flex flex-col gap-0.5 text-[0.8rem]" aria-label="Times in this check, as clock times">
+          <dl
+            className="flex flex-col gap-0.5 text-[0.8rem]"
+            aria-label="Times in this check, as clock times"
+          >
             {times.map((t) => (
               <div key={t.label} className="flex flex-wrap gap-x-2">
                 <dt className="font-mono">{t.label}</dt>
@@ -108,14 +131,26 @@ function PdpReason({ event }: { event: CheckEvent }) {
 
 /** The number a log entry carries, so the presenter can point from a sign to its entry. */
 function NumberTag({ id }: { id: number }) {
-  return <span className="grid h-6 min-w-8 place-items-center rounded-sm border border-permit-ink px-1 text-xs font-bold text-permit-ink">#{id}</span>;
+  return (
+    <span className="grid h-6 min-w-8 place-items-center rounded-sm border border-permit-ink px-1 text-xs font-bold text-permit-ink">
+      #{id}
+    </span>
+  );
 }
 
 /**
- * One entry of the log that opens: its number, a summary beside what it came to (`outcome`), and, opened, `children`.
- * Opening it holds newer rows back, so the presenter can read it while the feed goes on.
+ * One entry of the log that opens: its number, a summary beside what it came to (`outcome`), and,
+ * opened, `children`. Opening it holds newer rows back, so the presenter can read it while the feed
+ * goes on.
  */
-function OpeningRow({ id, expanded, onToggle, summary, outcome, children }: {
+function OpeningRow({
+  id,
+  expanded,
+  onToggle,
+  summary,
+  outcome,
+  children,
+}: {
   id: number;
   expanded: boolean;
   onToggle: () => void;
@@ -136,7 +171,12 @@ function OpeningRow({ id, expanded, onToggle, summary, outcome, children }: {
         className="min-w-0 flex-1"
       >
         <CollapsibleTrigger className="grid w-full cursor-pointer grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md px-3 py-2 text-left hover:bg-accent">
-          <ChevronRightIcon aria-hidden className={expanded ? 'size-4 rotate-90 transition-transform' : 'size-4 transition-transform'} />
+          <ChevronRightIcon
+            aria-hidden
+            className={
+              expanded ? 'size-4 rotate-90 transition-transform' : 'size-4 transition-transform'
+            }
+          />
           <span className="flex min-w-0 flex-col">{summary}</span>
           {outcome}
         </CollapsibleTrigger>
@@ -148,8 +188,21 @@ function OpeningRow({ id, expanded, onToggle, summary, outcome, children }: {
   );
 }
 
-/** One check: action, resource, who, where and when, and Permit's answer; opened, the input and the PDP's reason. */
-function CheckRow({ event, who, expanded, onToggle }: { event: CheckEvent; who: string; expanded: boolean; onToggle: () => void }) {
+/**
+ * One check: action, resource, who, where and when, and Permit's answer; opened, the input and the
+ * PDP's reason.
+ */
+function CheckRow({
+  event,
+  who,
+  expanded,
+  onToggle,
+}: {
+  event: CheckEvent;
+  who: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const guard = event.source === 'guard';
   return (
     <OpeningRow
@@ -175,7 +228,8 @@ function CheckRow({ event, who, expanded, onToggle }: { event: CheckEvent; who: 
       }
     >
       <p className="text-sm">
-        Can {who} <code className="font-mono">{event.action}</code> <code className="font-mono">{event.resource}</code> in{' '}
+        Can {who} <code className="font-mono">{event.action}</code>{' '}
+        <code className="font-mono">{event.resource}</code> in{' '}
         <code className="font-mono">{event.tenant}</code>?
       </p>
       <DetailPart title="Input sent to the PDP">
@@ -195,10 +249,21 @@ function CheckRow({ event, who, expanded, onToggle }: { event: CheckEvent; who: 
 }
 
 /**
- * One read: the PDP was asked for a list of what `who` may do (user permissions), not for a yes or no. So the row has no
- * decision, only how many entries came back; opened, the request as it was sent.
+ * One read: the PDP was asked for a list of what `who` may do (user permissions), not for a yes or
+ * no. So the row has no decision, only how many entries came back; opened, the request as it was
+ * sent.
  */
-function ReadRow({ event, who, expanded, onToggle }: { event: ReadEvent; who: string; expanded: boolean; onToggle: () => void }) {
+function ReadRow({
+  event,
+  who,
+  expanded,
+  onToggle,
+}: {
+  event: ReadEvent;
+  who: string;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   const tenants = event.tenants.join(', ');
   const entries = event.entries ?? 0;
   return (
@@ -210,12 +275,16 @@ function ReadRow({ event, who, expanded, onToggle }: { event: ReadEvent; who: st
         event.error !== undefined ? (
           <span className="text-xs font-bold text-deny">no answer</span>
         ) : (
-          <span className="text-xs text-muted-foreground">{entries === 1 ? '1 entry' : `${entries} entries`}</span>
+          <span className="text-xs text-muted-foreground">
+            {entries === 1 ? '1 entry' : `${entries} entries`}
+          </span>
         )
       }
       summary={
         <>
-          <span className="font-mono text-[0.85rem] [overflow-wrap:anywhere]">user permissions</span>
+          <span className="font-mono text-[0.85rem] [overflow-wrap:anywhere]">
+            user permissions
+          </span>
           <span className="text-xs text-muted-foreground">
             {who} in <span className="font-mono">{tenants}</span>, {formatClock(event.at)}
           </span>
@@ -236,8 +305,9 @@ function ReadRow({ event, who, expanded, onToggle }: { event: ReadEvent; who: st
       ) : (
         <DetailPart title="Permit's answer">
           <p className="text-sm">
-            {entries === 1 ? '1 entry' : `${entries} entries`}, one for each resource {who} may act on, with the roles held there and the
-            actions they allow. A list, not a yes or no: there is no decision to explain.
+            {entries === 1 ? '1 entry' : `${entries} entries`}, one for each resource {who} may act
+            on, with the roles held there and the actions they allow. A list, not a yes or no: there
+            is no decision to explain.
           </p>
         </DetailPart>
       )}
@@ -248,7 +318,12 @@ function ReadRow({ event, who, expanded, onToggle }: { event: ReadEvent; who: st
 /** One change the portal wrote to Permit, and whether the local PDP confirmed it. */
 function WriteRow({ event }: { event: WriteEvent }) {
   return (
-    <li className={cn('flex gap-3 rounded-md border bg-card px-3 py-2.5', event.ok ? 'border-permit-ink' : 'border-deny')}>
+    <li
+      className={cn(
+        'flex gap-3 rounded-md border bg-card px-3 py-2.5',
+        event.ok ? 'border-permit-ink' : 'border-deny',
+      )}
+    >
       <NumberTag id={event.id} />
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="flex items-start gap-1.5 text-sm font-bold">
@@ -261,7 +336,9 @@ function WriteRow({ event }: { event: WriteEvent }) {
         {event.ok ? (
           <span className="text-sm">Change confirmed by the PDP</span>
         ) : (
-          <span className="text-sm font-bold text-deny">{event.error ?? 'The change was not confirmed.'}</span>
+          <span className="text-sm font-bold text-deny">
+            {event.error ?? 'The change was not confirmed.'}
+          </span>
         )}
         <span className="text-xs text-muted-foreground">{formatClock(event.at)}</span>
       </div>
@@ -272,7 +349,10 @@ function WriteRow({ event }: { event: WriteEvent }) {
 interface PanelView {
   /** The check rows the presenter has opened. */
   expanded: ReadonlySet<number>;
-  /** While any row is open, rows newer than this id wait behind "Show newest", so the open row stays put. */
+  /**
+   * While any row is open, rows newer than this id wait behind "Show newest", so the open row stays
+   * put.
+   */
   pausedAt: number | null;
 }
 
@@ -288,12 +368,13 @@ interface DecisionPanelProps {
 }
 
 /**
- * Every check and change the portal makes, newest first, polled from GET /api/events, under directory signs
- * for where the current persona may go. Polling pauses while the tab is hidden, and the poll itself goes out as a
- * background refresh. Checks caused by pages re-reading themselves stay out of the log unless "Show page refreshes"
- * is on; the signs count them. "Clear view" hides rows and signs here only; the portal keeps its log. While the
- * presenter has a row open, newer rows are held back (and the open row is never dropped from the feed) until they
- * ask for the newest. Hidden, the panel is a purple rail and keeps polling.
+ * Every check and change the portal makes, newest first, polled from GET /api/events, under
+ * directory signs for where the current persona may go. Polling pauses while the tab is hidden, and
+ * the poll itself goes out as a background refresh. Checks caused by pages re-reading themselves
+ * stay out of the log unless "Show page refreshes" is on; the signs count them. "Clear view" hides
+ * rows and signs here only; the portal keeps its log. While the presenter has a row open, newer
+ * rows are held back (and the open row is never dropped from the feed) until they ask for the
+ * newest. Hidden, the panel is a purple rail and keeps polling.
  */
 export function DecisionPanel({ persona, personaName, open, onToggle }: DecisionPanelProps) {
   const visible = useVisible();
@@ -317,7 +398,9 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
-        const res = await api.get<EventsResponse>(`/api/events?since=${feedRef.current.lastId}`, { source: 'refresh' });
+        const res = await api.get<EventsResponse>(`/api/events?since=${feedRef.current.lastId}`, {
+          source: 'refresh',
+        });
         if (!alive) return;
         const next = mergeFeed(feedRef.current, res, keepRef.current);
         if (next.lastId < feedRef.current.lastId) {
@@ -342,8 +425,10 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
 
   const { expanded, pausedAt } = view;
   const unhidden = feed.events.filter((e) => e.id > hiddenThrough && isShown(e, showRefreshes));
-  const rows = pausedAt === null ? unhidden : unhidden.filter((e) => e.id <= pausedAt || expanded.has(e.id));
-  const held = pausedAt === null ? 0 : unhidden.filter((e) => e.id > pausedAt && !expanded.has(e.id)).length;
+  const rows =
+    pausedAt === null ? unhidden : unhidden.filter((e) => e.id <= pausedAt || expanded.has(e.id));
+  const held =
+    pausedAt === null ? 0 : unhidden.filter((e) => e.id > pausedAt && !expanded.has(e.id)).length;
   const newestShown = rows[0]?.id ?? 0;
 
   const toggle = (id: number) =>
@@ -365,8 +450,17 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
 
   if (!open) {
     return (
-      <aside aria-label="Permit decisions" className="permit permit-band flex shrink-0 justify-end p-2 lg:flex-col lg:justify-start">
-        <Button variant="ghost" size="icon" aria-label="Show decisions" title="Show decisions" onClick={onToggle}>
+      <aside
+        aria-label="Permit decisions"
+        className="permit permit-band flex shrink-0 justify-end p-2 lg:flex-col lg:justify-start"
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Show decisions"
+          title="Show decisions"
+          onClick={onToggle}
+        >
           <PanelRightOpenIcon />
         </Button>
       </aside>
@@ -377,17 +471,30 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
   return (
     <>
       <Separator orientation="vertical" className="hidden bg-permit lg:block" />
-      <aside ref={panelRef} aria-label="Permit decisions" className="permit flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto">
+      <aside
+        ref={panelRef}
+        aria-label="Permit decisions"
+        className="permit flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto"
+      >
         <div className="sticky top-0 z-10 flex flex-col bg-background">
           <div className="permit-band flex items-center justify-between gap-3 px-5 py-3">
             <h2 className="text-lg font-extrabold">Permit decisions</h2>
-            <Button variant="ghost" size="icon" aria-label="Hide decisions" title="Hide decisions" onClick={onToggle}>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Hide decisions"
+              title="Hide decisions"
+              onClick={onToggle}
+            >
               <PanelRightCloseIcon />
             </Button>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-border px-5 py-2.5">
             <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-              <Switch checked={showRefreshes} onCheckedChange={(checked) => setShowRefreshes(checked)} />
+              <Switch
+                checked={showRefreshes}
+                onCheckedChange={(checked) => setShowRefreshes(checked)}
+              />
               Show page refreshes
             </label>
             <Button variant="outline" size="sm" disabled={rows.length === 0} onClick={clearView}>
@@ -395,7 +502,10 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
             </Button>
           </div>
           {pausedAt !== null && (
-            <div className="flex items-center gap-3 border-b border-border bg-card px-5 py-2.5" role="status">
+            <div
+              className="flex items-center gap-3 border-b border-border bg-card px-5 py-2.5"
+              role="status"
+            >
               <span className="min-w-0 flex-1 text-sm font-bold">
                 {held === 0
                   ? 'New decisions wait while a row is open.'
@@ -413,7 +523,12 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
             <ErrorBanner error={error} />
           </div>
         )}
-        <SignDirectory events={feed.events} persona={persona} firstName={firstName} after={hiddenThrough} />
+        <SignDirectory
+          events={feed.events}
+          persona={persona}
+          firstName={firstName}
+          after={hiddenThrough}
+        />
         <section aria-labelledby="panel-log-title" className="flex flex-col gap-3 px-5 pt-6 pb-5">
           <div className="flex items-baseline justify-between gap-3">
             <h3 id="panel-log-title" className="text-lg font-extrabold">
@@ -429,9 +544,21 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
             <ol className="flex flex-col gap-2">
               {rows.map((event) =>
                 event.kind === 'check' ? (
-                  <CheckRow key={event.id} event={event} who={nameOf(event.user)} expanded={expanded.has(event.id)} onToggle={() => toggle(event.id)} />
+                  <CheckRow
+                    key={event.id}
+                    event={event}
+                    who={nameOf(event.user)}
+                    expanded={expanded.has(event.id)}
+                    onToggle={() => toggle(event.id)}
+                  />
                 ) : event.kind === 'read' ? (
-                  <ReadRow key={event.id} event={event} who={nameOf(event.user)} expanded={expanded.has(event.id)} onToggle={() => toggle(event.id)} />
+                  <ReadRow
+                    key={event.id}
+                    event={event}
+                    who={nameOf(event.user)}
+                    expanded={expanded.has(event.id)}
+                    onToggle={() => toggle(event.id)}
+                  />
                 ) : (
                   <WriteRow key={event.id} event={event} />
                 ),

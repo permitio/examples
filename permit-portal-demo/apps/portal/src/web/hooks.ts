@@ -1,11 +1,22 @@
 // React state shared by the pages: the /api/meta payload, page visibility, a ticking clock,
 // polled API reads and one-at-a-time actions.
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { api, decideRequest, onPortalRebuilt, portalRebuilt } from '@/api';
 import type { ApproveResponse, DenyResponse, Meta } from '@/types';
 
-/** How often a page re-reads itself while it is open. Aragorn's live checks run every 5 s on their own timer. */
+/**
+ * How often a page re-reads itself while it is open. Aragorn's live checks run every 5 s on their
+ * own timer.
+ */
 export const PAGE_REFRESH_MS = 10_000;
 
 export const MetaContext = createContext<Meta | null>(null);
@@ -16,7 +27,10 @@ export function useMeta(): Meta {
   return meta;
 }
 
-/** Maps a user key to the persona's display name; other keys (a system reviewer, say) show as they are. */
+/**
+ * Maps a user key to the persona's display name; other keys (a system reviewer, say) show as they
+ * are.
+ */
 export function usePersonaName(): (key: string) => string {
   const meta = useMeta();
   return (key) => meta.personas.find((p) => p.key === key)?.name ?? key;
@@ -31,8 +45,8 @@ interface Visibility {
 }
 
 /**
- * Whether the browser tab is visible, and a count of the times it came back. One state, so a tab shown again
- * changes both in the same render and a read keyed on them runs once.
+ * Whether the browser tab is visible, and a count of the times it came back. One state, so a tab
+ * shown again changes both in the same render and a read keyed on them runs once.
  */
 function useVisibility(): Visibility {
   const [state, setState] = useState<Visibility>(() => ({ visible: pageVisible(), shown: 0 }));
@@ -49,7 +63,10 @@ function useVisibility(): Visibility {
   return state;
 }
 
-/** False while the browser tab is hidden, so polling stops when the presenter switches to another tab. */
+/**
+ * False while the browser tab is hidden, so polling stops when the presenter switches to another
+ * tab.
+ */
 export function useVisible(): boolean {
   return useVisibility().visible;
 }
@@ -89,25 +106,40 @@ interface ResourceOptions {
 /**
  * Reads `path` from the portal API (nothing when it is null), optionally on a refresh timer.
  *
- * The first read for a path, a `key` or a `reload()` is the presenter's own doing, so the checks it causes show in
- * the decision panel. So is the catch-up read when the tab is shown again, timer or not: the presenter switches
- * back from the console to see what a fact change did, and the panel must show that decision. Only the timer's
- * reads go out as background refreshes, which the panel hides unless asked.
+ * The first read for a path, a `key` or a `reload()` is the presenter's own doing, so the checks it
+ * causes show in the decision panel. So is the catch-up read when the tab is shown again, timer or
+ * not: the presenter switches back from the console to see what a fact change did, and the panel
+ * must show that decision. Only the timer's reads go out as background refreshes, which the panel
+ * hides unless asked.
  */
-export function useResource<T>(path: string | null, { refreshMs, body, key }: ResourceOptions = {}): Resource<T> {
+export function useResource<T>(
+  path: string | null,
+  { refreshMs, body, key }: ResourceOptions = {},
+): Resource<T> {
   const { visible, shown } = useVisibility();
   const active = refreshMs === undefined || visible;
   /** The `shown` count of the last read, so a tab shown again reads again even without a timer. */
   const readAtShown = useRef(shown);
-  const [state, setState] = useState<{ path: string | null; data?: T | undefined; error?: unknown }>({ path });
+  const [state, setState] = useState<{
+    path: string | null;
+    data?: T | undefined;
+    error?: unknown;
+  }>({ path });
   const [nonce, setNonce] = useState(0);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
-  /** The read that last finished: path, key and reload count. A read of the same one again is a refresh. */
+  /**
+   * The read that last finished: path, key and reload count. A read of the same one again is a
+   * refresh.
+   */
   const finished = useRef<string | null>(null);
-  /** Set while the tab is hidden, so the read that follows when it is shown again counts as the presenter's. */
+  /**
+   * Set while the tab is hidden, so the read that follows when it is shown again counts as the
+   * presenter's.
+   */
   const wasHidden = useRef(false);
 
-  // `key`, `nonce` and `shown` are deliberate dependencies: changing any of them starts a fresh read.
+  // `key`, `nonce` and `shown` are deliberate dependencies: changing any of them starts a fresh
+  // read.
   useEffect(() => {
     if (!active) wasHidden.current = true;
     if (path === null || !active) return;
@@ -120,10 +152,12 @@ export function useResource<T>(path: string | null, { refreshMs, body, key }: Re
     const load = async (refresh: boolean) => {
       const opts = refresh ? { source: 'refresh' as const } : undefined;
       try {
-        const data = body === undefined ? await api.get<T>(path, opts) : await api.post<T>(path, body, opts);
+        const data =
+          body === undefined ? await api.get<T>(path, opts) : await api.post<T>(path, body, opts);
         if (alive) setState({ path, data });
       } catch (error) {
-        if (alive) setState((prev) => ({ path, data: prev.path === path ? prev.data : undefined, error }));
+        if (alive)
+          setState((prev) => ({ path, data: prev.path === path ? prev.data : undefined, error }));
       }
       if (!alive) return;
       finished.current = identity;
@@ -137,13 +171,17 @@ export function useResource<T>(path: string | null, { refreshMs, body, key }: Re
   }, [path, active, refreshMs, body, key, nonce, shown]);
 
   const current = state.path === path;
-  return { data: current ? state.data : undefined, error: current ? state.error : undefined, reload };
+  return {
+    data: current ? state.data : undefined,
+    error: current ? state.error : undefined,
+    reload,
+  };
 }
 
 /**
- * Runs one user action at a time and keeps its failure for an ErrorBanner. The previous error stays until this
- * action's answer replaces or clears it, so the page changes once, when the answer arrives, instead of jumping
- * twice.
+ * Runs one user action at a time and keeps its failure for an ErrorBanner. The previous error stays
+ * until this action's answer replaces or clears it, so the page changes once, when the answer
+ * arrives, instead of jumping twice.
  */
 export function useAction() {
   const [busy, setBusy] = useState(false);
@@ -168,8 +206,9 @@ export function useAction() {
 type Run = ReturnType<typeof useAction>['run'];
 
 /**
- * The words a page uses after a waited change, matching the decision panel's change rows. No duration on
- * screen: it would include the portal's own round trips, and the change is visibly immediate.
+ * The words a page uses after a waited change, matching the decision panel's change rows. No
+ * duration on screen: it would include the portal's own round trips, and the change is visibly
+ * immediate.
  */
 export const CHANGE_CONFIRMED = 'Change confirmed by the PDP.';
 
