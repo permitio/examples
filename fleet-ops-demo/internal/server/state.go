@@ -9,6 +9,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"regexp"
 	"slices"
@@ -199,9 +200,11 @@ func (a *App) record(user, text string) {
 	a.activity[user] = append([]activityEvent{{Text: text, At: time.Now()}}, a.activity[user]...)
 }
 
-func (a *App) certifications(user string) []string {
+func (a *App) certifications(user string) []string { return certificationsIn(a.userAttrs[user]) }
+
+func certificationsIn(attrs map[string]any) []string {
 	var certs []string
-	if list, ok := a.userAttrs[user]["certifications"].([]any); ok {
+	if list, ok := attrs["certifications"].([]any); ok {
 		for _, c := range list {
 			if s, ok := c.(string); ok {
 				certs = append(certs, s)
@@ -211,9 +214,11 @@ func (a *App) certifications(user string) []string {
 	return certs
 }
 
-func (a *App) breakglass(user string) []breakglassGrant {
+func (a *App) breakglass(user string) []breakglassGrant { return breakglassIn(a.userAttrs[user]) }
+
+func breakglassIn(attrs map[string]any) []breakglassGrant {
 	var grants []breakglassGrant
-	list, _ := a.userAttrs[user]["breakglass"].([]any)
+	list, _ := attrs["breakglass"].([]any)
 	for _, item := range list {
 		m, _ := item.(map[string]any)
 		g := breakglassGrant{IncidentID: str(m["incident_id"]), Tenant: str(m["tenant"]), GrantedBy: str(m["granted_by"])}
@@ -305,6 +310,26 @@ func (a *App) platformStaff(user string) bool {
 	return slices.ContainsFunc(a.assignments, func(ra model.RoleAssignment) bool {
 		return ra.User == user && ra.Role == "org_admin" && ra.ResourceInstance == model.PlatformOrg
 	})
+}
+
+// storedAttributes reads a person's attributes from Permit and refreshes the app's copy. A change to
+// them is decided and written against what Permit holds now, not what the app read when it started:
+// a reset or a dashboard edit since then would otherwise be undone, or decide which checks run.
+func (a *App) storedAttributes(user string) (map[string]any, error) {
+	var read *models.UserRead
+	if err := permitapi.Call(func(ctx context.Context) error {
+		var err error
+		read, err = a.api.Users.Get(ctx, user)
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("reading %s's attributes from Permit: %w", user, err)
+	}
+	attrs := maps.Clone(read.Attributes)
+	if attrs == nil {
+		attrs = map[string]any{}
+	}
+	a.userAttrs[user] = attrs
+	return maps.Clone(attrs), nil
 }
 
 // exists reports whether a person is still in Permit (scenario 15 removes people).

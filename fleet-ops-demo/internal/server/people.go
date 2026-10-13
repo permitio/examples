@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -186,7 +185,11 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 				want = append(want, t)
 			}
 		}
-		have := a.certifications(key)
+		stored, err := a.storedAttributes(key)
+		if err != nil {
+			return nil, err
+		}
+		have := certificationsIn(stored)
 		changed := func(t string) bool { return slices.Contains(want, t) != slices.Contains(have, t) }
 		basic, advanced := changed("tier1") || changed("tier2"), changed("tier3")
 		if !basic && !advanced {
@@ -208,10 +211,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 				return r.refuse(err)
 			}
 		}
-		attrs := maps.Clone(a.userAttrs[key])
-		if attrs == nil {
-			attrs = map[string]any{}
-		}
+		attrs := stored
 		list := make([]any, len(want))
 		for n, t := range want {
 			list[n] = t
@@ -415,19 +415,19 @@ func (a *App) accessAction(body actBody) (obj, error) {
 			return nil, err
 		}
 	}
+	attrs, err := a.storedAttributes(person)
+	if err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	grant := breakglassGrant{Tenant: org, IncidentID: incident, ExpiresAt: now.Add(time.Duration(body.Minutes) * time.Minute).Unix(), GrantedBy: user}
 	list := []any{}
-	for _, g := range a.breakglass(person) {
+	for _, g := range breakglassIn(attrs) {
 		if g.active(now) && g.Tenant != org { // expired grants and the old grant here are dropped
 			list = append(list, map[string]any{"tenant": g.Tenant, "incident_id": g.IncidentID, "expires_at": float64(g.ExpiresAt), "granted_by": g.GrantedBy})
 		}
 	}
 	list = append(list, map[string]any{"tenant": grant.Tenant, "incident_id": grant.IncidentID, "expires_at": float64(grant.ExpiresAt), "granted_by": grant.GrantedBy})
-	attrs := maps.Clone(a.userAttrs[person])
-	if attrs == nil {
-		attrs = map[string]any{}
-	}
 	attrs["breakglass"] = list
 	if err := permitapi.Call(func(ctx context.Context) error {
 		_, err := a.api.Users.Update(ctx, person, models.UserUpdate{Attributes: attrs})
