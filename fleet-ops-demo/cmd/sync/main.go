@@ -6,7 +6,9 @@
 // The schema converges both ways: what is missing is created, what differs is updated, and what
 // internal/schema doesn't have is removed (resource types, actions, attributes, relations, roles,
 // derivations, org-level roles, condition sets and their rules), dashboard changes included. Schema
-// writes regenerate the GitOps policy branch; a reset never touches the schema.
+// writes update Permit's generated policy in the GitOps branch, but not root.rego or
+// custom/root.rego, so the custom rules `make apply-policy` installed stay in force. A reset never
+// touches the schema.
 //
 // After a setup the command waits until the local PDP has the schema, then rebuilds the PDP's
 // relationship cache: on pdp-v2 0.9.16 a schema change leaves that cache (used by /user-permissions

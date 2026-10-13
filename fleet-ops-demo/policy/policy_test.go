@@ -3,6 +3,8 @@ package policy
 import (
 	"strings"
 	"testing"
+
+	"fleetops/internal/model"
 )
 
 func TestRequiredByRoot(t *testing.T) {
@@ -65,5 +67,13 @@ func TestVersion(t *testing.T) {
 				t.Errorf("got %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// custom.rego names the platform operator's org instance literally (platform staff); it must be the
+// instance the app checks platform-only actions on.
+func TestCustomNamesThePlatformOrg(t *testing.T) {
+	if !strings.Contains(Custom(""), `"`+model.PlatformOrg+`"`) {
+		t.Errorf("custom.rego doesn't name %q", model.PlatformOrg)
 	}
 }

@@ -41,8 +41,9 @@ func SameRules(installed string) bool {
 const RootAllow = `# Fleet Ops demo: the generated policy (RBAC, ReBAC, ABAC) or a grant in custom/root.rego must allow,
 # AND the request must satisfy the tenant-isolation rule and the fleet rules in custom/root.rego.
 # Custom code adds constraints, and grants only through the second rule.
-# Permit may regenerate this file after policy changes in the dashboard. If ` + "`make verify`" + ` reports
-# the rules missing, run ` + "`make apply-policy`" + ` in fleetops-go to re-apply them.
+# Schema and dashboard changes leave this file alone; Permit replaces it only when it merges a policy
+# library update into this branch. If ` + "`make verify`" + ` then reports the rules missing, run
+# ` + "`make apply-policy`" + ` in fleet-ops-demo to apply them again.
 allow {
 	policies.allow
 	custom.acting_org_ok
