@@ -1,7 +1,7 @@
 // Package settings reads .env and builds the one Permit client the app and the commands share.
 //
-// The .env file is looked up in the working directory and then in each parent, so every command
-// finds the demo folder's .env without a copy of the key.
+// The .env file is looked up in the working directory, then next to the program and in the folder
+// above it (bin/), never further up: a stray .env in a parent folder must not supply a key.
 package settings
 
 import (
@@ -23,32 +23,61 @@ type Settings struct {
 	OPAURL  string
 	Project string
 	Env     string
+	Port    string
 	// DemoDir holds .env, docker-compose.yml and policy-repo/.
 	DemoDir string
 }
 
-// Load reads .env (variables already set in the environment win) and returns the settings.
+// Load reads .env and returns the settings. A variable set in the shell wins over .env, except
+// PERMIT_API_KEY: only the key in .env is used, and a different one in the shell is an error, so a
+// key exported for another environment can't make `make setup` or `make reset` change that one.
 func Load() (Settings, error) {
-	envFile, err := findUp(".env")
+	var dirs []string
+	if wd, err := os.Getwd(); err == nil {
+		dirs = append(dirs, wd)
+	}
+	if exe, err := os.Executable(); err == nil {
+		dirs = append(dirs, filepath.Dir(exe), filepath.Dir(filepath.Dir(exe)))
+	}
+	return load(dirs, os.LookupEnv)
+}
+
+// load reads the first .env found in dirs; env looks up the shell's variables.
+func load(dirs []string, env func(string) (string, bool)) (Settings, error) {
+	envFile, err := find(".env", dirs)
 	if err != nil {
 		return Settings{}, err
 	}
-	if err := loadEnvFile(envFile); err != nil {
-		return Settings{}, err
+	file, err := readEnvFile(envFile)
+	if err != nil {
+		return Settings{}, fmt.Errorf("reading %s: %w", envFile, err)
 	}
-	s := Settings{
-		APIKey:  os.Getenv("PERMIT_API_KEY"),
-		APIURL:  getenv("PERMIT_API_URL", "https://api.permit.io"),
-		PDPURL:  getenv("PDP_URL", "http://localhost:7766"),
-		OPAURL:  getenv("OPA_URL", "http://localhost:8181"),
-		Project: os.Getenv("PERMIT_PROJECT"),
-		Env:     os.Getenv("PERMIT_ENV"),
-		DemoDir: filepath.Dir(envFile),
-	}
-	if s.APIKey == "" {
+	key := file["PERMIT_API_KEY"]
+	if key == "" {
 		return Settings{}, fmt.Errorf("PERMIT_API_KEY is not set in %s", envFile)
 	}
-	return s, nil
+	if shell, _ := env("PERMIT_API_KEY"); shell != "" && shell != key {
+		return Settings{}, fmt.Errorf("PERMIT_API_KEY in your shell differs from the one in %s; the demo uses only the key in .env, so run `unset PERMIT_API_KEY` and try again", envFile)
+	}
+	get := func(name, fallback string) string {
+		if v, _ := env(name); v != "" {
+			return v
+		}
+		if v := file[name]; v != "" {
+			return v
+		}
+		return fallback
+	}
+	return Settings{
+		APIKey:  key,
+		APIURL:  get("PERMIT_API_URL", "https://api.permit.io"),
+		PDPURL:  get("PDP_URL", "http://localhost:7766"),
+		OPAURL:  get("OPA_URL", "http://localhost:8181"),
+		Project: get("PERMIT_PROJECT", ""),
+		Env:     get("PERMIT_ENV", ""),
+		Port:    get("PORT", "3000"),
+		DemoDir: filepath.Dir(envFile),
+	}, nil
 }
 
 // MustLoad is Load for commands: it exits with the error.
@@ -72,45 +101,27 @@ func Client(s Settings) *permit.Client {
 	return permit.New(cfg)
 }
 
-func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-// findUp looks for name in the working directory and each parent, then likewise from the program's
-// own folder (for a built server started from elsewhere).
-func findUp(name string) (string, error) {
-	var starts []string
-	if wd, err := os.Getwd(); err == nil {
-		starts = append(starts, wd)
-	}
-	if exe, err := os.Executable(); err == nil {
-		starts = append(starts, filepath.Dir(exe))
-	}
-	for _, dir := range starts {
-		for {
-			p := filepath.Join(dir, name)
-			if _, err := os.Stat(p); err == nil {
-				return p, nil
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-			dir = parent
+// find returns the first dirs/name that exists.
+func find(name string, dirs []string) (string, error) {
+	for _, dir := range dirs {
+		p := filepath.Join(dir, name)
+		if _, err := os.Stat(p); err == nil {
+			return p, nil
 		}
 	}
-	return "", fmt.Errorf("no %s found in this folder or above it", name)
+	return "", fmt.Errorf("no %s found in %s", name, strings.Join(dirs, " or "))
 }
 
-func loadEnvFile(path string) error {
+// readEnvFile parses KEY=value lines the way Docker Compose reads the same file for the PDP: blank
+// lines and # comments are skipped, a value in matching single or double quotes is taken without
+// them, and an unquoted value ends at a " #" comment.
+func readEnvFile(path string) (map[string]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
+	values := map[string]string{}
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
@@ -121,10 +132,21 @@ func loadEnvFile(path string) error {
 		if !ok {
 			continue
 		}
-		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
-		if _, set := os.LookupEnv(key); !set {
-			os.Setenv(key, value)
+		values[strings.TrimSpace(key)] = envValue(strings.TrimSpace(value))
+	}
+	return values, sc.Err()
+}
+
+func envValue(v string) string {
+	if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') {
+		if end := strings.IndexByte(v[1:], v[0]); end >= 0 {
+			return v[1 : 1+end]
 		}
 	}
-	return sc.Err()
+	for n := 1; n < len(v); n++ {
+		if v[n] == '#' && v[n-1] == ' ' { // as Compose: a tab before # doesn't start a comment
+			return strings.TrimSpace(v[:n])
+		}
+	}
+	return v
 }

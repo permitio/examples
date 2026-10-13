@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"fleetops/internal/pdp"
 	"fleetops/internal/server"
@@ -21,10 +20,7 @@ func main() {
 	if err := app.Load(); err != nil {
 		log.Fatalf("loading authorization data from Permit: %v", err)
 	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3000"
-	}
+	port := s.Port
 	addr := "127.0.0.1:" + port
 	fmt.Printf("Fleet Ops (Go SDK) on http://localhost:%s, project %s, environment %s\n", port, s.Project, s.Env)
 	log.Fatal(http.ListenAndServe(addr, app.Handler(web.Files, s.Project, s.Env)))

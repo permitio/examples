@@ -44,7 +44,9 @@ rules, a Git repository connected to that environment through
 [opa](https://www.openpolicyagent.org/docs/latest/#running-opa) CLI.
 
 1. Copy `.env.example` to `.env` and put the environment's API key in `PERMIT_API_KEY`. The key
-   stays on the server; the browser never sees it.
+   stays on the server; the browser never sees it. `make setup` and `make reset` name the
+   environment the key belongs to before they change anything, and stop if `PERMIT_PROJECT` or
+   `PERMIT_ENV` in `.env` names another one.
 2. Start the PDP, then create the schema and the seed data in Permit:
    ```bash
    make pdp

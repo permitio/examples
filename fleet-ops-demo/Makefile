@@ -2,8 +2,9 @@
 # needs the opa CLI. Every command reads .env in this folder (copy .env.example).
 .PHONY: pdp setup reset build start verify apply-policy test
 
+# Compose lets a PERMIT_API_KEY exported in the shell override .env; the PDP takes the key in .env.
 pdp:           ## start the local container PDP (port 7766)
-	docker compose --env-file .env up -d pdp
+	env -u PERMIT_API_KEY docker compose --env-file .env up -d pdp
 
 setup:         ## make Permit's schema match the code, then restore the seed data
 	go run ./cmd/sync
