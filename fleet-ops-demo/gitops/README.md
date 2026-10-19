@@ -39,11 +39,11 @@ Terraform:
    has instances, `save` stops the apply instead: Permit would delete the instances too, with every
    assignment on them and every relationship they're in, and no snapshot can bring them back. If that's
    what you mean, delete the instances yourself first, then run the job again.
-2. After each apply, CI looks through the commits since the branch's last apply for ones that changed
-   `terraform/` and say "This reverts commit X". For each, it finds the run that applied X, fetches the
-   snapshot that run kept, and `restore` recreates those assignments and tuples. It leaves out what's
-   already there and what names a person or instance that no longer exists, and lists anything Permit
-   refuses, such as an assignment in a tenant deleted since.
+2. After each apply, CI looks through the commits since the branch's last successful apply for ones
+   that changed `terraform/` and say "This reverts commit X". For each, it finds the run that applied X,
+   fetches the snapshot that run kept, and `restore` recreates those assignments and tuples. It leaves
+   out what's already there and what names a person or instance that no longer exists, and lists
+   anything Permit refuses, such as an assignment in a tenant deleted since.
 
 The log shows how many assignments of each role, and relationships of each kind, were saved or restored,
 never who holds them.
@@ -63,11 +63,12 @@ on it makes any plan that would delete it fail.
   the title and description keeps it only if the description has it.
 - **Snapshots last 30 days** (`retention-days` in `terraform.yaml`, at most 90 unless the repository's
   settings allow more). Revert an older change and the apply fails, reporting the snapshot expired.
-- **A failed run doesn't pass its revert on.** If the run carrying a revert fails before its restore
-  step, and nothing has been applied from that branch since, fix the cause and re-run it. Once a newer
-  push has been applied, don't: re-running an older commit's apply applies its older schema. Restore by
-  hand instead. (A run that GitHub cancelled while it waited is different: the next run applies that
-  push too, and restores its reverts.)
+- **A failed run passes its reverts on.** If the run carrying a revert fails before or during its
+  restore, the next run on that branch looks at the same reverts again, and restoring twice changes
+  nothing. To restore sooner, re-run the failed run, but only while nothing newer has been applied from
+  that branch: re-running an older commit's apply applies its older schema. (A run that GitHub cancelled
+  while it waited is passed on the same way: the next run applies that push too, and restores its
+  reverts.)
 - **Restore gives back access as it was when the snapshot was taken.** Permit's bulk assignment also
   puts the person back in the tenant if they had left it. Someone whose access was removed on purpose
   since then gets it back. For Production, consider a GitHub environment with required reviewers on the
@@ -83,10 +84,11 @@ on it makes any plan that would delete it fail.
 ### When CI can't restore a revert
 
 The apply job fails and says why: no run on the branch ended on the reverted commit, or that run's
-snapshot has expired or was never kept (the run stopped before saving it). The schema change is applied either way: only the data is missing. To
-restore by hand, download the snapshot from the run that applied the reverted change (that run's page in
-the Actions tab, under Artifacts, or `gh run download <run id> --name <artifact>`), check it's the one you
-mean, and run it with that environment's API key:
+snapshot has expired or was never kept (the run stopped before saving it). The schema change is applied
+either way: only the data is missing. To restore by hand, download the snapshot from the run that
+applied the reverted change (that run's page in the Actions tab, under Artifacts, or
+`gh run download <run id> --name <artifact>`), check it's the one you mean, and run it with that
+environment's API key:
 
 ```bash
 PERMIT_PROJECT=<project key> PERMIT_ENV=<environment key> PERMIT_API_KEY=<environment API key> \

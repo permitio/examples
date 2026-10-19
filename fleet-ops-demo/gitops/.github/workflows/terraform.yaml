@@ -147,20 +147,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          # This branch's earlier runs of this workflow, newest first, as "<run id> <commit>". Only runs
-          # on a push to this branch count: a pull request from a fork can upload an artifact under any
-          # name, so a snapshot is never looked up by its name alone. Cancelled runs never ran.
+          # This branch's earlier runs of this workflow, newest first, as "<run id> <commit> <conclusion>".
+          # Only runs on a push to this branch count: a pull request from a fork can upload an artifact
+          # under any name, so a snapshot is never looked up by its name alone. Cancelled runs never ran.
           workflow=$(basename "${GITHUB_WORKFLOW_REF%@*}")
           gh api -X GET "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
             -f event=push -f branch="$GITHUB_REF_NAME" -f status=completed -f per_page=100 \
-            --jq '.workflow_runs[] | select(.conclusion != "cancelled") | "\(.id) \(.head_sha)"' \
+            --jq '.workflow_runs[] | select(.conclusion != "cancelled") | "\(.id) \(.head_sha) \(.conclusion)"' \
             > "$RUNNER_TEMP/runs.txt"
 
-          # The schema reverts since the last of those runs, which can be more than this push: see
-          # `concurrency` above.
-          since=$(head -n 1 "$RUNNER_TEMP/runs.txt" | cut -d ' ' -f 2)
+          # The schema reverts since the last run that succeeded, which can be more than this push (see
+          # `concurrency` above). A failed run may have stopped before applying or restoring, so its
+          # reverts are looked at again; restoring twice is safe, since restore skips what's already there.
+          since=$(awk '$3 == "success" { print $2; exit }' "$RUNNER_TEMP/runs.txt")
           if [ -z "$since" ]; then
-            echo "This is the first apply from ${GITHUB_REF_NAME}: no earlier run here to restore from."
+            echo "No earlier successful apply from ${GITHUB_REF_NAME}: no run here to restore from."
             exit 0
           fi
           if git merge-base --is-ancestor "$since" HEAD 2>/dev/null; then
