@@ -27,3 +27,9 @@ repos:
         language: system
         pass_filenames: false
         files: ^policy/.*\.rego$
+      - id: terraform-fmt
+        name: terraform fmt
+        entry: terraform fmt -check -diff -recursive gitops/terraform
+        language: system
+        pass_filenames: false
+        files: ^gitops/terraform/.*\.tf$

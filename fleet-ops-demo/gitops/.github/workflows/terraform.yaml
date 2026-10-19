@@ -1,0 +1,209 @@
+name: Terraform
+
+# The schema is Terraform in terraform/. A pull request shows its plan for the environment it targets.
+# A push applies it: main to Development, release/* to Production. Before every apply, CI saves what the
+# plan deletes (role assignments, relationships), because Permit can't undo a delete; when an apply brings
+# a `git revert`, CI puts back what the reverted commit's run saved (ci/permit_snapshot.py, and "What a
+# destructive change costs" in README.md for what it can't do).
+#
+# Needs, in the repository's settings:
+#   secrets   PERMIT_API_KEY_DEV, PERMIT_API_KEY_PROD  environment-level API keys
+#             TF_API_TOKEN                             an HCP Terraform team or user token
+#   variables PERMIT_PROJECT                           the Permit project key
+#             TF_CLOUD_ORGANIZATION                    the HCP Terraform organization, with workspaces
+#                                                      fleet-ops-dev and fleet-ops-prod (local execution)
+#             PERMIT_API_URL (optional)                defaults to https://api.permit.io
+on:
+  pull_request:
+    branches: [main, 'release/**']
+    paths: [terraform/**, ci/**, .github/workflows/terraform.yaml]
+  push:
+    branches: [main, 'release/**']
+    paths: [terraform/**, ci/**, .github/workflows/terraform.yaml]
+
+permissions:
+  contents: read
+
+# One run at a time per environment, whichever branch it comes from (every release/* branch applies to
+# Production), and never cancel an apply half way. GitHub keeps one run waiting per group and cancels an
+# older waiting run when a newer one queues; the newer run applies both pushes, and its restore step
+# looks for reverts in both.
+concurrency:
+  group: terraform-${{ github.event_name }}-${{ (github.base_ref || github.ref_name) == 'main' && 'dev' || 'production' }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+  PERMIT_API_URL: ${{ vars.PERMIT_API_URL || 'https://api.permit.io' }}
+  TF_VAR_permit_api_url: ${{ vars.PERMIT_API_URL || 'https://api.permit.io' }}
+  PERMIT_PROJECT: ${{ vars.PERMIT_PROJECT }}
+
+jobs:
+  plan:
+    name: Terraform plan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TF_WORKSPACE: ${{ github.base_ref == 'main' && 'fleet-ops-dev' || 'fleet-ops-prod' }}
+      TF_VAR_permit_api_key: ${{ github.base_ref == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+    defaults:
+      run:
+        # pipefail: a failed `terraform plan | tee` fails the step instead of posting an empty plan.
+        shell: bash --noprofile --norc -euo pipefail {0}
+        working-directory: terraform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Format
+        run: terraform fmt -check -diff -recursive
+      - name: Init
+        run: terraform init -input=false
+      - name: Validate
+        run: terraform validate
+      - name: Plan
+        run: terraform plan -input=false -no-color -out=tfplan | tee plan.txt
+      - name: Post the plan on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TARGET: ${{ github.base_ref == 'main' && 'Development' || 'Production' }}
+        run: |
+          {
+            echo "#### Terraform plan for **${TARGET}**"
+            echo
+            grep -E '^Plan:|^No changes' plan.txt || true
+            echo
+            echo '```diff'
+            sed -n '/Terraform will perform the following actions/,/^Plan:/p' plan.txt \
+              | sed -e 's/^\(\s*\)~/\1!/' | grep -v '^Plan:' || true
+            echo '```'
+          } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md
+
+  apply:
+    name: Terraform apply
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TF_WORKSPACE: ${{ github.ref_name == 'main' && 'fleet-ops-dev' || 'fleet-ops-prod' }}
+      PERMIT_ENV: ${{ github.ref_name == 'main' && 'dev' || 'production' }}
+      PERMIT_API_KEY: ${{ github.ref_name == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+      TF_VAR_permit_api_key: ${{ github.ref_name == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+      # The file, and the artifact, for what this run's plan deletes. The attempt number keeps a re-run
+      # from colliding with what an earlier attempt kept.
+      SNAPSHOT: snapshot-${{ github.ref_name == 'main' && 'dev' || 'production' }}-${{ github.sha }}-${{ github.run_attempt }}
+    defaults:
+      run:
+        shell: bash --noprofile --norc -euo pipefail {0}
+        working-directory: terraform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # the restore step reads the commits since the last apply
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Init
+        run: terraform init -input=false
+      - name: Plan
+        run: |
+          terraform plan -input=false -no-color -out=tfplan | tee plan.txt
+          terraform show -json tfplan > plan.json
+      - name: Save what this change deletes
+        run: python3 ../ci/permit_snapshot.py save plan.json "../${SNAPSHOT}.json"
+      # Kept even when empty, so a revert can tell "deleted nothing" from "snapshot missing".
+      - name: Keep the snapshot with this run
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.SNAPSHOT }}
+          path: ${{ env.SNAPSHOT }}.json
+          retention-days: 30
+      - name: Apply
+        run: terraform apply -input=false -no-color tfplan
+      - name: Restore what a reverted commit deleted
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # This branch's earlier runs of this workflow, newest first, as "<run id> <commit> <conclusion>".
+          # Only runs on a push to this branch count: a pull request from a fork can upload an artifact
+          # under any name, so a snapshot is never looked up by its name alone. Cancelled runs never ran.
+          workflow=$(basename "${GITHUB_WORKFLOW_REF%@*}")
+          gh api -X GET "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+            -f event=push -f branch="$GITHUB_REF_NAME" -f status=completed -f per_page=100 \
+            --jq '.workflow_runs[] | select(.conclusion != "cancelled") | "\(.id) \(.head_sha) \(.conclusion)"' \
+            > "$RUNNER_TEMP/runs.txt"
+
+          # The schema reverts since the last run that succeeded, which can be more than this push (see
+          # `concurrency` above). A failed run may have stopped before applying or restoring, so its
+          # reverts are looked at again; restoring twice is safe, since restore skips what's already there.
+          since=$(awk '$3 == "success" { print $2; exit }' "$RUNNER_TEMP/runs.txt")
+          if [ -z "$since" ]; then
+            echo "No earlier successful apply from ${GITHUB_REF_NAME}: no run here to restore from."
+            exit 0
+          fi
+          if git merge-base --is-ancestor "$since" HEAD 2>/dev/null; then
+            range="$since..HEAD"
+          else
+            range="HEAD^!" # the branch's history was rewritten since: this commit only
+          fi
+          reverted=$(git log --format=%B "$range" -- . \
+            | { grep -oE 'This reverts commit [0-9a-f]{40}' || true; } | cut -d ' ' -f 4 | sort -u)
+
+          failed=0
+          for sha in $reverted; do
+            # The run that applied a commit is the one that ended on it.
+            runs=$(awk -v sha="$sha" '$2 == sha { print $1 }' "$RUNNER_TEMP/runs.txt")
+            if [ -z "$runs" ]; then
+              echo "::error::Reverts ${sha:0:7}, but no run of this workflow on ${GITHUB_REF_NAME} ended on that commit, so CI can't tell what it deleted. See \"When CI can't restore a revert\" in the README."
+              failed=1
+              continue
+            fi
+            kept=0
+            for run in $runs; do
+              # "<name>:<expired>" for each snapshot that run kept (an artifact name can't contain ":").
+              snapshots=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run}/artifacts" \
+                --jq '.artifacts[] | select(.name | startswith("snapshot-\(env.PERMIT_ENV)-")) | "\(.name):\(.expired)"')
+              for snapshot in $snapshots; do
+                kept=1
+                name=${snapshot%:*}
+                if [ "${snapshot##*:}" = true ]; then
+                  echo "::error::Reverts ${sha:0:7}, but its snapshot ${name} has expired. See \"When CI can't restore a revert\" in the README."
+                  failed=1
+                  continue
+                fi
+                # Into the runner's temporary folder, never the checkout: only the JSON is read, as data.
+                gh run download "$run" --name "$name" --dir "$RUNNER_TEMP/$name"
+                echo "Reverts ${sha:0:7}: restoring from ${name}."
+                python3 ../ci/permit_snapshot.py restore "$RUNNER_TEMP/$name/$name.json" || failed=1
+              done
+            done
+            if [ "$kept" = 0 ]; then
+              # Every run that gets past its save step keeps one, empty or not.
+              echo "::error::Reverts ${sha:0:7}, but the run that applied it kept no snapshot: it stopped before saving one, or the snapshot has expired and been removed. See \"When CI can't restore a revert\" in the README."
+              failed=1
+            fi
+          done
+          exit "$failed"
