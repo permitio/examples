@@ -1,0 +1,157 @@
+name: Terraform
+
+# The schema is Terraform in terraform/. A pull request shows its plan for the environment it targets.
+# A push applies it: main to Development, release/* to Production. Before every apply, CI saves what the
+# plan deletes (role assignments, relationships), because Permit can't undo a delete; when a push is a
+# `git revert`, CI puts back what the reverted commit's run saved (ci/permit_snapshot.py).
+#
+# Needs, in the repository's settings:
+#   secrets   PERMIT_API_KEY_DEV, PERMIT_API_KEY_PROD  environment-level API keys
+#             TF_API_TOKEN                             an HCP Terraform team or user token
+#   variables PERMIT_PROJECT                           the Permit project key
+#             TF_CLOUD_ORGANIZATION                    the HCP Terraform organization, with workspaces
+#                                                      fleet-ops-dev and fleet-ops-prod (local execution)
+#             PERMIT_API_URL (optional)                defaults to https://api.permit.io
+on:
+  pull_request:
+    branches: [main, 'release/**']
+    paths: [terraform/**, ci/**, .github/workflows/terraform.yaml]
+  push:
+    branches: [main, 'release/**']
+    paths: [terraform/**, ci/**, .github/workflows/terraform.yaml]
+
+permissions:
+  contents: read
+
+# One run at a time per environment; never cancel an apply half way.
+concurrency:
+  group: terraform-${{ github.event_name }}-${{ github.base_ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "1"
+  TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+  PERMIT_API_URL: ${{ vars.PERMIT_API_URL || 'https://api.permit.io' }}
+  TF_VAR_permit_api_url: ${{ vars.PERMIT_API_URL || 'https://api.permit.io' }}
+  PERMIT_PROJECT: ${{ vars.PERMIT_PROJECT }}
+
+jobs:
+  plan:
+    name: Terraform plan
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      TF_WORKSPACE: ${{ github.base_ref == 'main' && 'fleet-ops-dev' || 'fleet-ops-prod' }}
+      TF_VAR_permit_api_key: ${{ github.base_ref == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Format
+        run: terraform fmt -check -diff -recursive
+      - name: Init
+        run: terraform init -input=false
+      - name: Validate
+        run: terraform validate
+      - name: Plan
+        run: terraform plan -input=false -no-color -out=tfplan | tee plan.txt
+      - name: Post the plan on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          TARGET: ${{ github.base_ref == 'main' && 'Development' || 'Production' }}
+        run: |
+          {
+            echo "#### Terraform plan for **${TARGET}**"
+            echo
+            grep -E '^Plan:|^No changes' plan.txt || true
+            echo
+            echo '```diff'
+            sed -n '/Terraform will perform the following actions/,/^Plan:/p' plan.txt \
+              | sed -e 's/^\(\s*\)~/\1!/' | grep -v '^Plan:' || true
+            echo '```'
+          } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md
+
+  apply:
+    name: Terraform apply
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TF_WORKSPACE: ${{ github.ref_name == 'main' && 'fleet-ops-dev' || 'fleet-ops-prod' }}
+      PERMIT_ENV: ${{ github.ref_name == 'main' && 'dev' || 'production' }}
+      PERMIT_API_KEY: ${{ github.ref_name == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+      TF_VAR_permit_api_key: ${{ github.ref_name == 'main' && secrets.PERMIT_API_KEY_DEV || secrets.PERMIT_API_KEY_PROD }}
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.13.5
+          terraform_wrapper: false
+      - name: Init
+        run: terraform init -input=false
+      - name: Plan
+        run: |
+          terraform plan -input=false -no-color -out=tfplan | tee plan.txt
+          terraform show -json tfplan > plan.json
+      - name: Save what this change deletes
+        run: python3 ../ci/permit_snapshot.py save plan.json "../snapshot-${PERMIT_ENV}-${GITHUB_SHA}.json"
+      - name: Keep the snapshot with this run
+        if: hashFiles(format('snapshot-{0}-{1}.json', env.PERMIT_ENV, github.sha)) != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: snapshot-${{ env.PERMIT_ENV }}-${{ github.sha }}
+          path: snapshot-${{ env.PERMIT_ENV }}-${{ github.sha }}.json
+          retention-days: 30
+      - name: Apply
+        run: terraform apply -input=false -no-color tfplan
+      - name: Restore what a reverted commit deleted
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Every commit in this push that says "This reverts commit <sha>": restore that commit's snapshot.
+          python3 - "$GITHUB_EVENT_PATH" > ../reverted.txt <<'PY'
+          import json, re, sys
+          event = json.load(open(sys.argv[1]))
+          for c in event.get("commits", []):
+              for sha in re.findall(r"This reverts commit ([0-9a-f]{40})", c["message"]):
+                  print(sha)
+          PY
+          while read -r sha; do
+            name="snapshot-${PERMIT_ENV}-${sha}"
+            id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${name}" --jq '.artifacts[0].id // empty')
+            if [ -z "$id" ]; then
+              echo "Reverts ${sha:0:7}: that change deleted nothing, so there's nothing to restore."
+              continue
+            fi
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "../${name}.zip"
+            unzip -o -q "../${name}.zip" -d ..
+            echo "Reverts ${sha:0:7}: restoring what it deleted."
+            python3 ../ci/permit_snapshot.py restore "../${name}.json"
+          done < ../reverted.txt

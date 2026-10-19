@@ -36,6 +36,11 @@ conditions with the values evaluated, the tenant-isolation verdict and the custo
 repository (`policy/custom.rego`); every allow must also satisfy them. They are configuration, not
 out-of-the-box behavior.
 
+**Policy as code.** [`gitops/`](gitops/) holds the same schema as Terraform, with the CI that plans each
+change on its pull request and applies it on push: `main` to Development, release branches to Production.
+A destructive change and its `git revert` are covered too, data included. See
+[gitops/README.md](gitops/README.md).
+
 ## Run it
 
 You need Docker, Go 1.26 or later, a Permit project with an empty environment, and, for the custom
@@ -198,6 +203,7 @@ filtered by user. The decision record carries `debug.acting_org` (`same_org` or
 | `internal/checks`, `cmd/verify` | The 53 pre-flight checks behind `make verify` |
 | `cmd/apply-policy` | Installs the custom rules in the GitOps branch, restarts the PDP and waits for the new version |
 | `internal/permitapi` | A timeout, retries and paging around every API call |
+| `gitops/` | The schema as Terraform, and the CI for a policy repository: plan on pull requests, apply on push, restore after a revert |
 
 ### Where the SDK is used
 

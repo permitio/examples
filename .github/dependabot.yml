@@ -47,3 +47,9 @@ updates:
         update-types: [minor, patch]
         patterns:
           - '*'
+  - package-ecosystem: terraform
+    directory: /fleet-ops-demo/gitops/terraform
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
