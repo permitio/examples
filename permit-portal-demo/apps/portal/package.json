@@ -13,13 +13,13 @@
     "start": "tsx src/server/index.ts"
   },
   "dependencies": {
-    "@base-ui/react": "1.8.0",
+    "@base-ui/react": "1.9.0",
     "@tailwindcss/vite": "4.3.3",
     "class-variance-authority": "0.7.1",
     "cn": "0.4.0",
-    "express": "5.2.1",
+    "express": "5.3.0",
     "express-rate-limit": "8.7.1",
-    "lucide-react": "1.52.0",
+    "lucide-react": "1.55.0",
     "permitio": "file:../../vendor/permitio-3.0.0-ffe1ccc.tgz",
     "react": "19.3.0",
     "react-dom": "19.3.0",
