@@ -15,15 +15,15 @@
     "build:web": "pnpm --filter @permit-demo/portal run build"
   },
   "devDependencies": {
-    "@oxlint/plugins": "1.87.0",
-    "@types/node": "24.19.1",
+    "@oxlint/plugins": "1.89.0",
+    "@types/node": "24.19.2",
     "@types/supertest": "7.2.1",
-    "oxfmt": "0.72.0",
-    "oxlint": "1.87.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "supertest": "7.3.1",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
-    "vitest": "5.0.3"
+    "vitest": "5.0.5"
   },
   "engines": {
     "node": ">=24 <25"
