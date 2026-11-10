@@ -359,15 +359,18 @@ resource "permitio_condition_set_rule" "allow_strongauth_small_transactions" {
   depends_on   = [permitio_resource_set.Small_Transaction, permitio_user_set.Strong_Auth_Owners]
 }
 
+# A role's users form a user set too, keyed `__autogen_<role key>`. Permit stores a rule given the
+# role's key under that key, and the provider reads a rule back by the key written here, so these
+# rules name the user set itself; with the role's key, every apply would create them again.
 resource "permitio_condition_set_rule" "beneficiary_small_transactions" {
-  user_set     = permitio_role.AccountBeneficiary.key
+  user_set     = "__autogen_${permitio_role.AccountBeneficiary.key}"
   resource_set = permitio_resource_set.Small_Transaction.key
   permission   = "Transaction:create"
   depends_on   = [permitio_resource_set.Small_Transaction, permitio_role.AccountBeneficiary]
 }
 
 resource "permitio_condition_set_rule" "beneficiary_small_wire" {
-  user_set     = permitio_role.AccountBeneficiary.key
+  user_set     = "__autogen_${permitio_role.AccountBeneficiary.key}"
   resource_set = permitio_resource_set.Small_Wire.key
   permission   = "Wire_Transfer:create"
   depends_on   = [permitio_resource_set.Small_Wire, permitio_role.AccountBeneficiary]
