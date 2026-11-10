@@ -87,20 +87,20 @@ Each line that asks Permit carries a `// Permit check:` comment, each line that 
 git grep -n "Permit check" -- src
 ```
 
-| Route                                                    | Permit check                                                                |
-| -------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `GET /api/account/profile/[user]`                        | read on `profile:profile_<user>`                                            |
-| `GET /api/account/dashboard/health-plan/[user]`          | read on `health_plan:health_plan_<user>`                                    |
-| `GET /api/account/dashboard/medical-records/[user]`      | read on `medical_records:medical_records_<user>`                            |
-| `GET`, `POST /api/account/caregiver`                     | write on the member's own `member` instance                                 |
-| `DELETE /api/account/caregiver/<caregiver>/<resource>`   | write on the member's own `member` instance                                 |
-| `POST /api/account/member-groups/assign`, `.../unassign` | assign on the group                                                         |
-| `DELETE /api/account/member-groups`                      | assign on the group                                                         |
-| `POST /api/permissions`                                  | a bulk check of the features the page asked about, for the signed-in member |
+| Route                                                    | Permit check                                                        |
+| -------------------------------------------------------- | ------------------------------------------------------------------- |
+| `GET /api/account/profile/[user]`                        | read on `profile:profile_<user>`                                    |
+| `GET /api/account/dashboard/health-plan/[user]`          | read on `health_plan:health_plan_<user>`                            |
+| `GET /api/account/dashboard/medical-records/[user]`      | read on `medical_records:medical_records_<user>`                    |
+| `GET`, `POST /api/account/caregiver`                     | write on the member's own `member` instance                         |
+| `DELETE /api/account/caregiver/<caregiver>/<resource>`   | write on the member's own `member` instance                         |
+| `POST /api/account/member-groups/assign`, `.../unassign` | assign on the group                                                 |
+| `DELETE /api/account/member-groups`                      | assign on the group                                                 |
+| `POST /api/permissions`                                  | a bulk check of what the page asked about, for the signed-in member |
 
 `GET /api/account/member`, `GET /api/account/member-groups` and `GET /api/allowed-plans` list what Permit's API holds for the signed-in member (their groups, their members and their caregiver roles), and `POST /api/account/member-groups` creates a group with the member as its admin. Without a session every route answers 401; a deny is a 403; when the PDP is down the routes answer 503.
 
-In the browser, `src/components/PermissionsProvider.tsx` uses [permit-fe-sdk](https://github.com/permitio/permit-fe-sdk) to send one bulk check to `POST /api/permissions`, and turns the answers into a [CASL](https://casl.js.org) ability. The dashboard shows each pilot-group card inside `<Can I="view" a="benefits_pg">`.
+In the browser, `src/components/PermissionsProvider.tsx` uses [permit-fe-sdk](https://github.com/permitio/permit-fe-sdk) to send one bulk check to `POST /api/permissions`, and turns the answers into a [CASL](https://casl.js.org) ability. The dashboard shows each pilot-group card inside `<Can I="view" a="benefits_pg">`. Before it loads a member's dashboard, the page also asks `POST /api/permissions` which of the profile, health plan and medical records it may read, and requests only those.
 
 ## Caregiver dates (ABAC)
 
@@ -138,7 +138,43 @@ docker run --rm --entrypoint /app/bin/opa -v "$PWD/policy:/policy:ro" permitio/p
 
 ## Screenshots
 
-Screenshots of each page, taken against a live Permit environment, will be added to `screenshots/`.
+Taken with the demo members against a local Permit environment.
+
+The sign-in page, with the demo members:
+
+![The sign-in page](screenshots/sign-in.png)
+
+Rick's dashboard: his profile, health information and health plan, and the Benefits card of his pilot group:
+
+![Rick's dashboard](screenshots/rick-dashboard.png)
+
+Morty, Rick's caregiver, viewing Rick's dashboard. The pilot-group cards are not shown there:
+
+![Morty viewing Rick's dashboard](screenshots/morty-viewing-rick.png)
+
+Bird Person's own dashboard, with the Alternative Medicine card of his pilot group:
+
+![Bird Person's dashboard](screenshots/birdperson-dashboard.png)
+
+Bird Person viewing Rick's dashboard after Rick shared his medical records with him. The profile card comes from their shared group; the health plan stays hidden:
+
+![Bird Person viewing Rick's dashboard](screenshots/birdperson-viewing-rick.png)
+
+Homer, in no group and no pilot group, sees only his own data, with no plan selector:
+
+![Homer's dashboard](screenshots/homer-dashboard.png)
+
+Rick choosing a member of his groups in the Delegate Permissions wizard:
+
+![The Delegate Permissions wizard](screenshots/rick-delegate-permissions.png)
+
+Rick's Control Access page, with his groups and his caregivers:
+
+![The Control Access page](screenshots/rick-control-access.png)
+
+The sign-up page:
+
+![The sign-up page](screenshots/sign-up.png)
 
 ## Checks
 
@@ -150,3 +186,7 @@ pnpm test
 `pnpm lint` runs oxlint, oxfmt and strict TypeScript; `pnpm fix` applies the fixes oxlint and oxfmt can make. The tests call every API route with a real Better Auth session on an in-memory database, and replace the Permit SDK with a fake (`test/permit-fake.ts`). They also cover the sign-up hook, `setup`'s policy and seed, and the helpers.
 
 CI runs these, a dependency audit, the Rego tests and the Docker build on every push and pull request that changes this folder (`.github/workflows/galactic-health-corporation.yaml`). Install the repository's prek hooks to run the same checks before each commit (see the [repository README](../README.md)).
+
+## License
+
+This folder is licensed under Apache-2.0 (see [LICENSE](LICENSE)), as its original repository was; the rest of this repository is MIT.
