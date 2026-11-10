@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useAccount } from '@/components/AccountContext';
 import { PermitElement } from '@/components/PermitElement';
 import { useTransactions } from '@/components/TransactionsContext';
-import type { Recipient, TransferRefusal } from '@/lib/api-types';
+import type { Recipient, TransferOutcome, TransferRefusal } from '@/lib/api-types';
 import { ELEMENTS } from '@/lib/elements';
 
 interface TransferValues {
@@ -28,18 +28,21 @@ async function sendTransfer(tenant: string, values: TransferValues): Promise<Out
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(values),
   });
-  if (response.ok) return { status: 'sent' };
-  if (response.status !== 403) return { status: 'failed' };
-  const refusal = (await response.json()) as TransferRefusal;
-  switch (refusal.code) {
+  if (response.status === 403) {
+    const refusal = (await response.json()) as TransferRefusal;
+    return refusal.code === 'invalid_code'
+      ? { status: 'editing', needsCode: true, notice: refusal.error }
+      : { status: 'denied' };
+  }
+  if (!response.ok) return { status: 'failed' };
+  const outcome = (await response.json()) as TransferOutcome;
+  switch (outcome.status) {
+    case 'sent':
+      return { status: 'sent' };
     case 'approval_required':
-      return { status: 'approval', transfer: refusal.transfer };
+      return { status: 'approval', transfer: outcome.transfer };
     case 'strong_auth_required':
       return { status: 'editing', needsCode: true };
-    case 'invalid_code':
-      return { status: 'editing', needsCode: true, notice: refusal.error };
-    case 'denied':
-      return { status: 'denied' };
   }
 }
 
@@ -88,12 +91,14 @@ function WireTransfer({ tenant }: { tenant: string }) {
       return <Alert type="error" title="The transfer failed" />;
     case 'approval':
       return (
-        <PermitElement
-          element={ELEMENTS.operationApproval}
-          tenant={tenant}
-          title="Ask for approval"
-          options={{ resourceInstanceKey: outcome.transfer, tenantKey: tenant }}
-        />
+        <div className="h-[60vh]">
+          <PermitElement
+            element={ELEMENTS.operationApproval}
+            tenant={tenant}
+            title="Ask for approval"
+            options={{ resourceInstanceKey: outcome.transfer, tenantKey: tenant }}
+          />
+        </div>
       );
     case 'editing':
       return (
@@ -150,7 +155,6 @@ export function WireTransferModal({ open, onClose }: { open: boolean; onClose: (
       footer={null}
       width={700}
       destroyOnHidden
-      styles={{ body: { minHeight: 320, height: 'calc(100vh - 400px)', overflowY: 'auto' } }}
     >
       {currentTenant === null ? null : <WireTransfer tenant={currentTenant} />}
     </Modal>

@@ -44,6 +44,21 @@ function transfer(body: Record<string, unknown>, tenant = FROM): Request {
   });
 }
 
+/** Answers checks by resource type: `read` on Account, `create` on Wire_Transfer, Transaction. */
+function decide(answers: {
+  account?: boolean;
+  wire?: boolean;
+  transaction?: (strong: boolean) => boolean;
+}) {
+  fakePermit().check.mockImplementation(async (user, _action, resource) => {
+    const type = typeof resource === 'string' ? resource : resource.type;
+    if (type === 'Account') return answers.account ?? true;
+    if (type === 'Wire_Transfer') return answers.wire ?? true;
+    const strong = typeof user !== 'string' && user.attributes?.['strongAuth'] === true;
+    return answers.transaction?.(strong) ?? true;
+  });
+}
+
 const SMALL = { to: TO, amount: 250, description: 'Groceries' };
 const LARGE = { to: TO, amount: 5000, description: 'Car' };
 
@@ -170,21 +185,29 @@ describe('POST /account/api/transactions', () => {
 
   it('records an allowed transfer as a Transaction with its Sender and Receiver', async () => {
     const permit = fakePermit();
-    permit.check.mockResolvedValue(true);
+    decide({});
 
     const response = await POST(transfer(SMALL));
 
     expect(response.status).toBe(200);
-    const { transaction } = (await response.json()) as { transaction: Record<string, unknown> };
+    const { status, transaction } = (await response.json()) as {
+      status: string;
+      transaction: Record<string, unknown>;
+    };
+    expect(status).toBe('sent');
     expect(transaction).toMatchObject({ ...SMALL, currency: '£' });
     const id = String(transaction['id']);
-    expect(permit.check).toHaveBeenNthCalledWith(1, DAVE, 'create', {
+    expect(permit.check).toHaveBeenNthCalledWith(1, DAVE, 'read', {
+      type: 'Account',
+      tenant: FROM,
+    });
+    expect(permit.check).toHaveBeenNthCalledWith(2, DAVE, 'create', {
       type: 'Wire_Transfer',
       tenant: FROM,
       attributes: transaction,
     });
     expect(permit.check).toHaveBeenNthCalledWith(
-      2,
+      3,
       { key: DAVE, attributes: { strongAuth: false, location: 'FR' } },
       'create',
       { type: 'Transaction', tenant: FROM, attributes: transaction },
@@ -209,16 +232,28 @@ describe('POST /account/api/transactions', () => {
     });
   });
 
-  it('starts an operation approval when the wire transfer is denied', async () => {
+  it('refuses a user outside the account without starting an approval', async () => {
     const permit = fakePermit();
-    permit.check.mockResolvedValue(false);
+    decide({ account: false, wire: false });
 
     const response = await POST(transfer({ ...LARGE, to: 'bob-mesaverde-example' }, TO));
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as { code: string; transfer: string };
-    expect(body.code).toBe('approval_required');
-    expect(permit.check).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual({ code: 'denied' });
+    expect(permit.api.resourceInstances.create).not.toHaveBeenCalled();
+    expect(permit.api.roleAssignments.assign).not.toHaveBeenCalled();
+  });
+
+  it('starts an operation approval when the wire transfer is denied', async () => {
+    const permit = fakePermit();
+    decide({ wire: false });
+
+    const response = await POST(transfer({ ...LARGE, to: 'bob-mesaverde-example' }, TO));
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; transfer: string };
+    expect(body.status).toBe('approval_required');
+    expect(permit.check).toHaveBeenCalledTimes(2);
     expect(permit.api.resourceInstances.create).toHaveBeenCalledWith(
       expect.objectContaining({ resource: 'Wire_Transfer', key: body.transfer, tenant: TO }),
     );
@@ -233,14 +268,11 @@ describe('POST /account/api/transactions', () => {
   it('asks for a one-time code, then accepts the transfer with it, once', async () => {
     const permit = fakePermit();
     // Wire transfer allowed; the Transaction only with strong authentication.
-    permit.check.mockImplementation(async (user, _action, resource) => {
-      if (typeof resource === 'string' || resource.type === 'Wire_Transfer') return true;
-      return typeof user !== 'string' && user.attributes?.['strongAuth'] === true;
-    });
+    decide({ transaction: (strong) => strong });
 
     const first = await POST(transfer(LARGE));
-    expect(first.status).toBe(403);
-    expect(await first.json()).toEqual({ code: 'strong_auth_required' });
+    expect(first.status).toBe(200);
+    expect(await first.json()).toEqual({ status: 'strong_auth_required' });
     expect(permit.api.resourceInstances.create).not.toHaveBeenCalled();
     const code = lastCode();
 
@@ -259,7 +291,7 @@ describe('POST /account/api/transactions', () => {
 
   it('refuses a wrong code without asking Permit', async () => {
     const permit = fakePermit();
-    permit.check.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    decide({ transaction: () => false });
     await POST(transfer(LARGE));
     const wrong = lastCode() === '000000' ? '111111' : '000000';
 
@@ -267,14 +299,12 @@ describe('POST /account/api/transactions', () => {
 
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ code: 'invalid_code' });
-    expect(permit.check).toHaveBeenCalledTimes(2);
+    expect(permit.check).toHaveBeenCalledTimes(3);
   });
 
   it('answers denied when the transfer is refused even with a valid code', async () => {
-    const permit = fakePermit();
-    permit.check.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    decide({ transaction: () => false });
     await POST(transfer(LARGE));
-    permit.check.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
 
     const response = await POST(transfer({ ...LARGE, otp: lastCode() }));
 

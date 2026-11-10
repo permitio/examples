@@ -51,7 +51,8 @@ const transferRequest = z.object({
 });
 
 /**
- * A wire transfer from an account (`?tenant=`), checked in two steps:
+ * A wire transfer from an account (`?tenant=`), checked in two steps, for users who may `read` the
+ * account (anyone else gets `denied`, so they cannot ask its owner for approvals):
  *
  * 1. `create` on Wire_Transfer, with the transfer as resource attributes. Account owners may send any
  *    amount, beneficiaries up to 1,000. When it is denied, the app starts an operation approval and
@@ -61,6 +62,9 @@ const transferRequest = z.object({
  *    may send any amount; other owners up to 1,000. When it is denied, the app sends a code (to the
  *    log) and answers `strong_auth_required`; the client asks for the code and sends the transfer
  *    again with it.
+ *
+ * Both next steps are part of the flow, so they answer 200 with a `status`, like a sent transfer
+ * (`sent`). A refusal (`denied`, or a wrong code) answers 403 with a `code`.
  */
 export async function POST(request: Request): Promise<Response> {
   const user = await getSessionUser(request.headers);
@@ -87,7 +91,9 @@ export async function POST(request: Request): Promise<Response> {
       to,
     };
     const permit = getPermit();
-    const [wireAllowed, owner] = await Promise.all([
+    const [readable, wireAllowed, owner] = await Promise.all([
+      // Permit check: is the user in this account at all? Others may not ask for approvals.
+      permit.check(user.email, 'read', { type: 'Account', tenant }),
       // Permit check: may the user send this wire transfer (RBAC, and ABAC on the amount)?
       permit.check(user.email, 'create', {
         type: 'Wire_Transfer',
@@ -96,11 +102,12 @@ export async function POST(request: Request): Promise<Response> {
       }),
       getAccountOwner(tenant),
     ]);
+    if (!readable) return forbidden({ code: 'denied' });
     if (owner === undefined) return json({ error: 'This account has no owner' }, 404);
 
     if (!wireAllowed) {
       await requestWireApproval(transfer, tenant, owner.key);
-      return forbidden({ code: 'approval_required', transfer: transfer.id });
+      return json({ status: 'approval_required', transfer: transfer.id });
     }
 
     const location = findCustomer(getDatabase(), user.email)?.location;
@@ -119,11 +126,11 @@ export async function POST(request: Request): Promise<Response> {
     if (!transactionAllowed) {
       if (otp !== undefined) return forbidden({ code: 'denied' });
       await sendTransferCode(user.email);
-      return forbidden({ code: 'strong_auth_required' });
+      return json({ status: 'strong_auth_required' });
     }
 
     await recordTransaction(transfer, tenant, owner.key);
-    return json({ transaction: transfer });
+    return json({ status: 'sent', transaction: transfer });
   } catch (error) {
     return permitFailed('transactions', error);
   }

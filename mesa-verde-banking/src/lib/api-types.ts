@@ -27,12 +27,17 @@ export interface TransactionRow {
   direction: 'out' | 'in';
 }
 
+/**
+ * What happened to a wire transfer the API accepted (HTTP 200): sent, or waiting for a next step,
+ * the way payment APIs answer "requires action" for a step-up.
+ */
+export type TransferOutcome =
+  | { status: 'sent'; transaction: Omit<TransactionRow, 'direction'> & { to: string } }
+  | { status: 'approval_required'; transfer: string }
+  | { status: 'strong_auth_required' };
+
 /** Why a wire transfer was refused, in the `code` of a 403 answer. */
-export type TransferRefusal =
-  | { code: 'approval_required'; transfer: string }
-  | { code: 'strong_auth_required' }
-  | { code: 'invalid_code'; error: string }
-  | { code: 'denied' };
+export type TransferRefusal = { code: 'invalid_code'; error: string } | { code: 'denied' };
 
 /** What the browser needs to show Permit Elements; null when Permit could not be reached. */
 export interface ElementsConfig {
