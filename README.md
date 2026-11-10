@@ -4,9 +4,10 @@ Runnable applications that use [Permit.io](https://www.permit.io) for authorizat
 lives in its own folder, with a README that explains how to run it and a CI workflow that runs only
 when that folder changes.
 
-| Example                                    | What it shows                                                                         | Stack                                         |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------- |
-| [permit-portal-demo](permit-portal-demo)   | A business portal whose every protected action asks Permit first, with five scenarios | TypeScript, Express, React, Docker, local PDP |
+| Example                                                    | What it shows                                                                                        | Stack                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [galactic-health-corporation](galactic-health-corporation) | A healthcare portal with RBAC pilot groups, ReBAC caregivers and member groups, and ABAC date bounds | Next.js, MUI, permitio, permit-fe-sdk + CASL, Better Auth, local PDP |
+| [permit-portal-demo](permit-portal-demo)                   | A business portal whose every protected action asks Permit first, with five scenarios                | TypeScript, Express, React, Docker, local PDP                        |
 
 ## Checks
 
