@@ -1,0 +1,10 @@
+engineStrict: true
+ignoreScripts: true
+minimumReleaseAge: 10080
+pmOnFail: error
+savePrefix: ''
+autoInstallPeers: false
+overrides:
+  # permit-fe-sdk 1.7.2 asks for axios ^0.30.0, which has open advisories. It calls only
+  # axios.get and axios.post, which work the same in the axios 1.x that permitio already uses.
+  permit-fe-sdk>axios: 1.21.0
