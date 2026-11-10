@@ -152,6 +152,34 @@ describe('POST /orders', () => {
     });
   });
 
+  it('replaces an Order instance left in Permit from before a data reset (409)', async () => {
+    permit.api.resourceInstances.create.mockRejectedValueOnce(apiError(409));
+
+    const reply = await server.post('/orders', pizza);
+
+    expect(reply.status).toBe(201);
+    expect(permit.api.resourceInstances.delete).toHaveBeenCalledWith('Order:1');
+    expect(permit.api.resourceInstances.create).toHaveBeenCalledTimes(2);
+    expect(permit.api.resourceInstances.delete.mock.invocationCallOrder[0]).toBeLessThan(
+      permit.api.roleAssignments.assign.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(order(1)).toBeDefined();
+  });
+
+  it('answers 502 and saves no order when the leftover instance cannot be deleted', async () => {
+    permit.api.resourceInstances.create.mockRejectedValueOnce(apiError(409));
+    permit.api.resourceInstances.delete.mockRejectedValue(apiError(500));
+
+    const reply = await server.post('/orders', pizza);
+
+    expect(reply).toMatchObject({
+      status: 502,
+      body: { message: 'Permit could not create order 1 (Permit answered 500).' },
+    });
+    expect(permit.api.roleAssignments.assign).not.toHaveBeenCalled();
+    expect(readStore().orders).toEqual([]);
+  });
+
   it('answers 502 and saves no order when Permit cannot assign the vendor', async () => {
     permit.api.roleAssignments.assign.mockRejectedValue(apiError(404));
 

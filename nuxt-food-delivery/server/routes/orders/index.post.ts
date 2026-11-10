@@ -1,6 +1,13 @@
 import { createError, defineEventHandler, readBody, setResponseStatus } from 'h3';
 import { DELIVERY_FEE, type MealInOrder, type Order } from '#shared/types';
-import { authorize, callerOf, dropInstances, isAllowed, permitWrite } from '#server/utils/api';
+import {
+  authorize,
+  callerOf,
+  dropInstances,
+  isAllowed,
+  permitStatus,
+  permitWrite,
+} from '#server/utils/api';
 import { permit } from '#server/utils/permit';
 import { MAX_ORDERS_PER_CITY, readStore, trimCity, updateStore } from '#server/utils/store';
 import { parseNewOrder } from '#server/utils/validate';
@@ -40,11 +47,22 @@ export default defineEventHandler(async (event): Promise<{ id: number; deliveryF
 
   const id = updateStore((data) => data.nextOrderId++);
   const key = String(id);
-  await permitWrite(`create order ${key}`, () =>
-    // Permit write: registers the order as an Order instance in the caller's city. The cost is
-    // not stored on it: see README.md, "Where the app asks Permit".
-    permit().api.resourceInstances.create({ key, resource: 'Order', tenant }),
-  );
+  const { api } = permit();
+  // Permit write: registers the order as an Order instance in the caller's city. The cost is not
+  // stored on it: see README.md, "Where the app asks Permit".
+  const register = () => api.resourceInstances.create({ key, resource: 'Order', tenant });
+  await permitWrite(`create order ${key}`, async () => {
+    try {
+      await register();
+    } catch (error) {
+      if (permitStatus(error) !== 409) throw error;
+      // The app's data was reset (a new volume or .data folder), so its order numbers start over,
+      // and Permit still holds an instance from an earlier order with this number. Permit write:
+      // deletes it, with the instance roles that belonged to that order, and registers it afresh.
+      await api.resourceInstances.delete(`Order:${key}`);
+      await register();
+    }
+  });
   await permitWrite(`make ${vendor} the vendor of order ${key}`, () =>
     // Permit write: gives the meals' vendor Order#Vendor on this order, so they may fulfill it
     // (ReBAC).
