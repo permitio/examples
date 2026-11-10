@@ -60,6 +60,8 @@ When the account owner approves or denies a transfer in Approval Management, Per
 - Without it (the default), approvals work in the Elements, but the app does not hear of them, and an approved transfer does not show in the transactions.
 - With it, set `PUBLIC_URL` to a URL Permit can reach the app at (for example `ngrok http 3000`) and `WEBHOOK_SECRET` to a long random value (`openssl rand -hex 32`), then run setup again (`docker compose up --build`). Setup registers `<PUBLIC_URL>/account/webhook` with the secret as its bearer token, and the app accepts only requests that carry it.
 
+Setup cannot remove a webhook it registered on an earlier run (an environment API key may not delete webhooks). If you unset `PUBLIC_URL`, setup says so, and the app answers the webhook's calls with 404; remove it in Permit's Elements settings to stop them.
+
 ### Permit Elements
 
 The Elements are iframes that `@permitio/permit-js` logs in to through the app's `/account/api/elements-login` route. By default they load from Permit's cloud (`https://embed.permit.io`). For another Permit deployment, set `PERMIT_ELEMENTS_URL` to where it serves the Elements, and `PERMIT_ELEMENTS_API_URL` to its API URL as the browser reaches it (for example `http://localhost:8000` when `PERMIT_API_URL` is `http://host.docker.internal:8000`). When the Elements cannot load, the rest of the app still works.
@@ -88,12 +90,14 @@ git grep -n "Permit check\|Permit write" src
 | `GET /account/api/tenants/all`                    | Lists the accounts a transfer can go to                                             |
 | `GET /account/api/balance?tenant=`                | `read` on `Account`                                                                 |
 | `GET /account/api/transactions?tenant=`           | `list` on `Transaction`, then the owner's `Transaction` instances                   |
-| `POST /account/api/transactions?tenant=`          | `create` on `Wire_Transfer`, then on `Transaction`; records the transaction         |
+| `POST /account/api/transactions?tenant=`          | `read` on `Account`, `create` on `Wire_Transfer`, then on `Transaction`; records it |
 | `POST /account/api/frontend-permissions/[tenant]` | The UI's bulk check, for `permit-fe-sdk`                                            |
 | `GET /account/api/elements-login?tenant=`         | An Elements login for the user in the account                                       |
 | `POST /account/webhook`                           | Records an approved transfer, or deletes a denied one                               |
 
-Every API route answers 401 without a Better Auth session, and 502 when Permit cannot be reached.
+Every API route answers 401 without a Better Auth session, and 502 when Permit cannot be reached. A wire transfer answers 200 with a `status`: `sent`, or the next step, `approval_required` or `strong_auth_required` (the way payment APIs answer "requires action"). It answers 403 with a `code` when it is refused: `denied`, or `invalid_code` for a wrong or used one-time code.
+
+Better Auth allows three sign-ins from one address until it has been idle for 10 seconds, so wait a moment between switching demo users quickly.
 
 ## Files
 
@@ -107,7 +111,35 @@ Every API route answers 401 without a Better Auth session, and 502 when Permit c
 
 ## Screenshots
 
-Screenshots of each page are in [`screenshots/`](screenshots).
+Taken against a local Permit, at 1440×900.
+
+The sign-in page, with the demo users:
+
+![Sign-in page](screenshots/sign-in.png)
+
+Opening an account:
+
+![Open an account](screenshots/open-an-account.png)
+
+Alice, the owner, sees every action on the account:
+
+![Owner's account](screenshots/owner-account.png)
+
+Bob, a beneficiary of Alice's account, can send transfers and manage members, but not review transfers:
+
+![Beneficiary in Alice's account](screenshots/beneficiary-account.png)
+
+Carol, a member of Alice's account, sees the balance and can ask for access to the transactions:
+
+![Member in Alice's account](screenshots/member-account.png)
+
+Dave signs in from abroad, so a £5,000 transfer asks for a one-time code:
+
+![One-time code](screenshots/traveler-one-time-code.png)
+
+With the code, the transfer goes through:
+
+![Dave's transactions](screenshots/traveler-transactions.png)
 
 ## Checks
 
@@ -121,3 +153,7 @@ pnpm test
 `pnpm fix` applies the fixes both tools can make. Comments wrap at 100 columns: oxfmt rewraps JSDoc comments, and a local oxlint rule, `tools/comment-width.ts`, rewraps `//` comments.
 
 The tests run each API route against a real Better Auth with an in-memory database, and replace the Permit SDK's client with a fake. CI runs them, a dependency audit, a Terraform format and validate check of `main.tf`, and both Docker builds, on every push and pull request that changes this folder (`.github/workflows/mesa-verde-banking.yaml`). Install the repository's prek hooks to run the same checks before each commit (see the [repository README](../README.md)).
+
+## License
+
+MIT. The app started from a Stytch example and includes its code; the copyright notice is in [LICENSE](LICENSE).
