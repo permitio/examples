@@ -13,7 +13,9 @@ overrides:
   readdir-glob>minimatch: 11.0.4
 auditConfig:
   ignoreGhsas:
-    # deepmerge <=4.3.1 (GHSA-gcqx-w48m-w2h4) has no fixed release. It comes in through Nitro's
-    # @rollup/plugin-node-resolve 16.0.3, whose only call merges the plugin's own default options
-    # at build time; no request data reaches it. Remove this entry when a fixed deepmerge ships.
+    # GHSA-gcqx-w48m-w2h4: deepmerge 4.2.0-4.3.1, prototype poisoning, no fixed release. Path:
+    # nuxt > @nuxt/nitro-server > nitropack > @rollup/plugin-node-resolve 16.0.3 > deepmerge 4.3.1.
+    # It cannot be reached: the plugin runs at build time only, its one call merges its own
+    # constant default options, and deepmerge is not in the server bundle (.output). Remove this
+    # entry when deepmerge or @rollup/plugin-node-resolve ships a fix.
     - GHSA-gcqx-w48m-w2h4

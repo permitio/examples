@@ -50,13 +50,13 @@ updates:
       # vue-tsc (nuxt typecheck) needs TypeScript below 7.
       - dependency-name: typescript
         update-types: [version-update:semver-major]
-      # PrimeVue 5, its themes 3 and its icons 8 need a commercial license key; the example stays on
-      # the MIT-licensed PrimeVue 4 line.
+      # PrimeVue 5+ is not MIT: it and its themes and icons ship under the commercial PrimeUI
+      # License, which needs a license key. The example stays on the MIT-licensed PrimeVue 4 line.
       - dependency-name: primevue
         update-types: [version-update:semver-major]
       - dependency-name: '@primevue/*'
         update-types: [version-update:semver-major]
-      - dependency-name: '@primeuix/themes'
+      - dependency-name: '@primeuix/*'
         update-types: [version-update:semver-major]
       - dependency-name: primeicons
         update-types: [version-update:semver-major]
