@@ -108,11 +108,47 @@ The guide builds the same model by hand in the Permit dashboard. Its RBAC step g
 
 ## Data
 
-The app keeps meals and orders in a JSON file (`server/utils/store.ts`), standing in for a database, and starts with the demo menu. Permit holds only what it decides on: each meal and order as a resource instance with its city, and who holds which role. Each city keeps its newest 10 meals and 50 orders; the app removes older ones from Permit too.
+The app keeps meals and orders in a JSON file (`server/utils/store.ts`), standing in for a database, and starts with the demo menu. Permit holds only what it decides on: each meal and order as a resource instance with its city, and who holds which role. Each city keeps its newest 10 meals and 50 orders; the app removes older ones from Permit too. Order numbers start again at 1 when the data is reset (`docker compose down -v`); if Permit still holds an order instance with that number, the app deletes it, with the roles on it, before registering the new order.
 
 ## Screenshots
 
-`screenshots/` holds a screenshot of each page.
+Taken against a local Permit environment set up by the setup service.
+
+`customer1` in California with the Party pizza box in the cart. The cart previews free delivery; Permit decides it when the order is placed (ABAC on the order's cost).
+
+![Cart with free delivery](screenshots/customer-cart-free-delivery.png)
+
+The Orders tab lists every order in the city, with its delivery fee and progress.
+
+![Customer orders](screenshots/customer-orders.png)
+
+`vendor2` presses **Fulfill** on an order of `vendor1`'s pizza: Permit denies it (ReBAC: `vendor2` is not the order's `Vendor`).
+
+![Vendor denied fulfilling another vendor's order](screenshots/vendor-fulfill-denied.png)
+
+`vendor1`'s menu tab, where vendors and admins create and remove meals (RBAC).
+
+![Vendor meals](screenshots/vendor-meals.png)
+
+`rider1`, assigned to a free-delivery order, presses **Deliver**: Permit denies it, because `rider1` has 120 rides and free orders need 500 (ABAC).
+
+![Rider denied a free order](screenshots/rider-free-order-denied.png)
+
+`rider2`, with 650 rides, delivers the free order assigned to them (ReBAC and ABAC).
+
+![Rider delivers a free order](screenshots/rider-delivered.png)
+
+`admin1` sees every order in the city, with the form to assign a rider.
+
+![Admin orders](screenshots/admin-orders.png)
+
+The **Manage** dialog, which stands in for sign-in: grant or revoke a role in a city, with the number of rides for a rider.
+
+![Manage user dialog](screenshots/manage-user-dialog.png)
+
+`customer1` switched to Washington, where they have no role: the menu does not load (multitenancy).
+
+![Customer with no role in Washington](screenshots/customer-no-role-in-washington.png)
 
 ## Dependencies
 
