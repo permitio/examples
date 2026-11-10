@@ -1,0 +1,44 @@
+name: pink-mobile
+services:
+  pdp:
+    image: permitio/pdp-v2:0.9.16
+    environment:
+      PDP_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PDP_CONTROL_PLANE: ${PERMIT_API_URL:-https://api.permit.io}
+      PDP_DEBUG: ${PDP_DEBUG:-True}
+    # Lets PERMIT_API_URL point at a Permit backend on the host: http://host.docker.internal:8000.
+    extra_hosts: ['host.docker.internal:host-gateway']
+    ports: ['${PDP_PORT:-7766}:7000']
+    healthcheck:
+      # /healthy answers 200 once the PDP has loaded the environment's policy and data.
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:7000/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # Creates the policy and the demo data in your Permit environment, then exits. Safe to re-run.
+  setup:
+    build: .
+    command: ['node', 'scripts/setup.ts']
+    environment:
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+      PERMIT_PDP_URL: http://pdp:7000
+    extra_hosts: ['host.docker.internal:host-gateway']
+    restart: 'no'
+
+  app:
+    build: .
+    environment:
+      PORT: '3000'
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+      PERMIT_PDP_URL: http://pdp:7000
+    extra_hosts: ['host.docker.internal:host-gateway']
+    ports: ['${APP_PORT:-3000}:3000']
+    depends_on:
+      pdp:
+        condition: service_healthy
+      setup:
+        condition: service_completed_successfully
