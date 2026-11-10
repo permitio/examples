@@ -45,11 +45,22 @@ export type Abilities = Record<Feature, boolean>;
 
 const FEATURES = Object.keys(PERMISSIONS) as Feature[];
 
-/** Abilities, or null while they load or when they could not be loaded. */
-const AbilityContext = createContext<Abilities | null>(null);
+/** The user's abilities in the current account, while they load, or why they did not load. */
+export type AbilityState =
+  | { status: 'loading' }
+  | { status: 'loaded'; abilities: Abilities }
+  | { status: 'failed' };
 
-export function useAbilities(): Abilities | null {
+const AbilityContext = createContext<AbilityState>({ status: 'loading' });
+
+export function useAbilityState(): AbilityState {
   return useContext(AbilityContext);
+}
+
+/** The abilities once they have loaded, or null. */
+export function useAbilities(): Abilities | null {
+  const state = useContext(AbilityContext);
+  return state.status === 'loaded' ? state.abilities : null;
 }
 
 /**
@@ -58,11 +69,14 @@ export function useAbilities(): Abilities | null {
  */
 export function AbilityProvider({ children }: { children: ReactNode }) {
   const { user, currentTenant } = useAccount();
-  const [abilities, setAbilities] = useState<{ tenant: string; value: Abilities } | null>(null);
+  const [result, setResult] = useState<{ tenant: string; state: AbilityState } | null>(null);
 
   useEffect(() => {
     if (currentTenant === null) return undefined;
     let cancelled = false;
+    const settle = (state: AbilityState) => {
+      if (!cancelled) setResult({ tenant: currentTenant, state });
+    };
     const permit = Permit({
       loggedInUser: user.email,
       backendUrl: `/account/api/frontend-permissions/${encodeURIComponent(currentTenant)}`,
@@ -72,8 +86,7 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
     const statements = FEATURES.map((feature) => PERMISSIONS[feature]);
     permit.loadLocalStateBulk(statements).then(
       () => {
-        if (cancelled) return;
-        const value = Object.fromEntries(
+        const abilities = Object.fromEntries(
           FEATURES.map((feature) => {
             const { action, resource, resourceAttributes } = PERMISSIONS[feature];
             // At runtime the third argument is the resource attributes; the SDK's typings call
@@ -81,17 +94,16 @@ export function AbilityProvider({ children }: { children: ReactNode }) {
             return [feature, permit.check(action, resource, resourceAttributes)];
           }),
         ) as Abilities;
-        setAbilities({ tenant: currentTenant, value });
+        settle({ status: 'loaded', abilities });
       },
-      (error: unknown) => {
-        console.warn('Could not load the UI permissions', error);
-      },
+      () => settle({ status: 'failed' }),
     );
     return () => {
       cancelled = true;
     };
   }, [user.email, currentTenant]);
 
-  const value = abilities !== null && abilities.tenant === currentTenant ? abilities.value : null;
-  return <AbilityContext value={value}>{children}</AbilityContext>;
+  const state: AbilityState =
+    result !== null && result.tenant === currentTenant ? result.state : { status: 'loading' };
+  return <AbilityContext value={state}>{children}</AbilityContext>;
 }

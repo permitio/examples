@@ -3,6 +3,7 @@
 import { Empty, Skeleton, Table, type TableColumnsType } from 'antd';
 import { useTransactions } from '@/components/TransactionsContext';
 import type { TransactionRow } from '@/lib/api-types';
+import { formatMoney } from '@/lib/format';
 
 const columns: TableColumnsType<TransactionRow> = [
   {
@@ -17,7 +18,7 @@ const columns: TableColumnsType<TransactionRow> = [
     key: 'amount',
     align: 'right',
     render: (_: unknown, { amount, currency, direction }: TransactionRow) =>
-      `${direction === 'out' ? '-' : '+'}${currency}${amount.toFixed(2)}`,
+      `${direction === 'out' ? '-' : '+'}${formatMoney(currency, amount)}`,
   },
 ];
 
