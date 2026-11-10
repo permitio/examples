@@ -1,0 +1,169 @@
+name: mesa-verde-banking
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mesa-verde-banking/**'
+      - '.github/workflows/mesa-verde-banking.yaml'
+  pull_request:
+    paths:
+      - 'mesa-verde-banking/**'
+      - '.github/workflows/mesa-verde-banking.yaml'
+
+concurrency:
+  # A new push to a PR cancels that PR's superseded run. Pushes to main get a
+  # group per commit, so no merge's run is cancelled or replaced while queued.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+    working-directory: mesa-verde-banking
+
+jobs:
+  audit:
+    name: Locked dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: mesa-verde-banking/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: mesa-verde-banking/.nvmrc
+          package-manager-cache: false
+      - name: Audit the lockfile before installing anything
+        run: pnpm audit --audit-level=low
+
+  lint:
+    name: Lint and format
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: mesa-verde-banking/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: mesa-verde-banking/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run oxlint and oxfmt
+        run: pnpm lint:oxlint && pnpm lint:format
+
+  types:
+    name: Strict types
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: mesa-verde-banking/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: mesa-verde-banking/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      # next typegen writes the route types tsc checks against.
+      - name: Run tsc
+        run: pnpm lint:types
+
+  test:
+    name: Tests
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: mesa-verde-banking/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: mesa-verde-banking/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run vitest
+        run: pnpm test
+
+  terraform:
+    name: Terraform schema
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The same pinned image the setup service copies Terraform from.
+      - name: Check formatting and validate main.tf against the locked provider
+        run: |
+          terraform() {
+            docker run --rm --volume "$PWD:/w" --workdir /w hashicorp/terraform:1.17.1 "$@"
+          }
+          terraform fmt -check -diff
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate
+
+  images:
+    name: Docker images
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # One Dockerfile, two targets: the app also builds the Next.js bundle, and setup installs
+      # Terraform with the Permit provider.
+      - name: Build both images from the Compose file's Dockerfile
+        run: |
+          docker build --target app --tag mesa-verde-banking/app:ci .
+          docker build --target setup --tag mesa-verde-banking/setup:ci .
