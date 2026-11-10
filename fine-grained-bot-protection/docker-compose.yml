@@ -1,0 +1,39 @@
+name: fine-grained-bot-protection
+services:
+  # Permit's policy decision point, connected to the environment PERMIT_API_KEY belongs to.
+  pdp:
+    image: permitio/pdp-v2:0.9.16
+    environment:
+      PDP_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PDP_CONTROL_PLANE: ${PERMIT_API_URL:-https://api.permit.io}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    ports: ['${PDP_PORT:-7766}:7000']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:7000/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+  # Writes the policy to the environment once, then exits. Safe to run again.
+  setup:
+    build: .
+    command: ['node', 'src/setup.ts']
+    environment:
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    restart: 'no'
+  app:
+    build: .
+    environment:
+      PORT: '3000'
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_PDP_URL: http://pdp:7000
+      ARCJET_KEY: ${ARCJET_KEY:-}
+      ARCJET_ENV: ${ARCJET_ENV:-development}
+    ports: ['${APP_PORT:-3000}:3000']
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      pdp:
+        condition: service_healthy
