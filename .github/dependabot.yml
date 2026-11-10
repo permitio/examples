@@ -11,7 +11,8 @@ updates:
       github-actions:
         patterns:
           - '*'
-  # One entry per example. permitio is vendored from a tarball, which Dependabot leaves alone.
+  # One entry per example. The portal demo's permitio is vendored from a tarball, which Dependabot
+  # leaves alone.
   - package-ecosystem: npm
     versioning-strategy: increase
     directory: /permit-portal-demo
@@ -22,6 +23,29 @@ updates:
       semver-major-days: 14
     ignore:
       # The demo runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /pink-mobile
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
       - dependency-name: '@types/node'
         update-types: [version-update:semver-major]
     groups:
