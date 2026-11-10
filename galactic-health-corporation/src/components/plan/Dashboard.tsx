@@ -7,7 +7,7 @@ import { Fragment, type ReactNode, useEffect, useState } from 'react';
 import { PlanDropdown } from '@/components/plans/PlanDropdown';
 import { type UserResource, useUserContext } from '@/contexts/UserContext';
 import type { HealthPlan, MedicalRecords } from '@/lib/demo-data';
-import type { Person } from '@/lib/resources';
+import { instanceOf, type Person } from '@/lib/resources';
 
 /** Right after sign-up the PDP may not have the new member's data yet; retry this many times. */
 const OWN_DASHBOARD_RETRIES = 5;
@@ -36,21 +36,47 @@ interface DashboardData {
   medicalRecords: MedicalRecords | null;
 }
 
-/** A JSON response, or null when Permit denied it (403) or the request failed. */
-async function fetchAllowed<T>(url: string, signal: AbortSignal): Promise<T | null> {
+const CARD_RESOURCES = ['profile', 'health_plan', 'medical_records'] as const;
+
+/**
+ * Which of the member's profile, health plan and medical records the signed-in member may read.
+ *
+ * Permit check: one bulk check through `POST /api/permissions`, so the page requests only the cards
+ * it may show. Each card's route checks again before it answers.
+ */
+async function readableCards(userId: string, signal: AbortSignal): Promise<boolean[]> {
+  const response = await fetch('/api/permissions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      resourcesAndActions: CARD_RESOURCES.map((type) => ({
+        action: 'read',
+        resource: instanceOf(type, userId),
+      })),
+    }),
+    signal,
+  });
+  if (!response.ok) throw new Error(`/api/permissions answered ${response.status}`);
+  return ((await response.json()) as { permittedList: boolean[] }).permittedList;
+}
+
+/** A JSON response, or null when the request failed (Permit may have changed its answer since). */
+async function fetchCard<T>(allowed: boolean | undefined, url: string, signal: AbortSignal) {
+  if (allowed !== true) return null;
   const response = await fetch(url, { signal });
   if (response.ok) return (await response.json()) as T;
-  if (response.status !== 403) console.error(`${url} answered ${response.status}`);
+  console.error(`${url} answered ${response.status}`);
   return null;
 }
 
 async function fetchDashboard(userId: string, signal: AbortSignal): Promise<DashboardData> {
-  const [profile, healthPlan, medicalRecords] = await Promise.all([
-    fetchAllowed<Person>(`/api/account/profile/${userId}`, signal),
-    fetchAllowed<HealthPlan>(`/api/account/dashboard/health-plan/${userId}`, signal),
-    fetchAllowed<MedicalRecords>(`/api/account/dashboard/medical-records/${userId}`, signal),
+  const [profile, plan, records] = await readableCards(userId, signal);
+  const [profileCard, healthPlan, medicalRecords] = await Promise.all([
+    fetchCard<Person>(profile, `/api/account/profile/${userId}`, signal),
+    fetchCard<HealthPlan>(plan, `/api/account/dashboard/health-plan/${userId}`, signal),
+    fetchCard<MedicalRecords>(records, `/api/account/dashboard/medical-records/${userId}`, signal),
   ]);
-  return { profile, healthPlan, medicalRecords };
+  return { profile: profileCard, healthPlan, medicalRecords };
 }
 
 function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -235,9 +261,10 @@ function Title({ currentUser, isOwn }: { currentUser: UserResource | null; isOwn
 }
 
 /**
- * The dashboard of the selected member. Each card is fetched from its own API route, which asks
- * Permit first, so a caregiver sees only the cards they were given. The pilot-group cards are shown
- * by CASL rules that permit-fe-sdk loaded (see `PermissionsProvider`).
+ * The dashboard of the selected member. The page asks Permit which cards the signed-in member may
+ * read and fetches only those, each from its own API route that checks again; a caregiver sees only
+ * the cards they were given. The pilot-group cards are shown by CASL rules that permit-fe-sdk
+ * loaded (see `PermissionsProvider`).
  */
 export function Dashboard() {
   const { currentUser, loggedInUser } = useUserContext();

@@ -111,6 +111,35 @@ describe('seedDemo', () => {
     );
   });
 
+  it.each([
+    [
+      'keeps grant dates that cover now',
+      '2026-10-01T00:00:00.000Z',
+      '2027-10-01T00:00:00.000Z',
+      true,
+    ],
+    [
+      'renews grant dates that have ended',
+      '2025-01-01T00:00:00.000Z',
+      '2025-12-31T00:00:00.000Z',
+      false,
+    ],
+  ])('%s', async (_case, start, end, kept) => {
+    const bounds = { 'member:member_rick': { start_date: start, end_date: end } };
+    permitFake.api.users.get.mockImplementation(async (key: unknown) =>
+      permitUser(String(key), key === 'morty' ? { attributes: { caregiver_bounds: bounds } } : {}),
+    );
+
+    await seed();
+
+    const expected = kept
+      ? { start_date: start, end_date: end }
+      : { start_date: '2026-11-10T12:00:00.000Z', end_date: '2027-11-10T12:00:00.000Z' };
+    expect(permitFake.api.users.update).toHaveBeenCalledWith('morty', {
+      attributes: { caregiver_bounds: { 'member:member_rick': expected } },
+    });
+  });
+
   it('fails with a clear error when the caregiver is missing from Permit', async () => {
     await expect(seed()).rejects.toThrow('Permit has no user morty');
   });

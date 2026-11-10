@@ -141,12 +141,28 @@ describe('POST /api/account/member-groups/assign', () => {
     });
   });
 
-  it('answers 409 when the member is in the group already', async () => {
+  it('answers 409 when the member is in the group already, without assigning again', async () => {
+    permitFake.api.users.list.mockResolvedValueOnce({
+      data: [permitUser('morty', { email: 'morty@example.com' })],
+    });
+    permitFake.api.roleAssignments.list.mockResolvedValueOnce([
+      assignment('morty', 'org_member', 'member_group:family'),
+    ]);
+    expect((await post(['assign'], payload)).status).toBe(409);
+    expect(permitFake.api.roleAssignments.list).toHaveBeenCalledWith({
+      user: 'morty',
+      role: 'org_member',
+      resourceInstance: 'member_group:family',
+    });
+    expect(permitFake.api.roleAssignments.assign).not.toHaveBeenCalled();
+  });
+
+  it('succeeds when Permit answers 409 to an assignment it already has', async () => {
     permitFake.api.users.list.mockResolvedValueOnce({
       data: [permitUser('morty', { email: 'morty@example.com' })],
     });
     permitFake.api.roleAssignments.assign.mockRejectedValueOnce(permitApiError(409));
-    expect((await post(['assign'], payload)).status).toBe(409);
+    expect((await post(['assign'], payload)).status).toBe(200);
   });
 
   it('answers 400 without an email', async () => {

@@ -70,25 +70,37 @@ function linkProfile(permit: Permit, key: string, member: string) {
   );
 }
 
-/** Adds a member to a group. Returns false when they were in it already. */
+/**
+ * Adds a member to a group. Returns false when they were in it already. Permit accepts a repeated
+ * assignment (some versions answer 409, others 200), so membership is looked up first.
+ */
 export async function addGroupMember(
   permit: Permit,
   key: string,
   member: string,
 ): Promise<boolean> {
-  const [assigned] = await Promise.all([
-    // Permit write: api.roleAssignments gives the member the group's org_member role.
-    ignoreConflict(() =>
-      permit.api.roleAssignments.assign({
-        user: member,
-        role: 'org_member',
-        resource_instance: groupInstance(key),
-        tenant: TENANT,
-      }),
-    ),
+  // Permit read: api.roleAssignments shows whether the member has the org_member role already.
+  const existing = await permit.api.roleAssignments.list({
+    user: member,
+    role: 'org_member',
+    resourceInstance: groupInstance(key),
+  });
+  const isNew = existing.length === 0;
+  await Promise.all([
+    isNew
+      ? // Permit write: api.roleAssignments gives the member the group's org_member role.
+        ignoreConflict(() =>
+          permit.api.roleAssignments.assign({
+            user: member,
+            role: 'org_member',
+            resource_instance: groupInstance(key),
+            tenant: TENANT,
+          }),
+        )
+      : undefined,
     linkProfile(permit, key, member),
   ]);
-  return assigned === 'done';
+  return isNew;
 }
 
 /** Removes a member from a group: their org_member role and their profile's `belongs` link. */

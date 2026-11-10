@@ -1,7 +1,7 @@
 /**
  * The demo data: one account per persona in the app's database, and in Permit their member records,
  * groups, pilot-group roles and one caregiver grant. Safe to re-run: existing accounts and Permit
- * objects are kept, and the caregiver grant's dates restart from `now`.
+ * objects are kept, and so are the caregiver grant's dates while they cover `now`.
  */
 import type { Permit } from 'permitio';
 import type { Log } from '#scripts/policy';
@@ -11,7 +11,13 @@ import { addGroupMember, createGroup, groupKey } from '@/lib/groups';
 import { enrollMember, findUser } from '@/lib/members';
 import { DEMO_PASSWORD, type Persona, PERSONAS } from '@/lib/personas';
 import { ignoreConflict } from '@/lib/permit';
-import { type SharingOption, TENANT } from '@/lib/resources';
+import {
+  type CaregiverBounds,
+  caregiverBoundsOf,
+  instanceOf,
+  type SharingOption,
+  TENANT,
+} from '@/lib/resources';
 
 /** Member groups, by persona id: Rick administers both. */
 export const GROUPS = [
@@ -31,6 +37,13 @@ export const CAREGIVERS: { owner: string; caregiver: string; resource: SharingOp
 ];
 
 const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+/** Whether `now` falls within a grant's dates, so that a re-run keeps them. */
+function covers(bounds: CaregiverBounds, now: Date): boolean {
+  return (
+    Date.parse(bounds.start_date) <= now.getTime() && now.getTime() < Date.parse(bounds.end_date)
+  );
+}
 
 /**
  * Makes sure the persona can sign in with the demo password. Creating the account runs the sign-up
@@ -104,13 +117,17 @@ export async function seedDemo(auth: Auth, permit: Permit, log: Log, now: Date):
     const caregiverKey = idOf(ids, grant.caregiver);
     const caregiver = await findUser(permit, caregiverKey);
     if (caregiver === undefined) throw new Error(`Permit has no user ${caregiverKey}`);
+    const owner = idOf(ids, grant.owner);
+    const current = caregiverBoundsOf(caregiver)[instanceOf(grant.resource, owner)];
+    const keep = current !== undefined && covers(current, now);
     await grantCaregiver(permit, {
-      owner: idOf(ids, grant.owner),
+      owner,
       caregiver,
       resource: grant.resource,
-      startDate: now.toISOString(),
-      endDate: new Date(now.getTime() + YEAR_MS).toISOString(),
+      startDate: keep ? current.start_date : now.toISOString(),
+      endDate: keep ? current.end_date : new Date(now.getTime() + YEAR_MS).toISOString(),
     });
-    log(`  grant   ${grant.caregiver} cares for ${grant.owner}'s ${grant.resource}`);
+    const dates = keep ? 'dates kept' : 'for a year from now';
+    log(`  grant   ${grant.caregiver} cares for ${grant.owner}'s ${grant.resource} (${dates})`);
   }
 }

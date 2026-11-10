@@ -50,11 +50,11 @@ function pick<T>(random: () => number, items: readonly T[]): T {
   return item;
 }
 
-/** A member's health plan, with up to nine claims from the year before `today`. */
+/** A member's health plan, with one to six claims from the year before `today`. */
 export function healthPlanFor(userKey: string, today = new Date()): HealthPlan {
   const random = generator(`health_plan:${userKey}`);
   const amount = (max: number) => Math.floor(random() * max);
-  const claims = Array.from({ length: amount(10) }, (_, index) => ({
+  const claims = Array.from({ length: 1 + amount(6) }, (_, index) => ({
     id: `${userKey}-claim-${index + 1}`,
     status: pick(random, CLAIM_STATUSES),
     provider: pick(random, PROVIDERS),

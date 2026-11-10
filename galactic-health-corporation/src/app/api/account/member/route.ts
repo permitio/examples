@@ -27,5 +27,5 @@ export const GET = memberRoute(async (_request, { user }) => {
   keys.delete(user.id);
   // Permit read: api.users.get returns each member's profile.
   const members = await Promise.all([...keys].map((key) => permit.api.users.get(key)));
-  return json(members.map((member) => toPerson(member)));
+  return json(members.map((member) => toPerson(member, 'Group member')));
 });
