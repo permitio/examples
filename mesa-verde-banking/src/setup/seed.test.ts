@@ -71,6 +71,12 @@ describe('seedRequests', () => {
     });
   });
 
+  it('treats every "already exists" answer as done', () => {
+    for (const request of requests.filter(({ method }) => method === 'POST')) {
+      expect(request.accept).toEqual([409]);
+    }
+  });
+
   it('makes everyone the owner of their account, plus their roles in other accounts', () => {
     expect(requests.slice(4, 7).map(({ body }) => body)).toEqual([
       { user: ALICE.email, role: 'AccountOwner', tenant: 'alice-mesaverde-example' },

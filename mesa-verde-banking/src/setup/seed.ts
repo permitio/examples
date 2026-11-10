@@ -50,6 +50,7 @@ export function seedRequests(
         method: 'POST',
         path: `${facts}/role_assignments`,
         body: { user: email, role, tenant },
+        accept: CONFLICT,
       });
     }
   }
@@ -74,6 +75,7 @@ export function seedRequests(
         method: 'POST',
         path: `${facts}/role_assignments`,
         body: { user, role, tenant, resource_instance: `Transaction:${id}` },
+        accept: CONFLICT,
       });
     }
   }

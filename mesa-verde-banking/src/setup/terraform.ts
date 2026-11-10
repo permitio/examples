@@ -9,12 +9,23 @@ export interface TerraformRun {
   apiUrl: string;
 }
 
-/** `terraform init` with the state file as the local backend's path, then `terraform apply`. */
-export function terraformCommands({ dir, statePath }: TerraformRun): string[][] {
+/**
+ * `terraform init` with the state file as the local backend's path, then `terraform apply`. Without
+ * a terminal (a container's log), the output has no color codes.
+ */
+export function terraformCommands({ dir, statePath }: TerraformRun, color: boolean): string[][] {
   const chdir = `-chdir=${dir}`;
+  const colorFlags = color ? [] : ['-no-color'];
   return [
-    [chdir, 'init', '-input=false', '-reconfigure', `-backend-config=path=${statePath}`],
-    [chdir, 'apply', '-input=false', '-auto-approve'],
+    [
+      chdir,
+      'init',
+      '-input=false',
+      ...colorFlags,
+      '-reconfigure',
+      `-backend-config=path=${statePath}`,
+    ],
+    [chdir, 'apply', '-input=false', ...colorFlags, '-auto-approve'],
   ];
 }
 
@@ -54,7 +65,7 @@ function run(args: readonly string[], env: NodeJS.ProcessEnv): Promise<void> {
 /** Applies main.tf to the environment of the API key. */
 export async function applySchema(terraform: TerraformRun, base: NodeJS.ProcessEnv): Promise<void> {
   const env = terraformEnv(terraform, base);
-  for (const args of terraformCommands(terraform)) {
+  for (const args of terraformCommands(terraform, process.stdout.isTTY)) {
     await run(args, env);
   }
 }

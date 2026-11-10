@@ -57,15 +57,32 @@ describe('PermitRestClient', () => {
     expect(response.status).toBe(409);
   });
 
-  it('throws with the method, path, status and body for any other failure', async () => {
+  it("throws with the method, path, status and Permit's reason for any other failure", async () => {
     const client = new PermitRestClient(
       API_URL,
       KEY,
       fakeFetch(new Response('{"detail":"bad role"}', { status: 422 })),
     );
     await expect(client.send({ method: 'POST', path: '/v2/x', body: {} })).rejects.toThrow(
-      'POST /v2/x failed with HTTP 422: {"detail":"bad role"}',
+      'POST /v2/x failed with HTTP 422: bad role',
     );
+  });
+
+  it('keeps the request body Permit repeats in a 422 out of the error', async () => {
+    const answer = {
+      detail: [{ loc: ['body', 'webhook', 'type'], msg: 'extra fields not permitted' }],
+      body: { webhook: { bearer_token: 'test-only-webhook-secret' } },
+    };
+    const client = new PermitRestClient(
+      API_URL,
+      KEY,
+      fakeFetch(new Response(JSON.stringify(answer), { status: 422 })),
+    );
+    const error = await client.send({ method: 'PATCH', path: '/v2/x', body: {} }).catch((e) => e);
+    expect((error as Error).message).toBe(
+      'PATCH /v2/x failed with HTTP 422: body.webhook.type: extra fields not permitted',
+    );
+    expect((error as Error).message).not.toContain('test-only-webhook-secret');
   });
 
   it('says to check PERMIT_API_URL when Permit cannot be reached, without the key', async () => {

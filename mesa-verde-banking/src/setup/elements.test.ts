@@ -4,6 +4,7 @@ import {
   configureElements,
   elementConfigs,
   linkRequests,
+  leftoverWebhooks,
   upsertRequests,
   type Webhook,
 } from '@/setup/elements';
@@ -27,8 +28,8 @@ describe('elementConfigs', () => {
 
   it('sends operation approvals to the webhook, with its secret as the bearer token', () => {
     const configs = elementConfigs(WEBHOOK);
+    // No `type`: Permit's update call refuses one, and its create call defaults it.
     expect(configs[ELEMENTS.operationApproval].webhook).toEqual({
-      type: 'elements',
       url: WEBHOOK.url,
       bearer_token: WEBHOOK.secret,
     });
@@ -89,6 +90,23 @@ describe('linkRequests', () => {
 
   it('fails when Permit did not return both ids', () => {
     expect(() => linkRequests(SCOPE, elementConfigs(undefined), {})).toThrow('did not return');
+  });
+});
+
+describe('leftoverWebhooks', () => {
+  const listed = [
+    { id: 'oa-id', key: ELEMENTS.operationApproval, webhook: { url: 'https://old.example/hook' } },
+    { id: 'um-id', key: ELEMENTS.userManagement, webhook: null },
+  ];
+
+  it('finds a webhook an earlier run registered when there is no public URL now', () => {
+    expect(leftoverWebhooks(elementConfigs(undefined), listed)).toEqual([
+      ELEMENTS.operationApproval,
+    ]);
+  });
+
+  it('finds nothing when the webhook is still wanted', () => {
+    expect(leftoverWebhooks(elementConfigs(WEBHOOK), listed)).toEqual([]);
   });
 });
 

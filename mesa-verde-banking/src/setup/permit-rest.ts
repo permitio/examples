@@ -15,7 +15,32 @@ export interface ApiResponse {
 }
 
 const REQUEST_TIMEOUT_MS = 30_000;
-const ERROR_BODY_LIMIT = 500;
+const ERROR_TEXT_LIMIT = 300;
+
+const errorDetail = z.object({
+  detail: z.union([
+    z.string(),
+    z.array(z.object({ loc: z.array(z.union([z.string(), z.number()])), msg: z.string() })),
+  ]),
+});
+
+/**
+ * What a failed call's answer says went wrong. Permit's 422 answers repeat the request body, which
+ * can hold the webhook secret, so only the error messages are kept.
+ */
+export function failureReason(text: string): string {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text) as unknown;
+  } catch {
+    return text.slice(0, ERROR_TEXT_LIMIT);
+  }
+  const error = errorDetail.safeParse(parsed);
+  if (!error.success) return '(no error detail)';
+  const { detail } = error.data;
+  if (typeof detail === 'string') return detail.slice(0, ERROR_TEXT_LIMIT);
+  return detail.map(({ loc, msg }) => `${loc.join('.')}: ${msg}`).join('; ');
+}
 
 /** The URL and fetch options of a request. The API key goes only in the Authorization header. */
 export function buildRequest(
@@ -77,7 +102,7 @@ export class PermitRestClient {
     if (!response.ok && !(request.accept ?? []).includes(response.status)) {
       throw new Error(
         `${request.method} ${request.path} failed with HTTP ${response.status}: ` +
-          text.slice(0, ERROR_BODY_LIMIT),
+          failureReason(text),
       );
     }
     return { status: response.status, body: parseBody(text) };

@@ -10,7 +10,7 @@ const RUN = {
 
 describe('terraformCommands', () => {
   it('initialises with the state file as the backend path, then applies without prompts', () => {
-    expect(terraformCommands(RUN)).toEqual([
+    expect(terraformCommands(RUN, true)).toEqual([
       [
         '-chdir=/app',
         'init',
@@ -20,6 +20,12 @@ describe('terraformCommands', () => {
       ],
       ['-chdir=/app', 'apply', '-input=false', '-auto-approve'],
     ]);
+  });
+
+  it('turns color off without a terminal', () => {
+    for (const command of terraformCommands(RUN, false)) {
+      expect(command).toContain('-no-color');
+    }
   });
 });
 

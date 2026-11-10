@@ -11,7 +11,8 @@ export interface ElementConfig {
   settings: Record<string, SettingValue>;
   email_notifications: boolean;
   roles_to_levels: Record<string, string[]>;
-  webhook: { type: 'elements'; url: string; bearer_token: string } | null;
+  /** Permit's create call takes a `type`, its update call refuses one, so there is none. */
+  webhook: { url: string; bearer_token: string } | null;
 }
 
 /** Where Permit posts operation approvals, and the bearer token it sends. */
@@ -70,10 +71,7 @@ export function elementConfigs(webhook: Webhook | undefined): Record<ElementKey,
       },
       email_notifications: false,
       roles_to_levels: {},
-      webhook:
-        webhook === undefined
-          ? null
-          : { type: 'elements', url: webhook.url, bearer_token: webhook.secret },
+      webhook: webhook === undefined ? null : { url: webhook.url, bearer_token: webhook.secret },
     },
     [ELEMENTS.accessRequest]: {
       name: 'Wire Transfer Request',
@@ -175,12 +173,37 @@ export function linkRequests(
   ];
 }
 
+const listedElement = z.object({
+  id: z.string(),
+  key: z.string(),
+  webhook: z.object({ url: z.string() }).nullish(),
+});
+
+export type ListedElement = z.infer<typeof listedElement>;
+
 const elementList = z
-  .union([
-    z.array(z.object({ id: z.string(), key: z.string() })),
-    z.object({ data: z.array(z.object({ id: z.string(), key: z.string() })) }),
-  ])
+  .union([z.array(listedElement), z.object({ data: z.array(listedElement) })])
   .transform((list) => (Array.isArray(list) ? list : list.data));
+
+/**
+ * The webhooks an earlier run registered that are no longer wanted. Updating an element without a
+ * webhook keeps the one it had, and an environment API key may not delete webhooks, so setup can
+ * only point them out.
+ */
+export function leftoverWebhooks(
+  configs: Record<ElementKey, ElementConfig>,
+  listed: readonly ListedElement[],
+): string[] {
+  return listed.flatMap(({ key, webhook }) => {
+    const config = Object.entries(configs).find(([configKey]) => configKey === key)?.[1];
+    return config !== undefined &&
+      config.webhook === null &&
+      webhook !== undefined &&
+      webhook !== null
+      ? [key]
+      : [];
+  });
+}
 
 /** Configures the four Elements, with the webhook when there is one. */
 export async function configureElements(
@@ -190,7 +213,8 @@ export async function configureElements(
 ): Promise<void> {
   const configs = elementConfigs(webhook);
   const listed = await client.send({ method: 'GET', path: `${configPath(scope)}?per_page=100` });
-  const existing = new Set(elementList.parse(listed.body).map(({ key }) => key));
+  const elements = elementList.parse(listed.body);
+  const existing = new Set(elements.map(({ key }) => key));
   const ids: Record<string, string> = {};
   for (const request of upsertRequests(scope, configs, existing)) {
     const { body } = await client.send(request);
@@ -198,4 +222,11 @@ export async function configureElements(
     ids[key] = id;
   }
   await client.sendAll(linkRequests(scope, configs, ids));
+  for (const key of leftoverWebhooks(configs, elements)) {
+    console.warn(
+      `The ${key} element still has the approval webhook of an earlier run. Without ` +
+        'WEBHOOK_SECRET the app refuses its calls; to stop them, remove the webhook in Permit ' +
+        '(Elements, then the element).',
+    );
+  }
 }
