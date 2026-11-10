@@ -7,6 +7,7 @@ when that folder changes.
 | Example                                    | What it shows                                                                         | Stack                                         |
 | ------------------------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------- |
 | [permit-portal-demo](permit-portal-demo)   | A business portal whose every protected action asks Permit first, with five scenarios | TypeScript, Express, React, Docker, local PDP |
+| [nuxt-food-delivery](nuxt-food-delivery)   | A multi-city food delivery app that combines RBAC, ABAC and ReBAC on the same actions | Nuxt, Vue, PrimeVue, Docker, local PDP        |
 
 ## Checks
 
