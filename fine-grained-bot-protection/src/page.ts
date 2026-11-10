@@ -42,11 +42,12 @@ const STYLE = `
   --deny: #ffaaa1; --deny-bg: #3a1c19; } }
 * { box-sizing: border-box; }
 body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
-main { max-width: 860px; margin: 0 auto; padding: 32px 16px 48px; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 48px; }
 h1 { font-size: 1.6rem; margin: 0 0 4px; }
 h2 { font-size: 1.1rem; margin: 0 0 12px; }
 p { margin: 0 0 16px; color: var(--muted); }
-code { font-size: 0.9em; overflow-wrap: anywhere; }
+code { font: 0.85em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+a { color: var(--accent); }
 nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
 nav a { display: block; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
   background: var(--card); color: var(--fg); text-decoration: none; }
@@ -71,7 +72,7 @@ function personaLinks(current: string | undefined): string {
     `<a href="${href}"${active ? ' aria-current="page"' : ''}>${escapeHtml(label)}` +
     `<small>${escapeHtml(summary)}</small></a>`;
   return [
-    link('/', 'Your browser', 'The request your browser sent', current === undefined),
+    link('/', 'Your browser', 'Its own User-Agent', current === undefined),
     ...PERSONAS.map((p) => link(`/?as=${p.key}`, p.label, p.summary, current === p.key)),
   ].join('');
 }
