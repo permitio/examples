@@ -15,7 +15,9 @@ export const useMealsStore = defineStore('meals', () => {
 
   const all = computed(() => data.value);
   /** Why the menu could not be loaded, for example a denied `read` in this city. */
-  const loadError = computed(() => (error.value ? errorMessage(error.value) : null));
+  const loadError = computed(() =>
+    error.value ? `Could not load the menu in ${city.current}: ${errorMessage(error.value)}` : null,
+  );
 
   async function add(meal: NewMeal): Promise<{ id: string }> {
     const result = await $fetch<{ id: string }>('/meals', {

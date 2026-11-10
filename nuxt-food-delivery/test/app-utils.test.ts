@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { callerHeaders, errorMessage } from '~/utils/api';
+import { callerHeaders, errorMessage, isDenied } from '~/utils/api';
 import { formatTime } from '~/utils/time';
 
 describe('formatTime', () => {
@@ -40,6 +40,15 @@ describe('errorMessage', () => {
     );
     expect(errorMessage(new Error('boom'))).toBe('boom');
     expect(errorMessage('plain')).toBe('plain');
+  });
+});
+
+describe('isDenied', () => {
+  it('is true for a 403 and false for other failures', () => {
+    expect(isDenied(Object.assign(new Error('403'), { statusCode: 403 }))).toBe(true);
+    expect(isDenied(Object.assign(new Error('502'), { statusCode: 502 }))).toBe(false);
+    expect(isDenied(new Error('fetch failed'))).toBe(false);
+    expect(isDenied(undefined)).toBe(false);
   });
 });
 

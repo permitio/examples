@@ -15,7 +15,11 @@ export const useOrdersStore = defineStore('orders', () => {
 
   const all = computed(() => data.value);
   /** Why the orders could not be loaded, for example a denied `read` in this city. */
-  const loadError = computed(() => (error.value ? errorMessage(error.value) : null));
+  const loadError = computed(() =>
+    error.value
+      ? `Could not load the orders in ${city.current}: ${errorMessage(error.value)}`
+      : null,
+  );
 
   /** Sends a request, then reloads the orders. */
   async function thenRefresh<T>(request: Promise<T>): Promise<T> {

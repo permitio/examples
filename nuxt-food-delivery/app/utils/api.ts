@@ -16,3 +16,10 @@ export function errorMessage(error: unknown): string {
   }
   return error instanceof Error ? error.message : String(error);
 }
+
+/** Whether a failed `$fetch` or `useFetch` was a 403: Permit denied the action. */
+export function isDenied(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && 'statusCode' in error && error.statusCode === 403
+  );
+}

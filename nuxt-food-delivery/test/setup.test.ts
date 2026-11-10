@@ -167,9 +167,11 @@ describe('runSetup on an empty environment', () => {
     });
   });
 
-  it('logs one "created" line per object', () => {
-    expect(lines).toContain('  created resource Order');
-    expect(lines.filter((line) => line.startsWith('  created'))).toHaveLength(
+  it('logs one line per object, saying what it did', () => {
+    expect(lines).toContain('  created  resource Order');
+    expect(lines).toContain('  synced   user rider2');
+    expect(lines).toContain('  assigned role admin for admin1 in washington');
+    expect(lines.filter((line) => line.startsWith('  '))).toHaveLength(
       creates(api).reduce((sum, create) => sum + create.mock.calls.length, 0),
     );
   });
@@ -210,9 +212,9 @@ describe('runSetup on an environment that has everything (a re-run)', () => {
   });
 
   it('reports what existed and what it updated', () => {
-    expect(lines).toContain('  updated role admin');
-    expect(lines).toContain('  exists  role admin for admin1 in california');
-    expect(lines).toContain('  exists  meal miso-soup in california');
+    expect(lines).toContain('  updated  role admin');
+    expect(lines).toContain('  exists   role admin for admin1 in california');
+    expect(lines).toContain('  exists   meal miso-soup in california');
   });
 });
 

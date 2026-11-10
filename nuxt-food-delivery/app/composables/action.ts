@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import { errorMessage } from '~/utils/api';
+import { errorMessage, isDenied } from '~/utils/api';
 
 /**
  * Runs a request from a button, shows its outcome as a toast, and tracks which action is running
@@ -19,7 +19,7 @@ export function useAction() {
     } catch (error) {
       toast.add({
         severity: 'error',
-        summary: 'Not done',
+        summary: isDenied(error) ? 'Denied by Permit' : 'Not done',
         detail: errorMessage(error),
         life: 6000,
       });

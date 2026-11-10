@@ -19,7 +19,7 @@ import {
 /** The parts of the SDK client that setup uses, so tests can pass a fake. */
 export type SetupClient = Pick<Permit, 'api'>;
 export type Log = (line: string) => void;
-type Outcome = 'created' | 'updated' | 'exists';
+type Outcome = 'created' | 'updated' | 'exists' | 'synced' | 'assigned';
 
 function statusOf(error: unknown): number | undefined {
   return error instanceof PermitApiError ? error.response?.status : undefined;
@@ -57,7 +57,28 @@ async function write(
     }
     outcome = update ? 'updated' : 'exists';
   }
-  log(`  ${outcome.padEnd(7)} ${label}`);
+  log(`  ${outcome.padEnd(8)} ${label}`);
+}
+
+/**
+ * Runs a call that is safe to repeat (a user sync, a role assignment), logging it as `verb`. A 409
+ * means it was done already.
+ */
+async function apply(
+  log: Log,
+  label: string,
+  call: () => Promise<unknown>,
+  verb: 'synced' | 'assigned',
+): Promise<void> {
+  let outcome: Outcome;
+  try {
+    await call();
+    outcome = verb;
+  } catch (error) {
+    if (statusOf(error) !== 409) throw new SetupError(label, error);
+    outcome = 'exists';
+  }
+  log(`  ${outcome.padEnd(8)} ${label}`);
 }
 
 export async function runSetup(permit: SetupClient, log: Log): Promise<void> {
@@ -147,12 +168,20 @@ export async function runSetup(permit: SetupClient, log: Log): Promise<void> {
   for (const persona of PERSONAS) {
     const attributes =
       persona.numberOfRides === undefined ? {} : { number_of_rides: persona.numberOfRides };
-    // Permit write: creates the user, or resets its attributes to the demo's (sync replaces).
-    await write(log, `user ${persona.key}`, () => api.users.sync({ key: persona.key, attributes }));
+    await apply(
+      log,
+      `user ${persona.key}`,
+      // Permit write: creates the user, or resets its attributes to the demo's (sync replaces).
+      () => api.users.sync({ key: persona.key, attributes }),
+      'synced',
+    );
     for (const { role, tenant } of persona.roles) {
-      // Permit write: the user's role in one city.
-      await write(log, `role ${role} for ${persona.key} in ${tenant}`, () =>
-        api.roleAssignments.assign({ user: persona.key, role, tenant }),
+      await apply(
+        log,
+        `role ${role} for ${persona.key} in ${tenant}`,
+        // Permit write: the user's role in one city.
+        () => api.roleAssignments.assign({ user: persona.key, role, tenant }),
+        'assigned',
       );
     }
   }
