@@ -166,3 +166,7 @@ pnpm test
 ```
 
 `pnpm fix` applies the fixes both tools can make. CI runs these, a dependency audit and the Docker build on every push and pull request that changes this folder (`.github/workflows/fine-grained-bot-protection.yaml`).
+
+## License
+
+This folder is licensed under Apache-2.0 (see [LICENSE](LICENSE)); the rest of the repository is MIT.
