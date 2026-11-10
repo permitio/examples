@@ -1,0 +1,13 @@
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+data/
+.env
+.env.*
+!.env.example
+.terraform/
+*.tfstate
+*.tfstate.*
+*.log
+.DS_Store

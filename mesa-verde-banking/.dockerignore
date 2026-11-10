@@ -1,0 +1,10 @@
+**/node_modules
+.next
+data
+.terraform
+*.tfstate
+*.tfstate.*
+.git
+.env
+.env.*
+screenshots
