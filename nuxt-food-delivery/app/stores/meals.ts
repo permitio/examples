@@ -1,42 +1,40 @@
-import type { AddMealProps, Meal } from '~/types';
+import { defineStore } from 'pinia';
+import { computed } from 'vue';
+import { useFetch } from '#imports';
+import type { ApiMessage, Meal, NewMeal } from '#shared/types';
+import { useCityStore } from '~/stores/city';
+import { useUserStore } from '~/stores/user';
+import { callerHeaders, errorMessage } from '~/utils/api';
 
+/** The current city's menu, fetched again whenever the user or the city changes. */
 export const useMealsStore = defineStore('meals', () => {
   const city = useCityStore();
   const user = useUserStore();
-  const headers = computed(() => ({
-    headers: { city: city.current, user: user.current }
-  }));
-  const { data, refresh } = useFetch<Meal[]>('/meals', { ...headers.value });
-  const all = computed(() => data.value ?? []);
-  const toast = useToast();
-  const toastError = (detail?: string) =>
-    toast.add({
-      severity: 'error',
-      detail,
-      summary: 'Error Occurred',
-      life: 5000
-    });
+  const headers = computed(() => callerHeaders(user.current, city.current));
+  const { data, error, refresh } = useFetch<Meal[]>('/meals', { headers, default: () => [] });
 
-  const add = async (props: AddMealProps): Promise<string | null> => {
-    const result = await $fetch('/meals', {
+  const all = computed(() => data.value);
+  /** Why the menu could not be loaded, for example a denied `read` in this city. */
+  const loadError = computed(() => (error.value ? errorMessage(error.value) : null));
+
+  async function add(meal: NewMeal): Promise<{ id: string }> {
+    const result = await $fetch<{ id: string }>('/meals', {
       method: 'POST',
-      body: JSON.stringify(props),
-      ...headers.value
+      body: meal,
+      headers: headers.value,
     });
-    if (result?.id) await refresh();
-    else toastError(result?.message);
-    return result?.id;
-  };
+    await refresh();
+    return result;
+  }
 
-  const remove = async (id: string): Promise<boolean> => {
-    const result = await $fetch(`/meal/${id}`, {
+  async function remove(id: string): Promise<ApiMessage> {
+    const result = await $fetch<ApiMessage>(`/meal/${encodeURIComponent(id)}`, {
       method: 'DELETE',
-      ...headers.value
+      headers: headers.value,
     });
-    if (result?.success) await refresh();
-    else toastError(result?.message);
-    return result?.success;
-  };
+    await refresh();
+    return result;
+  }
 
-  return { add, all, remove };
+  return { all, loadError, add, remove };
 });

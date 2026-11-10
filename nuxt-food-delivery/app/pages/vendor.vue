@@ -6,7 +6,7 @@
     </TabList>
 
     <TabPanels>
-      <TabPanel value="0"> 
+      <TabPanel value="0">
         <OrdersDisplay />
       </TabPanel>
 

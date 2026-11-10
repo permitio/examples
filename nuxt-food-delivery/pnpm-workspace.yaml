@@ -1,0 +1,19 @@
+engineStrict: true
+ignoreScripts: true
+minimumReleaseAge: 10080
+pmOnFail: error
+savePrefix: ''
+autoInstallPeers: false
+overrides:
+  # Nitro's file tracer (@vercel/nft 1.11.0) asks for glob ^13, which has an open advisory
+  # (GHSA-3g3m-2fjr-6pw4); glob 14.0.2 fixes it and keeps the API nft calls.
+  '@vercel/nft>glob': 14.0.3
+  # readdir-glob 3.0.0 (Nitro's zip archiver) asks for minimatch ^10, which has an open advisory
+  # (GHSA-g3hv-75wg-m249); minimatch 11.0.1 fixes it.
+  readdir-glob>minimatch: 11.0.4
+auditConfig:
+  ignoreGhsas:
+    # deepmerge <=4.3.1 (GHSA-gcqx-w48m-w2h4) has no fixed release. It comes in through Nitro's
+    # @rollup/plugin-node-resolve 16.0.3, whose only call merges the plugin's own default options
+    # at build time; no request data reaches it. Remove this entry when a fixed deepmerge ships.
+    - GHSA-gcqx-w48m-w2h4

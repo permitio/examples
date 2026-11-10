@@ -1,66 +1,37 @@
-import type { AddOrderProps, Order } from '~/types';
+import { defineStore } from 'pinia';
+import { computed } from 'vue';
+import { useFetch } from '#imports';
+import type { NewOrder, Order } from '#shared/types';
+import { useCityStore } from '~/stores/city';
+import { useUserStore } from '~/stores/user';
+import { callerHeaders, errorMessage } from '~/utils/api';
 
+/** The current city's orders, fetched again whenever the user or the city changes. */
 export const useOrdersStore = defineStore('orders', () => {
   const city = useCityStore();
   const user = useUserStore();
-  const headers = computed(() => ({
-    headers: { city: city.current, user: user.current }
-  }));
-  const { data, refresh } = useFetch<Order[]>('/orders', { ...headers.value });
-  const all = computed(() => data.value ?? []);
-  const toast = useToast();
-  const toastError = (detail?: string) =>
-    toast.add({
-      severity: 'error',
-      detail,
-      summary: 'Error Occurred',
-      life: 5000
-    });
+  const headers = computed(() => callerHeaders(user.current, city.current));
+  const { data, error, refresh } = useFetch<Order[]>('/orders', { headers, default: () => [] });
 
-  const add = async (props: AddOrderProps): Promise<string | null> => {
-    const result = await $fetch('/orders', {
-      method: 'POST',
-      body: JSON.stringify(props),
-      ...headers.value
-    });
-    if (result?.id) await refresh();
-    else toastError(result?.message);
-    return result?.id;
+  const all = computed(() => data.value);
+  /** Why the orders could not be loaded, for example a denied `read` in this city. */
+  const loadError = computed(() => (error.value ? errorMessage(error.value) : null));
+
+  /** Sends a request, then reloads the orders. */
+  async function thenRefresh<T>(request: Promise<T>): Promise<T> {
+    const result = await request;
+    await refresh();
+    return result;
+  }
+  const post = () => ({ method: 'POST', headers: headers.value }) as const;
+
+  return {
+    all,
+    loadError,
+    add: (order: NewOrder) => thenRefresh($fetch('/orders', { ...post(), body: order })),
+    fulfill: (id: number) => thenRefresh($fetch(`/order/${id}/fulfill`, post())),
+    assignRider: (id: number, rider: string) =>
+      thenRefresh($fetch(`/order/${id}/assign-rider`, { ...post(), body: { rider } })),
+    deliver: (id: number) => thenRefresh($fetch(`/order/${id}/deliver`, post())),
   };
-
-  const fulfill = async (orderId: number): Promise<boolean> => {
-    const result = await $fetch(`/order/${orderId}/fulfill`, {
-      method: 'POST',
-      ...headers.value
-    });
-    if (result?.success) await refresh();
-    else toastError(result?.message);
-    return result?.success;
-  };
-
-  const assignRider = async (
-    orderId: number,
-    rider: string
-  ): Promise<boolean> => {
-    const result = await $fetch(`/order/${orderId}/assign-rider`, {
-      method: 'POST',
-      body: JSON.stringify({ rider }),
-      ...headers.value
-    });
-    if (result?.success) await refresh();
-    else toastError(result?.message);
-    return result?.success;
-  };
-
-  const deliver = async (orderId: number): Promise<boolean> => {
-    const result = await $fetch(`/order/${orderId}/deliver`, {
-      method: 'POST',
-      ...headers.value
-    });
-    if (result?.success) await refresh();
-    else toastError(result?.message);
-    return result?.success;
-  };
-
-  return { add, all, fulfill, assignRider, deliver };
 });

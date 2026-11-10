@@ -1,5 +1,9 @@
 <script setup lang="ts">
-navigateTo('/customer');
+import { navigateTo } from '#imports';
+
+await navigateTo('/customer', { replace: true });
 </script>
 
-<template></template>
+<template>
+  <div></div>
+</template>

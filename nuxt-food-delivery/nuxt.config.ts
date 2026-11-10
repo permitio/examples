@@ -1,18 +1,39 @@
-import Aura from '@primevue/themes/aura';
+import Aura from '@primeuix/themes/aura';
+import tailwindcss from '@tailwindcss/vite';
+import { defineNuxtConfig } from 'nuxt/config';
 
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
-  modules: ['@pinia/nuxt', '@nuxtjs/tailwindcss', '@primevue/nuxt-module'],
-  css: ['~/assets/main.css', 'primeicons/primeicons.css'],
+  compatibilityDate: '2026-11-01',
+  devtools: { enabled: false },
+  telemetry: false,
+  modules: ['@pinia/nuxt', '@primevue/nuxt-module'],
+  css: ['~/assets/css/main.css', 'primeicons/primeicons.css'],
+  vite: { plugins: [tailwindcss()] },
   primevue: {
-    autoImport: true,
-    options: { ripple: true, theme: { preset: Aura } }
+    options: {
+      ripple: true,
+      // PrimeVue's styles go in their own CSS layer, below Tailwind's utilities, so a utility class
+      // on a PrimeVue component wins.
+      theme: {
+        preset: Aura,
+        options: { cssLayer: { name: 'primevue', order: 'theme, base, primevue' } },
+      },
+    },
   },
-  build: { transpile: ['permitio'] },
-  runtimeConfig: {
-    permitToken: process.env.PERMIT_TOKEN,
-    permitPdp: process.env.PERMIT_PDP
-  }
+  typescript: {
+    strict: true,
+    // Applies to every tsconfig Nuxt generates: the app, the server, shared/ and nuxt.config.
+    tsConfig: {
+      compilerOptions: {
+        noUncheckedIndexedAccess: true,
+        exactOptionalPropertyTypes: true,
+        noImplicitOverride: true,
+        noPropertyAccessFromIndexSignature: true,
+        verbatimModuleSyntax: true,
+        isolatedModules: true,
+        noImplicitReturns: true,
+        noFallthroughCasesInSwitch: true,
+      },
+    },
+  },
 });

@@ -1,33 +1,24 @@
-import type { UpdateUserRole } from '~/types';
+import { defineStore } from 'pinia';
+import { useCookie } from '#imports';
+import type { ApiMessage, RoleChange } from '#shared/types';
 
-export const roles = ['customer', 'rider', 'vendor', 'admin'];
-
+/**
+ * The user the app acts as. It stands in for sign-in: pick any user key, and the server asks Permit
+ * about that user. A cookie keeps it, so server-side rendering asks as the same user.
+ */
 export const useUserStore = defineStore('user', () => {
-  const current = ref(
-    import.meta.client
-      ? localStorage.getItem('fooddeliveryuser') ?? 'customer1'
-      : 'customer1'
-  );
-
-  const updateRole = async (props: UpdateUserRole) => {
-    await $fetch('/users', { method: 'POST', body: JSON.stringify(props) });
-  };
-
-  const remove = async () => {
-    await $fetch('/users', {
-      method: 'DELETE',
-      body: JSON.stringify({ user: current.value })
-    });
-    current.value = '';
-  };
-
-  onMounted(() => {
-    current.value = localStorage.getItem('fooddeliveryuser') ?? 'customer1';
-    watch(
-      () => current.value,
-      (user) => localStorage.setItem('fooddeliveryuser', user)
-    );
+  const current = useCookie<string>('food-delivery-user', {
+    default: () => 'customer1',
+    sameSite: 'lax',
   });
 
-  return { current, remove, updateRole };
+  /** Grants or revokes a role in a city (`POST /users`). */
+  const updateRole = (change: RoleChange) =>
+    $fetch<ApiMessage>('/users', { method: 'POST', body: change });
+
+  /** Deletes the current user from Permit (`DELETE /users`). */
+  const remove = () =>
+    $fetch<ApiMessage>('/users', { method: 'DELETE', body: { user: current.value } });
+
+  return { current, updateRole, remove };
 });

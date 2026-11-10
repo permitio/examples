@@ -1,180 +1,154 @@
 <script setup lang="ts">
 import type { FormSubmitEvent } from '@primevue/forms';
 import { yupResolver } from '@primevue/forms/resolvers/yup';
+import { computed } from 'vue';
 import * as yup from 'yup';
-import type { Order } from '~/types';
+import type { Order } from '#shared/types';
+import { useAction } from '~/composables/action';
+import { useNow } from '~/composables/now';
+import { useOrdersStore } from '~/stores/orders';
+import { formatTime } from '~/utils/time';
 
-const isAssigningRider = ref(false);
-const isDelivering = ref(false);
-const isFulfilling = ref(false);
-const initialRider = reactive({ rider: '' });
 const orders = useOrdersStore();
+const now = useNow();
+const { busy, run } = useAction();
+const initialRider = { rider: '' };
 const resolver = yupResolver(
   yup.object().shape({
-    rider: yup.string().required('Required').min(3, '≥ 3 characters.')
-  })
+    rider: yup.string().required('Required').min(3, '3 characters or more'),
+  }),
 );
-const time = useTimeStore();
-const toast = useToast();
+const expanded = computed(() => orders.all.map(({ id }) => id));
 
-const displayOrderDetails = (order: Order) => ({
-  'Order Time': time.display(order.orderTime),
+const when = (iso: string | undefined) =>
+  iso === undefined || now.value === null ? '' : formatTime(iso, now.value);
+
+const details = (order: Order) => ({
+  'Order Time': when(order.orderTime),
   Customer: order.customer,
   Vendor: order.vendor,
-  'Fulfilled Time': order.fulfilledTime
-    ? time.display(order.fulfilledTime)
-    : '',
-  'Rider Assigned Time': order.riderAssignedTime
-    ? time.display(order.riderAssignedTime)
-    : '',
+  'Fulfilled Time': when(order.fulfilledTime),
+  'Rider Assigned Time': when(order.riderAssignedTime),
   Rider: order.rider ?? '',
-  'Delivered Time': order.deliveredTime ? time.display(order.deliveredTime) : ''
+  'Delivered Time': when(order.deliveredTime),
 });
 
-const fulfill = async (orderId: number) => {
-  isFulfilling.value = true;
-  const success = await orders.fulfill(orderId);
-  isFulfilling.value = false;
-  if (success) {
-    toast.add({
-      severity: 'success',
-      summary: 'Order Fulfilled',
-      life: 3000
-    });
-  }
-};
-
-const assignRider = async (e: FormSubmitEvent, orderId: number) => {
-  if (e.valid) {
-    isAssigningRider.value = true;
-    const success = await orders.assignRider(orderId, e.values.rider);
-    isAssigningRider.value = false;
-    if (success) {
-      toast.add({ severity: 'success', summary: 'Assigned Rider', life: 3000 });
-    }
-  }
-};
-
-const deliver = async (orderId: number) => {
-  isDelivering.value = true;
-  const success = await orders.deliver(orderId);
-  isDelivering.value = false;
-  if (success) {
-    toast.add({
-      severity: 'success',
-      summary: 'Order Delivered',
-      life: 3000
-    });
-  }
-};
+async function assignRider(event: FormSubmitEvent, id: number) {
+  if (!event.valid) return;
+  const rider = String(event.values['rider']).trim();
+  await run(
+    `assign:${id}`,
+    () => orders.assignRider(id, rider),
+    (result) => result.message,
+  );
+}
 </script>
 
 <template>
-  <p v-if="orders.all.length == 0" class="text-center opacity-30 mt-4 mb-8">
-    No Orders Yet.
-  </p>
+  <Message v-if="orders.loadError" severity="warn" class="my-4">{{ orders.loadError }}</Message>
+  <p v-else-if="orders.all.length === 0" class="mt-4 mb-8 text-center opacity-30">No orders yet.</p>
 
-  <Accordion :value="orders.all.map(({ id }) => id)" multiple>
-    <AccordionPanel
-      v-for="order of orders.all"
-      :key="order.id"
-      :value="order.id"
-    >
+  <Accordion :value="expanded" multiple>
+    <AccordionPanel v-for="order of orders.all" :key="order.id" :value="order.id">
       <AccordionHeader>
-        <div class="grow flex justify-between mr-4">
+        <div class="mr-4 flex grow justify-between">
           <h3>Order #{{ order.id }}</h3>
-          <span> {{ order.grandTotal }} 💵 </span>
+          <span>{{ order.grandTotal }} 💵</span>
         </div>
       </AccordionHeader>
       <AccordionContent>
         <div class="max-w-xs">
           <div
-            class="flex items-start justify-between mb-1 text-sm"
-            v-for="{ quantity, name, price } of order.meals"
+            v-for="meal of order.meals"
+            :key="meal.id"
+            class="mb-1 flex items-start justify-between text-sm"
           >
             <p>
-              <span>{{ name }}</span>
-              <span v-if="quantity > 1" class="ml-1 last:opacity-75">
-                (x{{ quantity }})
-              </span>
+              <span>{{ meal.name }}</span>
+              <span v-if="meal.quantity > 1" class="ml-1 opacity-75">(x{{ meal.quantity }})</span>
             </p>
-            <span class="text-nowrap">{{ price * quantity }} 💵</span>
+            <span class="text-nowrap">{{ meal.price * meal.quantity }} 💵</span>
           </div>
-          <p class="flex items-start justify-between text-sm mb-1">
+          <p class="mb-1 flex items-start justify-between text-sm">
             <span>Total Price</span>
-            <span class="text-nowrap underline">
-              {{ order.totalPrice }} 💵
-            </span>
+            <span class="text-nowrap underline">{{ order.totalPrice }} 💵</span>
           </p>
-          <p class="flex items-start justify-between text-sm mb-1">
+          <p class="mb-1 flex items-start justify-between text-sm">
             <span>Delivery Fee</span>
             <span class="text-nowrap">
               {{ order.deliveryFee ? `${order.deliveryFee} 💵` : 'FREE' }}
             </span>
           </p>
-          <p class="flex items-start justify-between mb-2">
+          <p class="mb-2 flex items-start justify-between">
             <span>Grand Total</span>
-            <span class="text-nowrap font-bold underline">
-              {{ order.grandTotal }} 💵
-            </span>
+            <span class="font-bold text-nowrap underline">{{ order.grandTotal }} 💵</span>
           </p>
         </div>
-        <ul class="border-b mb-3">
+        <ul class="mb-3 border-b border-gray-500/25">
           <li
-            v-for="(value, key) in displayOrderDetails(order)"
-            class="border border-b-0 text-sm"
+            v-for="(value, key) in details(order)"
+            :key="key"
+            class="border border-b-0 border-gray-500/25 text-sm"
           >
-            <span
-              class="bg-gray-500 w-32 py-1 px-2 inline-block bg-opacity-25 border-r"
-            >
+            <span class="inline-block w-40 border-r border-gray-500/25 bg-gray-500/25 px-2 py-1">
               {{ key }}:
             </span>
-            <span class="inline-block py-1 px-2">{{ value }}</span>
+            <span class="inline-block px-2 py-1">{{ value }}</span>
           </li>
         </ul>
 
-        <div class="flex flex-wrap justify-end gap-4">
+        <div class="flex flex-wrap items-end justify-end gap-4">
           <Button
-            type="submit"
-            label="Fulfill"
             v-if="!order.fulfilledTime"
-            @click="fulfill(order.id)"
-            :loading="isFulfilling"
+            label="Fulfill"
+            :loading="busy === `fulfill:${order.id}`"
+            @click="
+              run(
+                `fulfill:${order.id}`,
+                () => orders.fulfill(order.id),
+                (r) => r.message,
+              )
+            "
           />
           <Button
-            type="submit"
-            label="Deliver"
             v-if="!order.deliveredTime"
-            @click="deliver(order.id)"
-            :loading="isDelivering"
+            label="Deliver"
+            :loading="busy === `deliver:${order.id}`"
+            @click="
+              run(
+                `deliver:${order.id}`,
+                () => orders.deliver(order.id),
+                (r) => r.message,
+              )
+            "
           />
           <Form
-            v-slot="$form"
-            :initialRider
-            :resolver
-            @submit="(e) => assignRider(e, order.id)"
             v-if="!order.riderAssignedTime"
-            class="flex gap-4 items-end"
+            v-slot="$form"
+            :initial-values="initialRider"
+            :resolver
+            class="flex items-end gap-4"
+            @submit="(event: FormSubmitEvent) => assignRider(event, order.id)"
           >
             <div class="flex flex-col gap-1">
               <FloatLabel variant="in">
-                <InputText id="rider-name" name="rider" type="text" />
-                <label for="rider-name">Rider</label>
+                <InputText :id="`rider-${order.id}`" name="rider" type="text" list="personas" />
+                <label :for="`rider-${order.id}`">Rider</label>
               </FloatLabel>
               <Message
-                v-if="$form.rider?.invalid"
+                v-if="$form['rider']?.invalid"
                 severity="error"
                 size="small"
                 variant="simple"
               >
-                {{ $form.rider.error?.message }}
+                {{ $form['rider'].error?.message }}
               </Message>
             </div>
             <Button
               type="submit"
               label="Assign"
-              :class="$form.rider?.invalid ? 'mb-6' : ''"
-              :loading="isAssigningRider"
+              :class="$form['rider']?.invalid ? 'mb-6' : ''"
+              :loading="busy === `assign:${order.id}`"
             />
           </Form>
         </div>

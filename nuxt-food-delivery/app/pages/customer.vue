@@ -1,64 +1,54 @@
 <script setup lang="ts">
-import type { Meal, MealInOrder } from '~/types';
+import { computed, ref, watch } from 'vue';
+import { DELIVERY_FEE, FREE_DELIVERY_FROM, type Meal, type MealInOrder } from '#shared/types';
+import { useAction } from '~/composables/action';
+import { useCityStore } from '~/stores/city';
+import { useMealsStore } from '~/stores/meals';
+import { useOrdersStore } from '~/stores/orders';
+
+const city = useCityStore();
+const meals = useMealsStore();
+const orders = useOrdersStore();
+const { busy, run } = useAction();
 
 const cart = ref<MealInOrder[]>([]);
 const cartTotal = computed(() =>
-  cart.value.reduce((sum, { price, quantity }) => price * quantity + sum, 0)
+  cart.value.reduce((sum, { price, quantity }) => sum + price * quantity, 0),
 );
-const deliveryFee = computed(() => (cartTotal.value >= 500 ? 0 : 50));
+// A preview only: the server asks Permit whether this order gets free delivery.
+const deliveryFee = computed(() => (cartTotal.value >= FREE_DELIVERY_FROM ? 0 : DELIVERY_FEE));
 const grandTotal = computed(() => cartTotal.value + deliveryFee.value);
-const isCreating = ref(false);
-const meals = useMealsStore();
-const orders = useOrdersStore();
-const toast = useToast();
-const user = useUserStore();
 
-const addToCart = (meal: Meal) => {
-  const index = cart.value.findIndex(({ id }) => meal.id == id);
-  if (index == -1) {
-    cart.value.push({ ...meal, quantity: 1 });
-  } else {
-    cart.value[index].quantity++;
-  }
-};
+// Each city has its own menu.
+watch(
+  () => city.current,
+  () => (cart.value = []),
+);
 
-const orderNow = async () => {
-  if (cart.value.length == 0) {
-    toast.add({
-      severity: 'info',
-      summary: 'Add Meals to Cart First',
-      life: 3000
-    });
-  } else {
-    isCreating.value = true;
-    const success = await orders.add({
-      meals: cart.value,
-      customer: user.current,
-      vendor: cart.value[0].vendor
-    });
-    isCreating.value = false;
-    if (success) {
-      cart.value = [];
-      toast.add({
-        severity: 'success',
-        summary: 'Order Placed',
-        detail: 'Check Orders Tab',
-        life: 7000
-      });
-    }
-  }
-};
+const inCart = (meal: Meal) => cart.value.find(({ id }) => id === meal.id);
 
-const removeFromCart = (meal: Meal) => {
-  const index = cart.value.findIndex(({ id }) => meal.id == id);
-  if (index > -1) {
-    if (cart.value[index].quantity == 1) {
-      cart.value.splice(index, 1);
-    } else {
-      cart.value[index].quantity--;
-    }
-  }
-};
+function addToCart(meal: Meal) {
+  const line = inCart(meal);
+  if (line) line.quantity++;
+  else cart.value.push({ id: meal.id, name: meal.name, price: meal.price, quantity: 1 });
+}
+
+function removeFromCart(meal: Meal) {
+  const line = inCart(meal);
+  if (line === undefined) return;
+  if (line.quantity > 1) line.quantity--;
+  else cart.value = cart.value.filter(({ id }) => id !== meal.id);
+}
+
+async function orderNow() {
+  const placed = await run(
+    'order',
+    () => orders.add({ meals: cart.value.map(({ id, quantity }) => ({ id, quantity })) }),
+    ({ id, deliveryFee: fee }) =>
+      `Order #${id} placed, delivery ${fee === 0 ? 'free' : `${fee} 💵`}. See the Orders tab.`,
+  );
+  if (placed) cart.value = [];
+}
 </script>
 
 <template>
@@ -70,78 +60,75 @@ const removeFromCart = (meal: Meal) => {
 
     <TabPanels>
       <TabPanel value="0">
-        <h3 class="text-xl my-4">Cart</h3>
-        <p v-if="cart.length == 0" class="text-center opacity-30 mb-8">
-          Empty Cart. Add Meals.
-        </p>
+        <h3 class="my-4 text-xl">Cart</h3>
+        <p v-if="cart.length === 0" class="mb-8 text-center opacity-30">Empty cart. Add meals.</p>
         <div v-else class="max-w-xs">
-          <div
-            class="flex items-start justify-between mb-2"
-            v-for="{ quantity, name, price } of cart"
-          >
+          <div v-for="line of cart" :key="line.id" class="mb-2 flex items-start justify-between">
             <p>
-              <span>{{ name }}</span>
-              <span v-if="quantity > 1" class="ml-1 last:opacity-75 text-sm">
-                (x{{ quantity }})
+              <span>{{ line.name }}</span>
+              <span v-if="line.quantity > 1" class="ml-1 text-sm opacity-75">
+                (x{{ line.quantity }})
               </span>
             </p>
-            <span class="text-nowrap">{{ price * quantity }} 💵</span>
+            <span class="text-nowrap">{{ line.price * line.quantity }} 💵</span>
           </div>
-          <p class="flex items-start justify-between mb-2">
+          <p class="mb-2 flex items-start justify-between">
             <span class="underline">Cart Total</span>
-            <span class="text-nowrap underline"> {{ cartTotal }} 💵 </span>
+            <span class="text-nowrap underline">{{ cartTotal }} 💵</span>
           </p>
-          <p class="flex items-start justify-between mb-2">
+          <p class="mb-2 flex items-start justify-between">
             <span>Delivery Fee</span>
-            <span class="text-nowrap">
-              {{ deliveryFee ? `${deliveryFee} 💵` : 'FREE' }}
-            </span>
+            <span class="text-nowrap">{{ deliveryFee ? `${deliveryFee} 💵` : 'FREE' }}</span>
           </p>
-          <p class="flex items-start justify-between mb-6">
+          <p class="mb-6 flex items-start justify-between">
             <span class="font-bold">Grand Total</span>
-            <span class="text-nowrap font-bold underline">
-              {{ grandTotal }} 💵
-            </span>
+            <span class="font-bold text-nowrap underline">{{ grandTotal }} 💵</span>
           </p>
         </div>
         <p class="text-right">
           <Button
-            type="submit"
             label="Order Now"
+            :disabled="cart.length === 0"
+            :loading="busy === 'order'"
             @click="orderNow"
-            :loading="isCreating"
           />
         </p>
-        <div class="mt-12 mb-8 h-0.5 bg-gray-500 bg-opacity-10"></div>
-        <h3 class="text-xl mb-4">Meals</h3>
-        <p
-          v-if="meals.all.length == 0"
-          class="text-center opacity-30 mt-4 mb-8"
-        >
-          No Meals Yet.
+        <div class="mt-12 mb-8 h-0.5 bg-gray-500/10"></div>
+        <h3 class="mb-4 text-xl">Meals</h3>
+        <Message v-if="meals.loadError" severity="warn" class="mb-4">
+          {{ meals.loadError }}
+        </Message>
+        <p v-else-if="meals.all.length === 0" class="mt-4 mb-8 text-center opacity-30">
+          No meals yet.
         </p>
         <div
-          class="flex items-start border border-opacity-25 border-gray-500 rounded-lg px-4 py-3 mb-4 md:max-w-md"
           v-for="meal of meals.all"
+          :key="meal.id"
+          class="mb-4 flex items-start rounded-lg border border-gray-500/25 px-4 py-3 md:max-w-md"
         >
-          <p class="grow flex justify-between">
-            <span class="font-bold">{{ meal.name }}</span>
+          <p class="flex grow justify-between">
+            <span>
+              <span class="font-bold">{{ meal.name }}</span>
+              <span class="ml-2 text-sm opacity-60">by {{ meal.vendor }}</span>
+            </span>
             <span class="text-nowrap">{{ meal.price }} 💵</span>
           </p>
-          <div class="bg-gray-500 ml-3 self-stretch w-0.5 bg-opacity-10"></div>
+          <div class="ml-3 w-0.5 self-stretch bg-gray-500/10"></div>
           <Button
             severity="contrast"
             variant="text"
             icon="pi pi-plus"
-            class="!text-primary px-2 !py-0 -mr-3"
+            :aria-label="`Add ${meal.name}`"
+            class="-mr-3 px-2 py-0! text-primary!"
             @click="addToCart(meal)"
           />
           <Button
-            :disabled="cart.findIndex(({ id }) => meal.id == id) == -1"
+            :disabled="inCart(meal) === undefined"
             severity="contrast"
             variant="text"
             icon="pi pi-minus"
-            class="!text-red-500 px-2 !py-0 -mr-3"
+            :aria-label="`Remove ${meal.name}`"
+            class="-mr-3 px-2 py-0! text-red-500!"
             @click="removeFromCart(meal)"
           />
         </div>

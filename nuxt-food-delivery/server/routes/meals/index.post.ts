@@ -1,31 +1,30 @@
+import { defineEventHandler, readBody, setResponseStatus } from 'h3';
 import { nanoid } from 'nanoid';
+import { authorize, callerOf, dropInstances, permitWrite } from '#server/utils/api';
+import { permit } from '#server/utils/permit';
+import { MAX_MEALS_PER_CITY, trimCity, updateStore } from '#server/utils/store';
+import { parseNewMeal } from '#server/utils/validate';
 
-export default defineEventHandler(async (event) => {
-  const { name, price, vendor } = await readBody(event);
-  const { city: tenant } = event.node.req.headers as any;
+/** Adds a meal to the caller's city's menu, sold by the caller. */
+export default defineEventHandler(async (event): Promise<{ id: string }> => {
+  const caller = callerOf(event);
+  const { name, price } = parseNewMeal(await readBody<unknown>(event));
+  // Permit check: vendors and admins may create meals in their city (RBAC).
+  await authorize(caller, 'create', { type: 'Meal' });
+
   const id = nanoid();
-
-  const meals = retrieveMeals();
-  meals.unshift({ id, name, price, vendor });
-
-  // Keep only the first 10 meals
-  if (meals.length > 10) {
-    const toDelete = meals.splice(10);
-    // Sync the deleted orders with Permit
-    await Promise.all(
-      toDelete.map(({ id }) => {
-        permit.api.resourceInstances.delete(`Meal:${id}`);
-      })
-    );
-  }
-  saveMeals(meals);
-
-  // Sync the new order with Permit
-  await permit.api.resourceInstances.create({
-    key: id,
-    resource: 'Meal',
-    tenant
+  await permitWrite(`create meal ${id}`, () =>
+    // Permit write: registers the meal as a Meal instance in the caller's city.
+    permit().api.resourceInstances.create({ key: id, resource: 'Meal', tenant: caller.tenant }),
+  );
+  const dropped = updateStore((data) => {
+    data.meals.unshift({ id, name, price, vendor: caller.user, city: caller.tenant });
+    const { kept, dropped } = trimCity(data.meals, caller.tenant, MAX_MEALS_PER_CITY);
+    data.meals = kept;
+    return dropped;
   });
+  await dropInstances('Meal', dropped);
 
+  setResponseStatus(event, 201);
   return { id };
 });

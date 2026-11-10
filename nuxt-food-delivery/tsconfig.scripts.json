@@ -1,0 +1,24 @@
+{
+  // The setup script, the tests and the lint tool. They import the server's modules through the
+  // `#server/`, `#shared/`, `#setup/`, `#test/` and `#tools/` entries in package.json "imports".
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["node"],
+    "paths": { "~/*": ["./app/*"] }
+  },
+  "include": ["setup", "test", "tools", "vitest.config.ts"]
+}
