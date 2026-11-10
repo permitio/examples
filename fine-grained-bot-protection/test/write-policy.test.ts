@@ -1,3 +1,4 @@
+import type { ConditionSetRuleCreate } from 'permitio';
 import { describe, expect, it, vi } from 'vitest';
 import { RESOURCE_SETS, USER_SETS } from '#src/policy';
 import {
@@ -92,9 +93,21 @@ describe('grantRules', () => {
   });
 });
 
-/** A Permit API that holds what `existing` lists and records every write. */
-function fakeApi(existing: { resources?: string[]; attributes?: string[]; sets?: string[] } = {}) {
+interface Existing {
+  resources?: string[];
+  attributes?: string[];
+  sets?: string[];
+  rules?: ConditionSetRuleCreate[];
+  users?: string[];
+}
+
+/**
+ * A Permit API that holds what `existing` lists and records every write. Like the API, it lists the
+ * grants of the user set it is asked about.
+ */
+function fakeApi(existing: Existing = {}) {
   const keys = (list: string[] = []) => list.map((key) => ({ key }));
+  const rules = existing.rules ?? [];
   const api = {
     resources: {
       list: vi.fn(async () => keys(existing.resources)),
@@ -111,7 +124,18 @@ function fakeApi(existing: { resources?: string[]; attributes?: string[]; sets?:
       create: vi.fn(async (_set: { key: string }) => ({})),
       update: vi.fn(async () => ({})),
     },
-    conditionSetRules: { create: vi.fn(async () => ({})) },
+    conditionSetRules: {
+      list: vi.fn(async (filter: { userSetKey: string }) =>
+        rules.filter((r) => r.user_set === filter.userSetKey),
+      ),
+      create: vi.fn(async (_rule: ConditionSetRuleCreate) => ({})),
+    },
+    users: {
+      sync: vi.fn(async (user: { key: string }) => ({
+        user,
+        created: !(existing.users ?? []).includes(user.key),
+      })),
+    },
   };
   return { api, policyApi: api as unknown as PolicyApi };
 }
@@ -149,6 +173,12 @@ describe('writePolicy', () => {
     expect(log).toHaveBeenCalledWith(
       'granted Untrusted_Bots may Content_Item:read on Shared_Items',
     );
+    // The resource sets need the user's key attribute, which the PDP has only for a known user.
+    expect(api.users.sync).toHaveBeenCalledWith({
+      key: 'user@example.com',
+      email: 'user@example.com',
+    });
+    expect(log).toHaveBeenLastCalledWith('created user user@example.com');
   });
 
   it('updates what exists, so a second run leaves the same policy', async () => {
@@ -156,6 +186,8 @@ describe('writePolicy', () => {
       resources: ['Content_Item'],
       attributes: ['botType'],
       sets: ALL_SETS,
+      rules: grantRules(),
+      users: ['user@example.com'],
     });
     const log = vi.fn();
     await writePolicy(policyApi, log);
@@ -177,10 +209,25 @@ describe('writePolicy', () => {
       conditions: { allOf: [{ anyOf: [{ 'user.botType': { equals: 'NOT_ANALYZED' } }] }] },
     });
     expect(api.conditionSets.update).toHaveBeenCalledTimes(ALL_SETS.length);
-    // Permit skips a grant that exists, so the rules are sent again.
-    expect(api.conditionSetRules.create).toHaveBeenCalledTimes(grantRules().length);
+    // Permit answers 409 to a grant that exists, so none is sent again.
+    expect(api.conditionSetRules.create).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith('updated user set Human_Users');
     expect(log).toHaveBeenCalledWith('updated resource set Blocked_Items');
+    expect(log).toHaveBeenCalledWith(
+      'already granted Human_Users may Content_Item:read on Public_Items',
+    );
+    expect(log).toHaveBeenLastCalledWith('updated user user@example.com');
+  });
+
+  it("reads each user set's grants and sends only the missing ones", async () => {
+    const [first, second, ...missing] = grantRules();
+    if (first === undefined || second === undefined) throw new Error('expected grants');
+    const { api, policyApi } = fakeApi({ rules: [first, second] });
+    await writePolicy(policyApi, vi.fn());
+    expect(api.conditionSetRules.list.mock.calls.map(([f]) => f)).toEqual(
+      USER_SETS.map((s) => ({ userSetKey: s.key })),
+    );
+    expect(api.conditionSetRules.create.mock.calls.map(([r]) => r)).toEqual(missing);
   });
 
   it('creates only the sets that are missing', async () => {

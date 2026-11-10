@@ -1,4 +1,5 @@
 import type { ConditionSetCreate, ConditionSetRuleCreate, Permit } from 'permitio';
+import { USER_KEY } from '#src/items';
 import {
   BOT_TYPE_ATTRIBUTE,
   CONTENT_ITEM,
@@ -17,8 +18,11 @@ export interface PolicyApi {
   resources: Pick<Api['resources'], 'list' | 'create' | 'update'>;
   resourceAttributes: Pick<Api['resourceAttributes'], 'list' | 'create' | 'update'>;
   conditionSets: Pick<Api['conditionSets'], 'list' | 'create' | 'update'>;
-  conditionSetRules: Pick<Api['conditionSetRules'], 'create'>;
+  conditionSetRules: Pick<Api['conditionSetRules'], 'list' | 'create'>;
+  users: Pick<Api['users'], 'sync'>;
 }
+
+type RuleFilter = Parameters<Api['conditionSetRules']['list']>[0];
 
 /** Permit's built-in resource that holds the user attributes. */
 const USER_RESOURCE = '__user';
@@ -98,11 +102,12 @@ export function describeError(err: unknown): string {
 }
 
 /**
- * Creates the policy in a Permit environment, or brings it back to this definition when it is there
- * already, so it is safe to run again. It reads each list first rather than relying on a 409 from a
- * create, because the SDK logs every failed call as an error. The environment is meant to be the
- * example's own, so the first page of each list (100 entries) holds everything. Grants nobody asked
- * for are left alone.
+ * Creates the policy and the demo user in a Permit environment, or brings them back to this
+ * definition when they are there already, so it is safe to run again. It reads each list first
+ * rather than relying on a 409 from a create, because the SDK logs every failed call as an error. A
+ * grant that exists is not sent again: Permit answers 409 to a duplicate. The environment is meant
+ * to be the example's own, so the first page of each list (100 entries) holds everything. Grants
+ * nobody asked for are left alone.
  */
 export async function writePolicy(api: PolicyApi, log: Log): Promise<void> {
   // Permit read: the resources (api.resources.list).
@@ -156,10 +161,35 @@ export async function writePolicy(api: PolicyApi, log: Log): Promise<void> {
     }
   }
 
+  const granted = new Set<string>();
+  for (const { key: userSet } of USER_SETS) {
+    // The SDK's type asks for all three filters, but the API takes each on its own and the SDK
+    // leaves out the ones that are undefined.
+    const filter = { userSetKey: userSet } as RuleFilter;
+    // Permit read: the user set's grants (api.conditionSetRules.list).
+    const rules = await step(`list grants of ${userSet}`, () => api.conditionSetRules.list(filter));
+    for (const r of rules) granted.add(ruleLabel(r));
+  }
   for (const rule of grantRules()) {
-    const label = `${rule.user_set} may ${rule.permission} on ${rule.resource_set}`;
-    // Permit write: a grant (api.conditionSetRules.create), which Permit skips when it exists.
+    const label = ruleLabel(rule);
+    if (granted.has(label)) {
+      log(`already granted ${label}`);
+      continue;
+    }
+    // Permit write: a grant (api.conditionSetRules.create).
     await step(`grant ${label}`, () => api.conditionSetRules.create(rule));
     log(`granted ${label}`);
   }
+
+  // The resource sets compare an item's owner with the user's `key` attribute, which the PDP has
+  // only for a user Permit knows. The botType still comes with each check.
+  // Permit write: the demo user (api.users.sync), created or replaced.
+  const { created } = await step(`sync user ${USER_KEY}`, () =>
+    api.users.sync({ key: USER_KEY, email: USER_KEY }),
+  );
+  log(`${created ? 'created' : 'updated'} user ${USER_KEY}`);
+}
+
+function ruleLabel(rule: { user_set: string; permission: string; resource_set: string }): string {
+  return `${rule.user_set} may ${rule.permission} on ${rule.resource_set}`;
 }
