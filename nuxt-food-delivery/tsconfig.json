@@ -1,0 +1,11 @@
+{
+  // Nuxt generates one tsconfig per context; `nuxt typecheck` checks all four. The strict options
+  // are set in nuxt.config.ts. Scripts and tests are checked with tsconfig.scripts.json.
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}

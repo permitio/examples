@@ -1,0 +1,56 @@
+{
+  "name": "nuxt-food-delivery",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#server/*": "./server/*.ts",
+    "#setup/*": "./setup/*.ts",
+    "#shared/*": "./shared/*.ts",
+    "#test/*": "./test/*.ts",
+    "#tools/*": "./tools/*.ts"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "start": "node .output/server/index.mjs",
+    "seed": "node --env-file-if-exists=.env setup/setup.ts",
+    "test": "vitest run",
+    "lint": "pnpm run lint:oxlint && pnpm run lint:format && pnpm run lint:types",
+    "lint:oxlint": "oxlint --deny-warnings .",
+    "lint:format": "oxfmt --check .",
+    "lint:types": "nuxt prepare && nuxt typecheck && tsc -p tsconfig.scripts.json",
+    "fix": "oxlint --fix . && oxfmt --write ."
+  },
+  "dependencies": {
+    "@pinia/nuxt": "1.0.3",
+    "@primeuix/themes": "2.0.3",
+    "@primevue/forms": "4.5.5",
+    "@primevue/nuxt-module": "4.5.5",
+    "@tailwindcss/vite": "4.3.4",
+    "h3": "1.15.11",
+    "nanoid": "6.0.2",
+    "nuxt": "4.6.4",
+    "permitio": "2.7.7",
+    "pinia": "4.1.0",
+    "primeicons": "7.0.0",
+    "primevue": "4.5.5",
+    "tailwindcss": "4.3.4",
+    "tailwindcss-primeui": "0.6.1",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "yup": "1.7.1"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.91.0",
+    "@types/node": "24.19.2",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.91.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0",
+    "vue-tsc": "3.3.14"
+  },
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "packageManager": "pnpm@12.17.0"
+}
