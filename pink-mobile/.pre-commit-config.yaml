@@ -1,0 +1,29 @@
+# prek runs these hooks from this folder, on this folder's files. The repository-wide
+# hooks (secrets, workflows, shell scripts) live in the root .pre-commit-config.yaml.
+repos:
+  - repo: local
+    hooks:
+      - id: lockfile
+        name: Frozen dependency graph
+        entry: pnpm install --lockfile-only --offline --frozen-lockfile --ignore-scripts
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: oxlint
+        name: Oxlint
+        entry: pnpm run lint:oxlint
+        language: system
+        pass_filenames: false
+        types_or: [javascript, ts, tsx, json]
+      - id: oxfmt
+        name: Oxfmt
+        entry: pnpm run lint:format
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: typescript
+        name: Strict TypeScript
+        entry: pnpm run lint:types
+        language: system
+        pass_filenames: false
+        types_or: [ts, tsx, json]
