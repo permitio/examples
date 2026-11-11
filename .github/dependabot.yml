@@ -81,3 +81,26 @@ updates:
         update-types: [minor, patch]
         patterns:
           - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /galactic-health-corporation
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
