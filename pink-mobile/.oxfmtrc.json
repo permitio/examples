@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "semi": true,
+  "jsdoc": {
+    "addDefaultToDescription": false,
+    "capitalizeDescriptions": false,
+    "lineWrappingStyle": "greedy"
+  },
+  "ignorePatterns": [".next/**", "node_modules/**", "next-env.d.ts", "pnpm-lock.yaml"]
+}

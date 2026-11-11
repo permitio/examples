@@ -37,6 +37,111 @@ updates:
           - '*'
   - package-ecosystem: npm
     versioning-strategy: increase
+    directory: /fine-grained-bot-protection
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /pink-mobile
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /galactic-health-corporation
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
+    directory: /nuxt-food-delivery
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    ignore:
+      # The example runs on Node 24, so its Node types stay on 24.x.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # vue-tsc (nuxt typecheck) needs TypeScript below 7.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      # PrimeVue 5+ is not MIT: it and its themes and icons ship under the commercial PrimeUI
+      # License, which needs a license key. The example stays on the MIT-licensed PrimeVue 4 line.
+      - dependency-name: primevue
+        update-types: [version-update:semver-major]
+      - dependency-name: '@primevue/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: '@primeuix/*'
+        update-types: [version-update:semver-major]
+      - dependency-name: primeicons
+        update-types: [version-update:semver-major]
+    groups:
+      runtime-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+      development-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    versioning-strategy: increase
     directory: /mesa-verde-banking
     schedule:
       interval: weekly

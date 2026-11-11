@@ -1,0 +1,6 @@
+engineStrict: true
+ignoreScripts: true
+minimumReleaseAge: 10080
+pmOnFail: error
+savePrefix: ''
+autoInstallPeers: false
