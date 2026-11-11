@@ -4,10 +4,13 @@ Runnable applications that use [Permit.io](https://www.permit.io) for authorizat
 lives in its own folder, with a README that explains how to run it and a CI workflow that runs only
 when that folder changes.
 
-| Example                                    | What it shows                                                                         | Stack                                         |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- | --------------------------------------------- |
-| [permit-portal-demo](permit-portal-demo)   | A business portal whose every protected action asks Permit first, with five scenarios | TypeScript, Express, React, Docker, local PDP |
-| [nuxt-food-delivery](nuxt-food-delivery)   | A multi-city food delivery app that combines RBAC, ABAC and ReBAC on the same actions | Nuxt, Vue, PrimeVue, Docker, local PDP        |
+| Example                                                    | What it shows                                                                                        | Stack                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [fine-grained-bot-protection](fine-grained-bot-protection) | Different access for humans, good bots and bad bots, classified by Arcjet                            | TypeScript, Express, Arcjet, Docker, local PDP                       |
+| [galactic-health-corporation](galactic-health-corporation) | A healthcare portal with RBAC pilot groups, ReBAC caregivers and member groups, and ABAC date bounds | Next.js, MUI, permitio, permit-fe-sdk + CASL, Better Auth, local PDP |
+| [nuxt-food-delivery](nuxt-food-delivery)                   | A multi-city food delivery app that combines RBAC, ABAC and ReBAC on the same actions                | Nuxt, Vue, PrimeVue, Docker, local PDP                               |
+| [permit-portal-demo](permit-portal-demo)                   | A business portal whose every protected action asks Permit first, with five scenarios                | TypeScript, Express, React, Docker, local PDP                        |
+| [pink-mobile](pink-mobile)                                 | Phone plans where RBAC, ReBAC and ABAC decide what managers, representatives and customers may do    | TypeScript, Next.js, Chakra UI, Docker, local PDP                    |
 
 ## Checks
 

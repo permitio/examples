@@ -1,0 +1,59 @@
+{
+  "name": "galactic-health-corporation",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#scripts/*": "./scripts/*.ts",
+    "#test/*": "./test/*.ts",
+    "#tools/*": "./tools/*.ts"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "setup": "tsx --env-file-if-exists=.env scripts/setup.ts",
+    "test": "vitest run",
+    "lint": "pnpm run lint:oxlint && pnpm run lint:format && pnpm run lint:types",
+    "lint:oxlint": "oxlint --deny-warnings .",
+    "lint:format": "oxfmt --check .",
+    "lint:types": "tsc -p tsconfig.json",
+    "fix": "oxlint --fix . && oxfmt --write ."
+  },
+  "dependencies": {
+    "@casl/ability": "7.1.1",
+    "@casl/react": "7.1.0",
+    "@emotion/cache": "11.14.0",
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "9.5.0",
+    "@mui/material": "9.5.0",
+    "@mui/material-nextjs": "9.5.0",
+    "@mui/x-date-pickers": "9.17.0",
+    "better-auth": "1.7.15",
+    "dayjs": "1.11.23",
+    "next": "16.4.4",
+    "permit-fe-sdk": "1.7.2",
+    "permitio": "2.7.7",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.91.0",
+    "@tailwindcss/postcss": "4.3.4",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.91.0",
+    "postcss": "8.5.32",
+    "tailwindcss": "4.3.4",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "packageManager": "pnpm@12.17.0"
+}
