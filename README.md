@@ -6,8 +6,10 @@ when that folder changes.
 
 | Example                                                    | What it shows                                                                                        | Stack                                                                |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [fine-grained-bot-protection](fine-grained-bot-protection) | Different access for humans, good bots and bad bots, classified by Arcjet                            | TypeScript, Express, Arcjet, Docker, local PDP                       |
 | [galactic-health-corporation](galactic-health-corporation) | A healthcare portal with RBAC pilot groups, ReBAC caregivers and member groups, and ABAC date bounds | Next.js, MUI, permitio, permit-fe-sdk + CASL, Better Auth, local PDP |
 | [permit-portal-demo](permit-portal-demo)                   | A business portal whose every protected action asks Permit first, with five scenarios                | TypeScript, Express, React, Docker, local PDP                        |
+| [pink-mobile](pink-mobile)                                 | Phone plans where RBAC, ReBAC and ABAC decide what managers, representatives and customers may do    | TypeScript, Next.js, Chakra UI, Docker, local PDP                    |
 
 ## Checks
 

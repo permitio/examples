@@ -1,0 +1,48 @@
+{
+  "name": "pink-mobile",
+  "private": true,
+  "type": "module",
+  "imports": {
+    "#components/*": "./components/*.tsx",
+    "#lib/*": "./lib/*.ts",
+    "#pages/*": "./pages/*.ts",
+    "#test/*": "./test/*.ts",
+    "#tools/*": "./tools/*.ts"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "node --env-file-if-exists=.env scripts/setup.ts",
+    "check:policy": "node --env-file-if-exists=.env scripts/check-policy.ts",
+    "test": "vitest run",
+    "lint": "pnpm run lint:oxlint && pnpm run lint:format && pnpm run lint:types",
+    "lint:oxlint": "oxlint --deny-warnings .",
+    "lint:format": "oxfmt --check .",
+    "lint:types": "tsc -p tsconfig.json",
+    "fix": "oxlint --fix . && oxfmt --write ."
+  },
+  "dependencies": {
+    "@chakra-ui/react": "3.38.0",
+    "@emotion/react": "11.14.0",
+    "next": "16.4.4",
+    "permitio": "2.7.7",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.91.0",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.91.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.1.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "packageManager": "pnpm@12.9.1"
+}
