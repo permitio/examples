@@ -27,7 +27,7 @@
     "@primevue/forms": "4.5.5",
     "@primevue/nuxt-module": "4.5.5",
     "@tailwindcss/vite": "4.3.4",
-    "h3": "1.15.11",
+    "h3": "2.0.8",
     "nanoid": "6.0.2",
     "nuxt": "4.6.4",
     "permitio": "2.7.7",
