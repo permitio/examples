@@ -394,14 +394,13 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
 
   useEffect(() => {
     if (!visible) return;
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    const run: { alive: boolean; timer?: ReturnType<typeof setTimeout> } = { alive: true };
     const poll = async () => {
       try {
         const res = await api.get<EventsResponse>(`/api/events?since=${feedRef.current.lastId}`, {
           source: 'refresh',
         });
-        if (!alive) return;
+        if (!run.alive) return;
         const next = mergeFeed(feedRef.current, res, keepRef.current);
         if (next.lastId < feedRef.current.lastId) {
           // The portal restarted and its ids began again, so earlier positions mean nothing now.
@@ -412,14 +411,14 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
         setFeed(next);
         setError(undefined);
       } catch (e) {
-        if (alive) setError(e);
+        if (run.alive) setError(e);
       }
-      if (alive) timer = setTimeout(poll, POLL_MS);
+      if (run.alive) run.timer = setTimeout(poll, POLL_MS);
     };
     void poll();
     return () => {
-      alive = false;
-      clearTimeout(timer);
+      run.alive = false;
+      clearTimeout(run.timer);
     };
   }, [visible]);
 
