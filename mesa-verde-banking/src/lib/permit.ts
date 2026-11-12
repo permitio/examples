@@ -6,11 +6,22 @@ import { permitSettings } from '@/lib/env';
 
 let client: Permit | undefined;
 
-/** The Permit SDK client: checks go to the PDP, data and schema calls to the Permit API. */
+/**
+ * The Permit SDK client: checks go to the PDP, schema calls to the Permit API. Data writes (users,
+ * tenants, instances, role assignments) go through the PDP, which forwards them to Permit and
+ * answers once it has applied them, for up to 10 seconds. So the transaction list read right after
+ * a transfer already has it.
+ */
 export function getPermit(): Permit {
   if (client === undefined) {
     const { apiKey, apiUrl, pdpUrl } = permitSettings();
-    client = new Permit({ token: apiKey, apiUrl, pdp: pdpUrl });
+    client = new Permit({
+      token: apiKey,
+      apiUrl,
+      pdp: pdpUrl,
+      proxyFactsViaPdp: true,
+      factsSyncTimeout: 10,
+    });
   }
   return client;
 }
@@ -177,29 +188,43 @@ const transactionAttributes = z.object({
   description: z.string(),
   amount: z.number(),
   currency: z.string(),
+  to: z.string(),
 });
 
+/** The tenant the PDP names on each entry; the SDK's type leaves it out for resource entries. */
+const entryTenant = z.object({ tenant: z.object({ key: z.string() }) });
+
 /**
- * The transactions of an account, newest first: the Transaction instances its owner holds a
- * relationship (Sender or Receiver) with in that tenant, read from the PDP.
+ * The transactions of an account, newest first, read from the PDP: the ones its owner sent from it
+ * (`Sender`, in this tenant) and the ones sent to it (`Receiver`). A transaction lives in the
+ * sending account's tenant, so the incoming ones come from other tenants: the query covers all of
+ * them, and keeps those whose `to` is this account.
  */
 export async function listTransactions(tenant: string): Promise<TransactionRow[]> {
   const owner = await getAccountOwner(tenant);
   if (owner === undefined) return [];
-  // Permit check: the Transaction instances the owner has a relationship with
+  // Permit check: the Transaction instances the owner has a relationship with, in any tenant
   const permissions = await getPermit().getUserPermissions(
     owner.key,
-    [tenant],
+    undefined,
     [],
     ['Transaction'],
   );
   return Object.values(permissions)
-    .flatMap((entry) => {
+    .flatMap((entry): TransactionRow[] => {
       if (!('resource' in entry) || entry.resource?.type !== 'Transaction') return [];
       const attributes = transactionAttributes.safeParse(entry.resource.attributes);
       if (!attributes.success) return [];
-      const direction = entry.roles?.includes('Sender') === true ? 'out' : 'in';
-      return [{ ...attributes.data, direction } satisfies TransactionRow];
+      const { to, ...row } = attributes.data;
+      const roles = entry.roles ?? [];
+      const inTenant = entryTenant.safeParse(entry).data?.tenant.key === tenant;
+      if (roles.includes('Sender') && inTenant) {
+        return [{ ...row, direction: 'out' }];
+      }
+      if (roles.includes('Receiver') && to === tenant) {
+        return [{ ...row, direction: 'in' }];
+      }
+      return [];
     })
     .toSorted((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }

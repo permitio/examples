@@ -9,7 +9,7 @@ A banking app whose accounts, transactions and wire transfers are authorized by 
 - **Fine-grained wire transfers**, checked in two steps:
   1. `create` on `Wire_Transfer`, with the amount as a resource attribute. Owners may send any amount; beneficiaries up to £1,000 (the `Small_Wire` resource set). A denied transfer becomes a `Wire_Transfer` instance with the owner as its `_Reviewer_`, and the user asks for approval in the Operation Approval element.
   2. `create` on `Transaction`, with the user's current `location` and `strongAuth` as user attributes. Owners whose location matches the `country` of their registered address (`Safe_Owners`) may send any amount, other owners (`Unsafe_Owners`) up to £1,000, and owners who entered a one-time code (`Strong_Auth_Owners`) any amount. A denied transfer gets a one-time code from Better Auth's email-OTP plugin, and the user sends it again with the code.
-- **ReBAC.** Every transaction is a `Transaction` instance with `Sender` and `Receiver` relationships. The transaction list is the account owner's `getUserPermissions` for `Transaction` instances in the account.
+- **ReBAC.** Every transaction is a `Transaction` instance with `Sender` and `Receiver` relationships. The transaction list is the account owner's `getUserPermissions` for `Transaction` instances: the ones sent from the account, and the ones sent to it (those live in the sender's account). Data writes go through the PDP, which answers once it has applied them, so a sent transfer is in the list at once.
 - **Permit Elements**: User Management (Manage Account Users), Access Request (Request Access to Transactions), Operation Approval (asking for a transfer's approval) and Approval Management (Review Wire Transfers).
 
 ## The demo users
