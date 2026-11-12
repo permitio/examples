@@ -27,6 +27,11 @@ function user(associated: Array<{ tenant: string; roles: string[] }>): UserRead 
   } as unknown as UserRead;
 }
 
+/** One page of the user search, as the Permit API answers it. */
+function found(...users: UserRead[]) {
+  return { data: users, total_count: users.length, page_count: users.length === 0 ? 0 : 1 };
+}
+
 function tenant(key: string, name: string): TenantRead {
   return { key, name } as TenantRead;
 }
@@ -48,13 +53,15 @@ describe('GET /account/api/tenants', () => {
 
   it('lists the accounts the user holds an account role in, owned first', async () => {
     const permit = fakePermit();
-    permit.api.users.get.mockResolvedValue(
-      user([
-        { tenant: 'alice-mesaverde-example', roles: ['AccountMember'] },
-        { tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] },
-        // A transaction's Receiver role, not an account role.
-        { tenant: 'dave-mesaverde-example', roles: ['Receiver'] },
-      ]),
+    permit.api.users.list.mockResolvedValue(
+      found(
+        user([
+          { tenant: 'alice-mesaverde-example', roles: ['AccountMember'] },
+          { tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] },
+          // A transaction's Receiver role, not an account role.
+          { tenant: 'dave-mesaverde-example', roles: ['Receiver'] },
+        ]),
+      ),
     );
     permit.api.tenants.get.mockImplementation(async (key) =>
       tenant(key, key.replace('-mesaverde-example', '@mesaverde.example')),
@@ -73,10 +80,10 @@ describe('GET /account/api/tenants', () => {
   it("opens a new user's own account in Permit on their first visit", async () => {
     const permit = fakePermit();
     upsertCustomer(getDatabase(), { email: EMAIL, country: 'US', location: 'US' });
-    permit.api.users.get
-      .mockRejectedValueOnce(permitApiError(404))
+    permit.api.users.list
+      .mockResolvedValueOnce(found())
       .mockResolvedValueOnce(
-        user([{ tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] }]),
+        found(user([{ tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] }])),
       );
     permit.api.tenants.get.mockResolvedValue(tenant('carol-mesaverde-example', EMAIL));
 
@@ -105,7 +112,7 @@ describe('GET /account/api/tenants', () => {
   it('refuses to take over an account another user already owns', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const permit = fakePermit();
-    permit.api.users.get.mockRejectedValue(permitApiError(404));
+    permit.api.users.list.mockResolvedValue(found());
     permit.api.tenants.create.mockRejectedValue(permitApiError(409));
     permit.api.tenants.listTenantUsers.mockResolvedValue({
       data: [{ key: 'someone-else@example.com' } as UserRead],
@@ -121,7 +128,7 @@ describe('GET /account/api/tenants', () => {
 
   it('answers 502 when Permit fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    fakePermit().api.users.get.mockRejectedValue(permitApiError(503));
+    fakePermit().api.users.list.mockRejectedValue(permitApiError(503));
     const response = await GET(appRequest('/account/api/tenants', { cookie }));
     expect(response.status).toBe(502);
   });

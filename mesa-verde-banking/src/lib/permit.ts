@@ -65,13 +65,18 @@ export async function getAccountOwner(tenant: string): Promise<UserRead | undefi
   return users.data[0];
 }
 
-/** A Permit user by key, or undefined when Permit has no such user. */
+/**
+ * A Permit user by key, or undefined when Permit has no such user. A new user's first visit lands
+ * here before the user exists, so it searches the user list, which answers an empty page, instead
+ * of getting the user by key: the SDK logs every 404 from `users.get` as an error. The search
+ * matches parts of keys, emails and names, so only an exact key match counts.
+ */
 export async function findUser(key: string): Promise<UserRead | undefined> {
-  try {
-    return await getPermit().api.users.get(key);
-  } catch (error) {
-    if (statusOf(error) === 404) return undefined;
-    throw error;
+  for (let page = 1; ; page += 1) {
+    const result = await getPermit().api.users.list({ search: key, page, perPage: 100 });
+    const user = result.data.find((candidate) => candidate.key === key);
+    if (user !== undefined) return user;
+    if (page >= (result.page_count ?? 1)) return undefined;
   }
 }
 
