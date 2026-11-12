@@ -57,13 +57,16 @@ rules, a Git repository connected to that environment through
    make pdp
    make setup
    ```
-3. Install the custom rules. Clone the environment's GitOps branch into `policy-repo/` (gitignored),
-   with push access, then apply:
+3. Install the custom rules. Clone the branch the environment follows into `policy-repo/`
+   (gitignored), with push access, then apply:
    ```bash
-   git clone --branch permit/generated/<environment id> <your policy repository> policy-repo
+   git clone --branch <environment branch> <your policy repository> policy-repo
    make apply-policy
    ```
-   It writes `custom/root.rego`, makes every allow in `root.rego` require it, pushes, restarts the
+   The environment branch is `permit/generated/<environment id>`, or the environment's
+   `custom_branch_name` when it has one, such as `main` for Development in the [`gitops/`](gitops/)
+   setup. `make apply-policy` works on the branch checked out in `policy-repo/`: it writes
+   `custom/root.rego`, makes every allow in `root.rego` require it, pushes that branch, restarts the
    PDP and waits until the PDP has loaded the new version.
 4. Check, then start the app on http://localhost:3000:
    ```bash
@@ -78,7 +81,7 @@ rules, a Git repository connected to that environment through
 | `make pdp` | Start the local container PDP (port 7766) from `docker-compose.yml` |
 | `make setup` | Make Permit's schema match `internal/schema` exactly (create what is missing, remove what it doesn't have), then restore the seed |
 | `make reset` | Restore the seeded data in Permit (organizations, people, instances, relationships, role assignments, people's attributes); restart the app afterwards |
-| `make apply-policy` | Install the custom rules in the GitOps branch, restart the PDP and wait for the new version |
+| `make apply-policy` | Install the custom rules on the environment branch checked out in `policy-repo/`, restart the PDP and wait for the new version |
 | `make verify` | Pre-flight: PDP up, custom rules loaded, the 53 decisions the scenarios rely on |
 | `make start` | Build and run the app on http://localhost:3000 |
 | `make test` | Go unit tests, and the custom Rego's unit tests (`opa test --v0-compatible policy/`) |

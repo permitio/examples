@@ -110,7 +110,11 @@ another environment, and running it twice changes nothing the second time.
 3. **Repository settings**, listed at the top of `terraform.yaml`: the two environments' API keys and an
    HCP Terraform token as secrets, the Permit project key and the HCP Terraform organization as
    variables.
-4. **The custom rules.** `make apply-policy` installs `policy/custom.rego` as `custom/root.rego`. Copy
+4. **The custom rules.** `make apply-policy` installs `policy/custom.rego` as `custom/root.rego`, and
+   makes `root.rego` require it, on the branch checked out in `policy-repo/`, and pushes that branch.
+   Here the environment branches are `main` and the release branch, not `permit/generated/<env id>`:
+   clone `main` into `policy-repo/` and run it with Development's API key in `.env`. The rules
+   reach Production when `main` is merged into the release branch, like any other change. Copy
    `policy/custom_test.rego` to `custom/root_test.rego` so `policy-tests.yaml` runs it; the PDP loads only
    the files `.manifest` lists, so the tests never reach it.
 5. **The first apply** creates the schema. Then load the seed data with `make reset`, not `make setup`:
