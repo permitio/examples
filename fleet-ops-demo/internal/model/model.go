@@ -250,11 +250,12 @@ var RoleAssignments = func() []RoleAssignment {
 	return ras
 }()
 
-// SeedActivity is what the people page shows as recent activity before anyone uses the app (scenario 5).
-var SeedActivity = []struct{ User, Text string }{
-	{"ivy", "Logged basic service on Truck DAL-01"},
-	{"quinn", "Dispatched Truck HOU-01 on Houston → Dallas"},
-	{"ivy", "Logged basic service on Truck DAL-02"},
+// SeedActivity is what the people page shows as recent activity before anyone uses the app
+// (scenario 5), newest first. Each entry is also an entry in the truck's history.
+var SeedActivity = []struct{ User, Text, Truck, Kind string }{
+	{"ivy", "Logged basic service on Truck DAL-01", "asset:acme-dal-01", "Basic service"},
+	{"quinn", "Dispatched Truck HOU-01 on Houston → Dallas", "asset:acme-hou-01", "Dispatched on Houston → Dallas"},
+	{"ivy", "Logged basic service on Truck DAL-02", "asset:acme-dal-02", "Basic service"},
 }
 
 // ---- Lookups ------------------------------------------------------------------------------------
