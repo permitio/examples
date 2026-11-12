@@ -228,8 +228,8 @@ importers:
         specifier: 8.7.3
         version: 8.7.3(express@5.3.0)
       lucide-react:
-        specifier: 1.68.0
-        version: 1.68.0(@types/react@19.3.0)(react@19.3.1)
+        specifier: 1.69.0
+        version: 1.69.0(@types/react@19.3.0)(react@19.3.1)
       permitio:
         specifier: file:../../vendor/permitio-3.0.0-ffe1ccc.tgz
         version: file:vendor/permitio-3.0.0-ffe1ccc.tgz(debug@4.4.3)
@@ -1544,8 +1544,8 @@ packages:
   lodash@4.18.1:
     resolution: {integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==}
 
-  lucide-react@1.68.0:
-    resolution: {integrity: sha512-9i7NKWm2QlOprMhcwkhBOlIt9zB7cp2GIyFY+oMue0EsprolUFxva5rkdBbyfs4k1eejpa0JRnRgVOGiart+Xg==}
+  lucide-react@1.69.0:
+    resolution: {integrity: sha512-UTFECm4yEgkgMN0kfLuxWcmlk+4u02Jrqehgk3ZXRx/Ud68OpP7hjkp67bvkBHmIpMaZCIveF1QDYeupO7XmYQ==}
     peerDependencies:
       '@types/react': '*'
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -2919,7 +2919,7 @@ snapshots:
 
   lodash@4.18.1: {}
 
-  lucide-react@1.68.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.69.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
