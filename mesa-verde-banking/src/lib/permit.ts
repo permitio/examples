@@ -80,22 +80,50 @@ export async function findUser(key: string): Promise<UserRead | undefined> {
   }
 }
 
+/** How many tenants a page of the tenant search holds, the most the API returns at once. */
+const TENANT_PAGE = 100;
+
 /**
- * Opens a new user's own account: a tenant named after them, the user (with the country of their
- * registered address, when the bank knows it), and the AccountOwner role in that tenant.
+ * Whether Permit has a tenant with this key. It searches the tenant list, which answers an empty
+ * page for a missing tenant, instead of getting the tenant by key: the SDK logs every 404 as an
+ * error. The search matches parts of keys and names, so only an exact key match counts.
+ */
+async function tenantExists(key: string): Promise<boolean> {
+  for (let page = 1; ; page += 1) {
+    const tenants = await getPermit().api.tenants.list({ search: key, page, perPage: TENANT_PAGE });
+    if (tenants.some((tenant) => tenant.key === key)) return true;
+    if (tenants.length < TENANT_PAGE) return false;
+  }
+}
+
+/** Whether `user` holds AccountOwner in the account their email names. */
+export function ownsOwnAccount(user: UserRead | undefined, email: string): boolean {
+  const tenant = accountKeyFor(email);
+  return (user?.associated_tenants ?? []).some(
+    (association) => association.tenant === tenant && association.roles.includes('AccountOwner'),
+  );
+}
+
+/**
+ * Opens a user's own account: a tenant named after them, the user (with the country of their
+ * registered address, when the bank knows it), and the AccountOwner role in that tenant. A retry
+ * after a partial failure finishes the job: it reads what exists before writing, so the expected
+ * "already there" never comes back as a 409, which the SDK would log as an error.
  */
 export async function openAccount(email: string, country: string | undefined): Promise<void> {
   const permit = getPermit();
   const tenant = accountKeyFor(email);
-  try {
-    // Permit write: the user's account, a tenant
-    await permit.api.tenants.create({ key: tenant, name: email });
-  } catch (error) {
-    if (statusOf(error) !== 409) throw error;
+  let ownerHeld = false;
+  if (await tenantExists(tenant)) {
     const owner = await getAccountOwner(tenant);
     if (owner !== undefined && owner.key !== email) {
       throw new Error(`The account ${tenant} already belongs to another user`);
     }
+    ownerHeld = owner !== undefined;
+  } else {
+    // Permit write: the user's account, a tenant. A 409 means a request running at the same time
+    // created it first.
+    await createOrKeep(() => permit.api.tenants.create({ key: tenant, name: email }));
   }
   // Permit write: the user, with their registered country
   await permit.api.users.sync({
@@ -103,6 +131,7 @@ export async function openAccount(email: string, country: string | undefined): P
     email,
     ...(country === undefined ? {} : { attributes: { country } }),
   });
+  if (ownerHeld) return;
   await createOrKeep(() =>
     // Permit write: AccountOwner of their account
     permit.api.roleAssignments.assign({ role: 'AccountOwner', tenant, user: email }),

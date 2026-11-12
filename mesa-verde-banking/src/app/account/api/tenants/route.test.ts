@@ -85,11 +85,17 @@ describe('GET /account/api/tenants', () => {
       .mockResolvedValueOnce(
         found(user([{ tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] }])),
       );
+    permit.api.tenants.list.mockResolvedValue([]);
     permit.api.tenants.get.mockResolvedValue(tenant('carol-mesaverde-example', EMAIL));
 
     const response = await GET(appRequest('/account/api/tenants', { cookie }));
 
     expect(response.status).toBe(200);
+    expect(permit.api.tenants.list).toHaveBeenCalledWith({
+      search: 'carol-mesaverde-example',
+      page: 1,
+      perPage: 100,
+    });
     expect(permit.api.tenants.create).toHaveBeenCalledWith({
       key: 'carol-mesaverde-example',
       name: EMAIL,
@@ -113,7 +119,7 @@ describe('GET /account/api/tenants', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const permit = fakePermit();
     permit.api.users.list.mockResolvedValue(found());
-    permit.api.tenants.create.mockRejectedValue(permitApiError(409));
+    permit.api.tenants.list.mockResolvedValue([tenant('carol-mesaverde-example', EMAIL)]);
     permit.api.tenants.listTenantUsers.mockResolvedValue({
       data: [{ key: 'someone-else@example.com' } as UserRead],
       total_count: 1,
@@ -123,6 +129,86 @@ describe('GET /account/api/tenants', () => {
     const response = await GET(appRequest('/account/api/tenants', { cookie }));
 
     expect(response.status).toBe(502);
+    expect(permit.api.tenants.create).not.toHaveBeenCalled();
+    expect(permit.api.users.sync).not.toHaveBeenCalled();
+    expect(permit.api.roleAssignments.assign).not.toHaveBeenCalled();
+  });
+
+  it('finishes an account a failed visit left with only its tenant, without creating it again', async () => {
+    const permit = fakePermit();
+    permit.api.users.list
+      .mockResolvedValueOnce(found())
+      .mockResolvedValueOnce(
+        found(user([{ tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] }])),
+      );
+    permit.api.tenants.list.mockResolvedValue([
+      // The search matches parts of keys: only the exact key is the user's account.
+      tenant('xcarol-mesaverde-example', 'xcarol@mesaverde.example'),
+      tenant('carol-mesaverde-example', EMAIL),
+    ]);
+    permit.api.tenants.listTenantUsers.mockResolvedValue({
+      data: [],
+      total_count: 0,
+      page_count: 0,
+    });
+    permit.api.tenants.get.mockResolvedValue(tenant('carol-mesaverde-example', EMAIL));
+
+    const response = await GET(appRequest('/account/api/tenants', { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(permit.api.tenants.create).not.toHaveBeenCalled();
+    expect(permit.api.users.sync).toHaveBeenCalledWith(
+      expect.objectContaining({ key: EMAIL, email: EMAIL }),
+    );
+    expect(permit.api.roleAssignments.assign).toHaveBeenCalledWith({
+      role: 'AccountOwner',
+      tenant: 'carol-mesaverde-example',
+      user: EMAIL,
+    });
+    expect(await response.json()).toEqual([
+      { key: 'carol-mesaverde-example', name: EMAIL, role: 'AccountOwner' },
+    ]);
+  });
+
+  it('finishes an account a failed visit left without its owner role, though the user exists', async () => {
+    const permit = fakePermit();
+    permit.api.users.list
+      .mockResolvedValueOnce(found(user([])))
+      .mockResolvedValueOnce(
+        found(user([{ tenant: 'carol-mesaverde-example', roles: ['AccountOwner'] }])),
+      );
+    permit.api.tenants.list.mockResolvedValue([tenant('carol-mesaverde-example', EMAIL)]);
+    permit.api.tenants.listTenantUsers.mockResolvedValue({
+      data: [],
+      total_count: 0,
+      page_count: 0,
+    });
+    permit.api.tenants.get.mockResolvedValue(tenant('carol-mesaverde-example', EMAIL));
+
+    const response = await GET(appRequest('/account/api/tenants', { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(permit.api.tenants.create).not.toHaveBeenCalled();
+    expect(permit.api.roleAssignments.assign).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual([
+      { key: 'carol-mesaverde-example', name: EMAIL, role: 'AccountOwner' },
+    ]);
+  });
+
+  it('assigns nothing again when the existing account already lists the user as its owner', async () => {
+    const permit = fakePermit();
+    permit.api.users.list.mockResolvedValue(found(user([])));
+    permit.api.tenants.list.mockResolvedValue([tenant('carol-mesaverde-example', EMAIL)]);
+    permit.api.tenants.listTenantUsers.mockResolvedValue({
+      data: [{ key: EMAIL } as UserRead],
+      total_count: 1,
+      page_count: 1,
+    });
+
+    const response = await GET(appRequest('/account/api/tenants', { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(permit.api.tenants.create).not.toHaveBeenCalled();
     expect(permit.api.roleAssignments.assign).not.toHaveBeenCalled();
   });
 

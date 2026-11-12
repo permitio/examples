@@ -84,16 +84,16 @@ Every line that asks Permit carries a `// Permit check:` comment, and every line
 git grep -n "Permit check\|Permit write" src
 ```
 
-| Route                                             | What it asks Permit                                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `GET /account/api/tenants`                        | Reads the user's accounts; on the first visit, creates their account and owner role |
-| `GET /account/api/tenants/all`                    | Lists the accounts a transfer can go to                                             |
-| `GET /account/api/balance?tenant=`                | `read` on `Account`                                                                 |
-| `GET /account/api/transactions?tenant=`           | `list` on `Transaction`, then the owner's `Transaction` instances                   |
-| `POST /account/api/transactions?tenant=`          | `read` on `Account`, `create` on `Wire_Transfer`, then on `Transaction`; records it |
-| `POST /account/api/frontend-permissions/[tenant]` | The UI's bulk check, for `permit-fe-sdk`                                            |
-| `GET /account/api/elements-login?tenant=`         | An Elements login for the user in the account                                       |
-| `POST /account/webhook`                           | Records an approved transfer, or deletes a denied one                               |
+| Route                                             | What it asks Permit                                                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /account/api/tenants`                        | Reads the user's accounts; until they own their own (a first visit, or one that failed half way), creates it and its owner role |
+| `GET /account/api/tenants/all`                    | Lists the accounts a transfer can go to                                                                                         |
+| `GET /account/api/balance?tenant=`                | `read` on `Account`                                                                                                             |
+| `GET /account/api/transactions?tenant=`           | `list` on `Transaction`, then the owner's `Transaction` instances                                                               |
+| `POST /account/api/transactions?tenant=`          | `read` on `Account`, `create` on `Wire_Transfer`, then on `Transaction`; records it                                             |
+| `POST /account/api/frontend-permissions/[tenant]` | The UI's bulk check, for `permit-fe-sdk`                                                                                        |
+| `GET /account/api/elements-login?tenant=`         | An Elements login for the user in the account                                                                                   |
+| `POST /account/webhook`                           | Records an approved transfer, or deletes a denied one                                                                           |
 
 Every API route answers 401 without a Better Auth session, and 502 when Permit cannot be reached. A wire transfer answers 200 with a `status`: `sent`, or the next step, `approval_required` or `strong_auth_required` (the way payment APIs answer "requires action"). It answers 403 with a `code` when it is refused: `denied`, or `invalid_code` for a wrong or used one-time code.
 
