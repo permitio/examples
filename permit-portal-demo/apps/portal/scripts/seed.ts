@@ -49,8 +49,8 @@ async function main(): Promise<Result> {
         }),
     );
   }
-  // Permit write: api.resourceRelations declares that a shipment's parent is an EAN (the ReBAC
-  // link).
+  // Permit write: api.resourceRelations declares the parent links the ReBAC roles follow: a
+  // shipment's and an account's parent is an EAN, a location's parent is an account.
   for (const { resource, relation } of RELATIONS) {
     await write(`relation ${resource}.${relation.key} -> ${relation.subject_resource}`, () =>
       permit.api.resourceRelations.create(resource, relation),
@@ -64,8 +64,9 @@ async function main(): Promise<Result> {
       () => permit.api.roles.update(role.key, { name: role.name, permissions: role.permissions }),
     );
   }
-  // Permit write: api.resourceRoles creates account_admin on EAN and on shipment. A shipment's
-  // account_admin is derived from account_admin on its parent EAN (ReBAC).
+  // Permit write: api.resourceRoles creates the roles on EAN, shipment, account and location. A
+  // role with granted_to is derived from a role on the parent resource (ReBAC), e.g. a shipment's
+  // account_admin from account_admin on its parent EAN.
   for (const { resource, role } of RESOURCE_ROLES) {
     await write(
       `resource role ${resource}#${role.key}`,
