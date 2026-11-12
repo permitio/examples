@@ -67,7 +67,10 @@ rules, a Git repository connected to that environment through
    `custom_branch_name` when it has one, such as `main` for Development in the [`gitops/`](gitops/)
    setup. `make apply-policy` works on the branch checked out in `policy-repo/`: it writes
    `custom/root.rego`, makes every allow in `root.rego` require it, pushes that branch, restarts the
-   PDP and waits until the PDP has loaded the new version.
+   PDP and waits until the PDP has loaded the new version. Schema and dashboard changes leave
+   `root.rego` alone; Permit replaces it only when it merges an update of its own policy library
+   that changes `root.rego`. `make verify` then reports the custom rules missing: run
+   `make apply-policy` again.
 4. Check, then start the app on http://localhost:3000:
    ```bash
    make verify
