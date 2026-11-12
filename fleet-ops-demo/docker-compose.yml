@@ -9,5 +9,7 @@ services:
       - "127.0.0.1:8181:8181" # embedded OPA, for reading the loaded policy and data
     environment:
       PDP_API_KEY: ${PERMIT_API_KEY}
+      # The PDP syncs from the same Permit API the app and `make setup` use.
+      PDP_CONTROL_PLANE: ${PERMIT_API_URL:-https://api.permit.io}
       PDP_DEBUG: "true" # each decision returns its reason in the "debug" field
     restart: unless-stopped

@@ -154,6 +154,12 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		if ok, err := enforce(label+" (site admin)", "assign_roles", site.ID()); !ok {
 			return r.refuse(err)
 		}
+		name := model.FullName(partner.Key)
+		if !grant {
+			if _, err := r.checkOne(fmt.Sprintf("Before: can %s view %s?", name, truck.Name), partner.Key, "view", id, truck.Tenant); err != nil {
+				return nil, err
+			}
+		}
 		ra := model.RoleAssignment{User: partner.Key, Role: "partner_technician", ResourceInstance: id, Tenant: truck.Tenant}
 		if err := a.writeAssignment(ra, grant); err != nil {
 			return nil, err
@@ -162,11 +168,25 @@ func (a *App) truckAction(body actBody, key string) (obj, error) {
 		if grant {
 			verb = "gains"
 		}
-		name := model.FullName(partner.Key)
 		if err := r.untilDecision(fmt.Sprintf("%s %s access to %s", name, verb, truck.Name), partner.Key, "view", id, truck.Tenant, grant); err != nil {
 			return nil, err
 		}
-		message = fmt.Sprintf("%s no longer has access to %s.", name, truck.Name)
+		if !grant {
+			// Nothing left behind: no partner role on this truck.
+			held, err := permitapi.ListAll(func(ctx context.Context, page, perPage int) ([]models.RoleAssignmentRead, error) {
+				return permitapi.Deref(a.api.RoleAssignments.List(ctx, page, perPage, partner.Key, "partner_technician", truck.Tenant))
+			})
+			if err != nil {
+				return nil, fmt.Errorf("listing the role assignments of %s: %w", partner.Key, err)
+			}
+			left := 0
+			for _, h := range held {
+				if h.GetResourceInstance() == id {
+					left++
+				}
+			}
+			message = fmt.Sprintf("%s no longer has access to %s. Left behind on %s: %d role assignments.", name, truck.Name, truck.Name, left)
+		}
 		if grant {
 			message = fmt.Sprintf("%s can now service %s, and only this truck, acting for %s.", name, truck.Name, model.OrgName(truck.Tenant))
 		}

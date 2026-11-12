@@ -34,6 +34,10 @@ func (a *App) summary(truck *model.Instance) truckSummary {
 		Lifecycle: truck.Attributes["lifecycle_state"],
 		Owner:     model.OrgName(truck.Tenant),
 	}
+	// The region attribute is what the attribute rules read; Details can change it.
+	if region, ok := truck.Attributes["region"].(string); ok && region != "" {
+		s.Region = region
+	}
 	if op := operatorOf(truck); op != truck.Tenant {
 		s.Operator = model.OrgName(op)
 	}

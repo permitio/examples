@@ -72,6 +72,9 @@ func Code(c Check) string {
 
 // BulkCode is the SDK call for a bulk of checks, as the log shows it.
 func BulkCode(n int) string {
+	if n == 1 {
+		return "permitClient.BulkCheck(requests...) // 1 check"
+	}
 	return fmt.Sprintf("permitClient.BulkCheck(requests...) // %d checks", n)
 }
 

@@ -83,8 +83,9 @@ rules, a Git repository connected to that environment through
 | `make start` | Build and run the app on http://localhost:3000 |
 | `make test` | Go unit tests, and the custom Rego's unit tests (`opa test --v0-compatible policy/`) |
 
-Steps 13 to 16 of the walkthrough change data for good. Afterwards, stop the app, run `make reset`
-and start it again: the app reads its data from Permit when it starts.
+The walkthrough changes data in Permit (steps 2, 3, 6, 8 and 12 to 16), and later steps rely on
+earlier ones. Afterwards, stop the app, run `make reset` and start it again: the app reads its data
+from Permit when it starts.
 
 ## The model
 
@@ -140,7 +141,7 @@ ATL-01 (Summit East) and DEN-01 (Summit West).
 ## Walkthrough
 
 Use **Signed in as** and **Organization** in the top bar; switching either one re-checks the page
-you are on. Steps 13 to 16 change data, so they come last.
+you are on. Steps 13 to 16 delete or move data, so they come last.
 
 | # | Scenario | Do | Point at in the panel |
 |---|---|---|---|
@@ -162,8 +163,8 @@ you are on. Steps 13 to 16 change data, so they come last.
 | 16 | 16. Merge | As **Ava**, **Organizations**: **Merge** Lone Star Logistics into Acme Freight (about 15 seconds) | Lena keeps her role, now acting for Acme; Olivia reaches Lone Star's trucks through the new sub-organization link |
 
 **17. Audit**, along the way: any check's **Why**, its **PDP response**, and Permit's **Audit Log**
-filtered by user. The decision record carries `debug.acting_org` (`same_org` or
-`acting_org_mismatch` and its reason) and `debug.fleet_rules.policy_version`.
+filtered by user. The decision record carries `debug.acting_org` (`same_org`, `operator_org`,
+`no_acting_org`, `acting_org_mismatch`, `unknown_resource` or `not_applicable`, and its reason) and `debug.fleet_rules.policy_version`.
 
 ## Questions you may get
 
