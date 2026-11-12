@@ -421,14 +421,12 @@ function addLog(entries = []) {
   renderLog(entries.length);
 }
 
-const valueText = (v) => (v === null || v === undefined ? 'none' : Array.isArray(v) ? v.join(', ') || 'none' : String(v));
-
 function detailHtml(c) {
   const parts = [];
   if (c.route) parts.push(`<p>Relationship route:</p><ol>${c.route.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>`);
   if (c.rule) {
-    parts.push(`<p>Rule conditions, with the values the PDP evaluated:</p><ul>${c.rule
-      .map((r) => `<li><span class="${r.ok ? 'ok' : 'no'}">${r.ok ? '✓' : '✗'}</span> ${esc(r.label)} <code>${esc(valueText(r.actual))}</code></li>`)
+    parts.push(`<p>Rule conditions, as the PDP evaluated them:</p><ul>${c.rule
+      .map((r) => `<li><span class="${r.ok ? 'ok' : 'no'}">${r.ok ? '✓' : '✗'}</span> ${esc(r.label)}</li>`)
       .join('')}</ul>`);
   }
   if (c.actingOrg) parts.push(`<p>Tenant isolation: <code>${esc(c.actingOrg)}</code></p>`);
@@ -442,7 +440,7 @@ function detailHtml(c) {
 function denyWhy(c) {
   if (c.allow) return '';
   const unmet = !c.fleetRule && c.actingOrg !== 'acting_org_mismatch' && c.rule ? c.rule.filter((r) => !r.ok) : [];
-  const text = unmet.length ? `Not met: ${unmet.map((r) => `${r.label} (${valueText(r.actual)})`).join('; ')}` : c.reason;
+  const text = unmet.length ? `Not met: ${unmet.map((r) => r.label).join('; ')}` : c.reason;
   const rule = c.fleetRule || (['no_acting_org', 'acting_org_mismatch', 'unknown_resource'].includes(c.actingOrg) ? c.actingOrg : '');
   const code = rule ? ` <code>${esc(rule)}</code>` : '';
   return text || rule ? `<em>${esc(text)}${code}</em>` : '';
