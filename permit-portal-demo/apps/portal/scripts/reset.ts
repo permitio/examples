@@ -28,29 +28,48 @@ const EOMER = 'eomer';
 const GRIMA = 'grima';
 
 /**
- * Every portal /api route needs a seeded persona in `x-demo-persona` (any will do). 409 means the
- * demo clock is switched off, which is fine. The portal may be down during a policy-only reset, so
- * an unreachable portal is reported and skipped; any other answer (a 401 means the header is
- * missing) is a bug and fails the reset.
+ * POSTs to one of the portal's /api routes. Every portal /api route needs a seeded persona in
+ * `x-demo-persona` (any will do); `accept` lists the error statuses that are fine. The portal may
+ * be down during a policy-only reset, so an unreachable portal is reported and skipped; any other
+ * answer (a 401 means the header is missing) is a bug and fails the reset.
  */
-async function resetPortalClock(env: ScriptEnv): Promise<string> {
+async function postToPortal(
+  env: ScriptEnv,
+  path: string,
+  accept: number[] = [],
+): Promise<number | 'skipped'> {
   try {
-    const res = await httpRequest('POST', `${env.portalUrl}/api/clock/reset`, {
+    const res = await httpRequest('POST', `${env.portalUrl}${path}`, {
       headers: { 'x-demo-persona': ARAGORN },
-      accept: [409],
+      accept,
     });
-    return res.status === 409 ? 'off' : 'done';
+    return res.status;
   } catch (err) {
     if (err instanceof HttpError)
       throw new Error(
-        `the portal answered ${err.status} to POST /api/clock/reset with x-demo-persona ${ARAGORN}`,
+        `the portal answered ${err.status} to POST ${path} with x-demo-persona ${ARAGORN}`,
       );
     if (!couldNotRun(err)) throw err;
     console.warn(
-      `WARN: could not reset the portal's demo clock, the portal is not reachable at ${env.portalUrl} (${describeError(err)})`,
+      `WARN: could not POST ${path}, the portal is not reachable at ${env.portalUrl} (${describeError(err)})`,
     );
     return 'skipped';
   }
+}
+
+/** The portal's demo clock back to zero; a 409 means the clock is switched off, which is fine. */
+async function resetPortalClock(env: ScriptEnv): Promise<string> {
+  const status = await postToPortal(env, '/api/clock/reset', [409]);
+  return status === 'skipped' ? status : status === 409 ? 'off' : 'done';
+}
+
+/**
+ * The decision panel's log emptied: its checks were decided on the data this reset replaced, so its
+ * signs would show, for example, the organization S1 created as open after the reset deleted it.
+ */
+export async function clearPortalLog(env: ScriptEnv): Promise<string> {
+  const status = await postToPortal(env, '/api/events/clear');
+  return status === 'skipped' ? status : 'cleared';
 }
 
 export async function runReset(env: ScriptEnv = scriptEnv()): Promise<Outcome> {
@@ -130,8 +149,9 @@ export async function runReset(env: ScriptEnv = scriptEnv()): Promise<Outcome> {
       return 'done';
     });
 
-    // 6. The portal's demo clock back to zero.
+    // 6. The portal's demo clock back to zero, and its decision log emptied.
     await logged(log, 'portal demo clock reset', () => resetPortalClock(env));
+    await logged(log, 'portal decision log', () => clearPortalLog(env));
 
     // 7. Prove it: the preflight matrix and the starting-state check.
     const { outcome, summary } = await runPreflight(env);

@@ -60,11 +60,12 @@ export type DemoEvent = CheckEvent | WriteEvent | ReadEvent;
 
 /**
  * The decision panel's feed: every check, read and write, oldest first, keeping the newest
- * `capacity` events.
+ * `capacity` events. A demo reset clears it; ids keep counting up, so an id is never reused.
  */
 export class EventLog {
-  private readonly events: DemoEvent[] = [];
+  private events: DemoEvent[] = [];
   private last = 0;
+  private cleared = 0;
 
   constructor(private readonly capacity = 500) {}
 
@@ -96,5 +97,16 @@ export class EventLog {
 
   lastId(): number {
     return this.last;
+  }
+
+  /** Drops every event, for a demo reset: what they recorded was decided on data the reset replaced. */
+  clear(): void {
+    this.events = [];
+    this.cleared = this.last;
+  }
+
+  /** The last id the latest clear dropped: a feed still holding it or an older id is stale. */
+  clearedThrough(): number {
+    return this.cleared;
   }
 }

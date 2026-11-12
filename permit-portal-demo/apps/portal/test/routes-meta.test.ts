@@ -67,7 +67,7 @@ describe('GET /api/events', () => {
     events.push({ kind: 'write', at: 1, what: 'b', ms: 2, ok: false, error: 'boom' });
     const all = await request(app).get('/api/events?since=0').set('x-demo-persona', 'aragorn');
     expect(all.status).toBe(200);
-    expect(all.body).toEqual({ events: events.since(0), lastId: 2 });
+    expect(all.body).toEqual({ events: events.since(0), lastId: 2, clearedThrough: 0 });
     const newer = await request(app)
       .get(`/api/events?since=${first}`)
       .set('x-demo-persona', 'aragorn');
@@ -78,6 +78,31 @@ describe('GET /api/events', () => {
     expect(
       (await request(app).get('/api/events?since=x').set('x-demo-persona', 'aragorn')).status,
     ).toBe(400);
+  });
+});
+
+describe('POST /api/events/clear', () => {
+  it('empties the feed for a demo reset, and the feed names the last id it dropped', async () => {
+    const { app, events } = harness();
+    events.push({ kind: 'write', at: 1, what: 'a', ms: 2, ok: true });
+    events.push({ kind: 'write', at: 1, what: 'b', ms: 2, ok: true });
+
+    const cleared = await request(app).post('/api/events/clear').set('x-demo-persona', 'aragorn');
+
+    expect(cleared.status).toBe(200);
+    expect(cleared.body).toEqual({ clearedThrough: 2 });
+    events.push({ kind: 'write', at: 1, what: 'c', ms: 2, ok: true });
+    const feed = await request(app).get('/api/events?since=0').set('x-demo-persona', 'aragorn');
+    expect(feed.body).toEqual({ events: events.since(0), lastId: 3, clearedThrough: 2 });
+    expect(feed.body.events.map((e: { what: string }) => e.what)).toEqual(['c']);
+  });
+
+  it('needs a persona like every /api route', async () => {
+    const { app, events } = harness();
+    events.push({ kind: 'write', at: 1, what: 'a', ms: 2, ok: true });
+
+    expect((await request(app).post('/api/events/clear')).status).toBe(401);
+    expect(events.since(0)).toHaveLength(1);
   });
 });
 

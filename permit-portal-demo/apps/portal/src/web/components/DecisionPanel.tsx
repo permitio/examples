@@ -372,9 +372,9 @@ interface DecisionPanelProps {
  * directory signs for where the current persona may go. Polling pauses while the tab is hidden, and
  * the poll itself goes out as a background refresh. Checks caused by pages re-reading themselves
  * stay out of the log unless "Show page refreshes" is on; the signs count them. "Clear view" hides
- * rows and signs here only; the portal keeps its log. While the presenter has a row open, newer
- * rows are held back (and the open row is never dropped from the feed) until they ask for the
- * newest. Hidden, the panel is a purple rail and keeps polling.
+ * rows and signs here only; the portal keeps its log until a demo reset clears it. While the
+ * presenter has a row open, newer rows are held back (and the open row stays in the feed until a
+ * reset) until they ask for the newest. Hidden, the panel is a purple rail and keeps polling.
  */
 export function DecisionPanel({ persona, personaName, open, onToggle }: DecisionPanelProps) {
   const visible = useVisible();
@@ -402,8 +402,12 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
         });
         if (!run.alive) return;
         const next = mergeFeed(feedRef.current, res, keepRef.current);
-        if (next.lastId < feedRef.current.lastId) {
-          // The portal restarted and its ids began again, so earlier positions mean nothing now.
+        if (
+          next.lastId < feedRef.current.lastId ||
+          next.clearedThrough > feedRef.current.clearedThrough
+        ) {
+          // The portal restarted and its ids began again, or a demo reset cleared its log, so
+          // earlier positions and open rows mean nothing now.
           setHiddenThrough(0);
           setView(LIVE);
         }

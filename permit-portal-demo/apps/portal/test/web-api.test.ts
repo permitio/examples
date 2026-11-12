@@ -205,7 +205,7 @@ describe('decision feed (GET /api/events)', () => {
   it('adds new events newest first and keeps the newest 200', () => {
     const events = Array.from({ length: 250 }, (_, i) => write(i + 1));
 
-    const feed = mergeFeed(emptyFeed, { events, lastId: 250 });
+    const feed = mergeFeed(emptyFeed, { events, lastId: 250, clearedThrough: 0 });
 
     expect(feed.events).toHaveLength(FEED_SIZE);
     expect(feed.events[0]?.id).toBe(250);
@@ -217,10 +217,10 @@ describe('decision feed (GET /api/events)', () => {
     const actions = Array.from({ length: 10 }, (_, i) => check(i + 1));
     const refreshes = Array.from({ length: 500 }, (_, i) => check(i + 11, { source: 'refresh' }));
 
-    const feed = mergeFeed(mergeFeed(emptyFeed, { events: actions, lastId: 10 }), {
-      events: refreshes,
-      lastId: 510,
-    });
+    const feed = mergeFeed(
+      mergeFeed(emptyFeed, { events: actions, lastId: 10, clearedThrough: 0 }),
+      { events: refreshes, lastId: 510, clearedThrough: 0 },
+    );
 
     expect(feed.events.filter((e) => e.source !== 'refresh').map((e) => e.id)).toEqual([
       10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
@@ -230,10 +230,14 @@ describe('decision feed (GET /api/events)', () => {
   });
 
   it('keeps an event the presenter has open even after FEED_SIZE newer ones arrive', () => {
-    const opened = mergeFeed(emptyFeed, { events: [check(1)], lastId: 1 });
+    const opened = mergeFeed(emptyFeed, { events: [check(1)], lastId: 1, clearedThrough: 0 });
     const flood = Array.from({ length: FEED_SIZE + 50 }, (_, i) => write(i + 2));
 
-    const after = mergeFeed(opened, { events: flood, lastId: FEED_SIZE + 51 }, new Set([1]));
+    const after = mergeFeed(
+      opened,
+      { events: flood, lastId: FEED_SIZE + 51, clearedThrough: 0 },
+      new Set([1]),
+    );
 
     expect(after.events).toHaveLength(FEED_SIZE + 1);
     expect(after.events[0]?.id).toBe(FEED_SIZE + 51);
@@ -241,15 +245,42 @@ describe('decision feed (GET /api/events)', () => {
   });
 
   it('starts over from id 0 when the portal restarts and its event ids go back', () => {
-    const before = mergeFeed(emptyFeed, { events: [check(41), check(42)], lastId: 42 });
+    const before = mergeFeed(emptyFeed, {
+      events: [check(41), check(42)],
+      lastId: 42,
+      clearedThrough: 0,
+    });
 
     // The poll that notices the restart asked for ids above 42, so it saw none of the new log's
     // events.
-    const after = mergeFeed(before, { events: [], lastId: 3 }, new Set([42]));
+    const after = mergeFeed(before, { events: [], lastId: 3, clearedThrough: 0 }, new Set([42]));
 
     expect(after).toEqual(emptyFeed);
-    const reread = mergeFeed(after, { events: [write(1), write(2), write(3)], lastId: 3 });
+    const reread = mergeFeed(after, {
+      events: [write(1), write(2), write(3)],
+      lastId: 3,
+      clearedThrough: 0,
+    });
     expect(reread.events.map((e) => e.id)).toEqual([3, 2, 1]);
+  });
+
+  it('drops what a demo reset cleared, open rows included, and adds what came after it', () => {
+    const before = mergeFeed(emptyFeed, {
+      events: [check(41, { action: 'view_profile', allow: true }), check(42)],
+      lastId: 42,
+      clearedThrough: 0,
+    });
+
+    // The reset cleared the portal's log through id 42, then the page checked again.
+    const after = mergeFeed(
+      before,
+      { events: [check(43, { allow: false })], lastId: 43, clearedThrough: 42 },
+      new Set([41]),
+    );
+
+    expect(after.events.map((e) => e.id)).toEqual([43]);
+    expect(after.lastId).toBe(43);
+    expect(after.clearedThrough).toBe(42);
   });
 
   it('hides page refreshes unless the presenter asks to see them', () => {

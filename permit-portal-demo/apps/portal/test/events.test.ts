@@ -77,6 +77,22 @@ describe('EventLog', () => {
     expect(log.get(999)).toBeUndefined();
   });
 
+  it('drops every event on clear and keeps counting ids, so a cleared id is never reused', () => {
+    const log = new EventLog();
+    log.push(write('a'));
+    const last = log.push(check('view'));
+    expect(log.clearedThrough()).toBe(0);
+
+    log.clear();
+
+    expect(log.since(0)).toEqual([]);
+    expect(log.get(last)).toBeUndefined();
+    expect(log.clearedThrough()).toBe(last);
+    expect(log.lastId()).toBe(last);
+    expect(log.push(write('b'))).toBe(last + 1);
+    expect(log.since(0).map((e) => e.id)).toEqual([last + 1]);
+  });
+
   it('ignores a patch for an id it no longer holds', () => {
     const log = new EventLog(1);
     const old = log.push(check('view'));
