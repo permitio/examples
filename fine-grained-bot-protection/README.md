@@ -8,7 +8,7 @@ The blog post [Introduce AI bots in your applications](https://www.permit.io/blo
 
 - **The app** (`src/`): a demo page at http://localhost:3000 and an API at `/api/items`. The API lists the items the caller may read; the page shows Permit's decision for every item and action, and lets you send the request as each kind of caller.
 - **A local PDP** (`permitio/pdp-v2`), connected to your Permit environment, which makes the decisions.
-- **`setup`**: a one-shot service that writes the policy and the demo user to your Permit environment before the app starts. It creates what is missing, updates what is there and removes the grants between its own user sets and resource sets that `GRANTS` does not list, so it is safe to run again and the environment ends up with exactly this policy. Grants that involve any other set are left alone.
+- **`setup`**: a one-shot service that writes the policy and the demo user to your Permit environment, then waits until the PDP answers every check the app can send as the policy says. The app starts after it. It creates what is missing, updates what is there and removes the grants between its own user sets and resource sets that `GRANTS` does not list, so it is safe to run again and the environment ends up with exactly this policy. Grants that involve any other set are left alone.
 
 Every request acts as the same signed-in user, `user@example.com`, so the only thing that changes Permit's answer is what kind of caller sent it. Setup creates that user in Permit: the resource sets compare an item's owner with the user's `key` attribute, which the PDP has only for users Permit knows. The `botType` attribute is not stored; the app sends it with every check.
 
@@ -66,7 +66,7 @@ curl -H 'User-Agent:' http://localhost:3000/api/items     # no User-Agent: an ev
   | `Untrusted_Bots` | read           | read           | none            | none            |
   | `Evil_Bots`      | none           | none           | none            | none            |
 
-The grants follow the policy grid shown in the blog post. The post's text describes a stricter split (trusted bots read only public and shared items, untrusted bots only public ones); change `GRANTS` in `src/policy.ts` and run setup again to try it.
+The grants follow the policy grid shown in the blog post. The post's text describes a stricter split (trusted bots read only public and shared items, untrusted bots only public ones); change `GRANTS` in `src/policy.ts` and run setup again to try it: `docker compose up --build` (or `pnpm setup-policy` in dev mode). Setup removes the grants you took out, and finishes once the PDP denies them.
 
 ## How a request is classified
 
@@ -111,7 +111,7 @@ It never reports `VERIFIED_BOT`: telling a real Googlebot from a copy takes the 
 2. Build and start the PDP, the setup and the app: `docker compose up --build`
 3. Open http://localhost:3000.
 
-The app starts once setup has finished and the PDP is healthy. `APP_PORT` and `PDP_PORT` in `.env` change the host ports (default 3000 and 7766). For a Permit backend running on your machine, set `PERMIT_API_URL=http://host.docker.internal:8000`.
+The app starts once setup has finished, which is when the PDP answers as the policy says. The PDP gets a policy change a few seconds after Permit stores it; if it still answers otherwise after a minute, setup fails and says which answer differs. `APP_PORT` and `PDP_PORT` in `.env` change the host ports (default 3000 and 7766). For a Permit backend running on your machine, set `PERMIT_API_URL=http://host.docker.internal:8000`.
 
 ## Run it in dev mode
 
@@ -120,7 +120,7 @@ The app starts once setup has finished and the PDP is healthy. `APP_PORT` and `P
 3. Start the PDP and write the policy: `docker compose up -d pdp setup`
 4. Start the app with reload on change: `pnpm dev`, then open http://localhost:3000.
 
-`pnpm dev` reads `.env` and finds the PDP at `PERMIT_PDP_URL` (default http://localhost:7766). `pnpm setup-policy` runs the setup from your machine instead of from Compose.
+`pnpm dev` reads `.env` and finds the PDP at `PERMIT_PDP_URL` (default http://localhost:7766). `pnpm setup-policy` runs the setup from your machine instead of from Compose, and waits for the PDP at the same `PERMIT_PDP_URL`.
 
 ## Where the application asks Permit
 
@@ -130,7 +130,7 @@ Every line that calls Permit carries a `// Permit check:`, `// Permit read:` or 
 git grep -n "// Permit \(check\|read\|write\):" src
 ```
 
-The app asks Permit in one place: `src/authorize.ts` sends one `bulkCheck` per request, a check for each item and action, with the user's `botType` and the item's `owner` and `private` attributes. The reads and writes are the setup's, in `src/write-policy.ts`.
+The app asks Permit in one place: `src/authorize.ts` sends one `bulkCheck` per request, a check for each item and action, with the user's `botType` and the item's `owner` and `private` attributes. The reads and writes are the setup's, in `src/write-policy.ts`; then `src/wait-for-pdp.ts` sends the app's checks, through `src/authorize.ts`, until the PDP's answers match `GRANTS`.
 
 ## Screenshots
 

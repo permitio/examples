@@ -11,6 +11,8 @@ export interface AppConfig {
 export interface SetupConfig {
   apiKey: string;
   apiUrl: string;
+  /** Setup waits until this PDP answers as the policy it wrote says. */
+  pdpUrl: string;
 }
 
 const API_KEY_HINT = 'set PERMIT_API_KEY to an environment API key from Permit (see .env.example)';
@@ -29,6 +31,10 @@ function url(env: NodeJS.ProcessEnv, name: string, fallback: string): string {
   return value;
 }
 
+function pdpUrl(env: NodeJS.ProcessEnv): string {
+  return url(env, 'PERMIT_PDP_URL', 'http://localhost:7766');
+}
+
 function port(env: NodeJS.ProcessEnv): number {
   const raw = env['PORT']?.trim();
   if (!raw) return 3000;
@@ -42,7 +48,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     port: port(env),
     apiKey: apiKey(env),
-    pdpUrl: url(env, 'PERMIT_PDP_URL', 'http://localhost:7766'),
+    pdpUrl: pdpUrl(env),
     arcjetKey: env['ARCJET_KEY']?.trim() || undefined,
   };
 }
@@ -51,5 +57,6 @@ export function loadSetupConfig(env: NodeJS.ProcessEnv = process.env): SetupConf
   return {
     apiKey: apiKey(env),
     apiUrl: url(env, 'PERMIT_API_URL', 'https://api.permit.io'),
+    pdpUrl: pdpUrl(env),
   };
 }
