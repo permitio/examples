@@ -4,6 +4,7 @@
 // They pin where each router sits, not what it answers.
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
+import { DECISIONS_PER_MINUTE } from '#src/server/routes/requests';
 import { harness } from '#test/fakes';
 
 const PICK_A_PERSONA = { error: 'Pick a persona' };
@@ -64,5 +65,20 @@ describe('rate limiting', () => {
     const res = await request(app).get('/api/meta').set('x-demo-persona', 'sam');
     expect(res.status).toBe(429);
     expect(res.body).toEqual({ error: 'Too many requests' });
+  });
+
+  it('limits approvals and denials together, apart from other routes', async () => {
+    const { app } = harness();
+    for (let i = 0; i < DECISIONS_PER_MINUTE / 2; i++) {
+      await request(app).post('/api/requests/none/approve').set('x-demo-persona', 'sam');
+      await request(app).post('/api/requests/none/deny').set('x-demo-persona', 'sam');
+    }
+    const decision = await request(app)
+      .post('/api/requests/none/approve')
+      .set('x-demo-persona', 'sam');
+    expect(decision.status).toBe(429);
+    expect(decision.body).toEqual({ error: 'Too many requests' });
+    const read = await request(app).get('/api/meta').set('x-demo-persona', 'sam');
+    expect(read.status).toBe(200);
   });
 });
