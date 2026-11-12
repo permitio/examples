@@ -443,7 +443,9 @@ function denyWhy(c) {
   if (c.allow) return '';
   const unmet = !c.fleetRule && c.actingOrg !== 'acting_org_mismatch' && c.rule ? c.rule.filter((r) => !r.ok) : [];
   const text = unmet.length ? `Not met: ${unmet.map((r) => `${r.label} (${valueText(r.actual)})`).join('; ')}` : c.reason;
-  return text ? `<em>${esc(text)}</em>` : '';
+  const rule = c.fleetRule || (['no_acting_org', 'acting_org_mismatch', 'unknown_resource'].includes(c.actingOrg) ? c.actingOrg : '');
+  const code = rule ? ` <code>${esc(rule)}</code>` : '';
+  return text || rule ? `<em>${esc(text)}${code}</em>` : '';
 }
 
 function entryHtml(e, fresh) {

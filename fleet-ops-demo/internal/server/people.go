@@ -317,7 +317,7 @@ func (a *App) personAction(body actBody, key string) (obj, error) {
 		if err != nil {
 			return nil, fmt.Errorf("listing the role assignments of %s: %w", key, err)
 		}
-		message := fmt.Sprintf("Removed %s from Permit. Left behind: %d role assignments. `make reset` brings %s back.", name, len(left), model.UserName(key))
+		message := fmt.Sprintf("Removed %s from Permit. Left behind: %d role assignments. make reset brings %s back.", name, len(left), model.UserName(key))
 		a.record(user, "Removed "+name+" from Permit")
 		return r.done(message, nil), nil
 	}
