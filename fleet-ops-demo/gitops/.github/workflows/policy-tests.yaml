@@ -1,0 +1,36 @@
+name: Policy tests
+
+# Every pull request, and every push to main or a release branch, runs the custom rules' unit tests
+# before anything reaches an environment.
+on:
+  pull_request:
+  push:
+    branches: [main, 'release/**']
+
+permissions:
+  contents: read
+
+jobs:
+  rego:
+    name: Custom Rego checks and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install verified opa binary
+        run: |
+          curl --fail --silent --show-error --location --max-time 60 \
+            https://github.com/open-policy-agent/opa/releases/download/v1.21.1/opa_linux_amd64_static \
+            --output "$RUNNER_TEMP/opa"
+          printf '%s  %s\n' \
+            '668506eb17a2eaa1fce6cc0d1f42ef85125d4ac5bda5fc74d1152d0c77145031' \
+            "$RUNNER_TEMP/opa" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/opa"
+      # Permit's generated policy and the custom rules use Rego v0 syntax.
+      - name: Check and test the custom rules
+        run: |
+          "$RUNNER_TEMP/opa" check --v0-compatible custom/
+          "$RUNNER_TEMP/opa" test --v0-compatible --verbose custom/
