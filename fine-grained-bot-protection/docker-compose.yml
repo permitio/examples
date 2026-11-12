@@ -14,15 +14,20 @@ services:
       timeout: 3s
       retries: 30
       start_period: 10s
-  # Writes the policy to the environment once, then exits. Safe to run again.
+  # Writes the policy to the environment, waits until the PDP applies it, then exits. Safe to run
+  # again.
   setup:
     build: .
     command: ['node', 'src/setup.ts']
     environment:
       PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
       PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+      PERMIT_PDP_URL: http://pdp:7000
     extra_hosts: ['host.docker.internal:host-gateway']
     restart: 'no'
+    depends_on:
+      pdp:
+        condition: service_healthy
   app:
     build: .
     environment:

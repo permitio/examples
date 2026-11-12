@@ -6,6 +6,7 @@ import (
 
 	"fleetops/internal/model"
 	"fleetops/internal/pdp"
+	"fleetops/internal/schema"
 )
 
 func nameOf(id string) string {
@@ -92,6 +93,95 @@ func TestExplain(t *testing.T) {
 			}
 			if e.ActingOrg != tc.code || e.FleetRule != tc.fleet || e.Grant != tc.grant {
 				t.Errorf("got actingOrg %q, fleetRule %q, grant %q", e.ActingOrg, e.FleetRule, e.Grant)
+			}
+		})
+	}
+}
+
+// Each rule condition reads as one sentence: what it requires when met, and the value the PDP
+// evaluated against it when not ("Truck's region is West, not South"), never the required value
+// followed by the actual one.
+func TestRuleConditions(t *testing.T) {
+	quinnOperates := func(truck string) pdp.Check { return pdp.NewCheck("quinn", "operate", "asset:"+truck, "acme") }
+	for name, tc := range map[string]struct {
+		allow    bool
+		check    pdp.Check
+		roles    any
+		resource map[string]any
+		want     []Condition
+	}{
+		"both met": {
+			allow: true, check: quinnOperates("acme-dal-01"),
+			roles: []any{"operator"}, resource: map[string]any{"region": "South"},
+			want: []Condition{
+				{Label: "Org-level roles in the acting organization include operator", OK: true},
+				{Label: "Truck's region is South", OK: true},
+			},
+		},
+		"another region": {
+			check: quinnOperates("acme-phx-01"),
+			roles: []any{"operator"}, resource: map[string]any{"region": "West"},
+			want: []Condition{
+				{Label: "Org-level roles in the acting organization include operator", OK: true},
+				{Label: "Truck's region is West, not South", OK: false},
+			},
+		},
+		"no region": {
+			check: quinnOperates("acme-phx-01"),
+			roles: []any{"operator"}, resource: map[string]any{},
+			want: []Condition{
+				{Label: "Org-level roles in the acting organization include operator", OK: true},
+				{Label: "Truck's region is none, not South", OK: false},
+			},
+		},
+		"another served account": {
+			check: pdp.NewCheck("riley", "view", "asset:acme-dal-02", "acme"),
+			roles: []any{"viewer"}, resource: map[string]any{"region": "South", "served_account": "Acct2"},
+			want: []Condition{
+				{Label: "Org-level roles in the acting organization include viewer", OK: true},
+				{Label: "Truck's served account is Acct2, not Acct1", OK: false},
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			debug := map[string]any{
+				"abac":       map[string]any{"allow": tc.allow},
+				"acting_org": sameOrg("acme"),
+				"request": map[string]any{
+					"user":     map[string]any{"attributes": map[string]any{"roles": tc.roles}},
+					"resource": map[string]any{"attributes": tc.resource},
+				},
+			}
+			got := Explain(tc.allow, debug, tc.check, nameOf).Rule
+			if len(got) != len(tc.want) {
+				t.Fatalf("got %d conditions %+v, want %d", len(got), got, len(tc.want))
+			}
+			for n, want := range tc.want {
+				if got[n].Label != want.Label || got[n].OK != want.OK {
+					t.Errorf("condition %d: got %q (ok %v), want %q (ok %v)", n, got[n].Label, got[n].OK, want.Label, want.OK)
+				}
+			}
+		})
+	}
+}
+
+// A role condition that isn't met names the roles the person does hold in the acting organization.
+func TestRoleConditionNotMet(t *testing.T) {
+	for name, tc := range map[string]struct {
+		roles any
+		want  string
+	}{
+		"another role": {[]any{"viewer"}, "Org-level roles in the acting organization don't include operator (they are viewer)"},
+		"no role":      {[]any{}, "Org-level roles in the acting organization don't include operator (there are none)"},
+		"missing":      {nil, "Org-level roles in the acting organization don't include operator (there are none)"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			rows, matched, holdsRole := evaluate(
+				schema.ConditionSetRule{UserSet: schema.RoleSet("operator"), Permission: "asset:operate", ResourceSet: "south_assets"},
+				map[string]map[string]any{"user": {"roles": tc.roles}, "resource": {"region": "South"}},
+			)
+			if matched || holdsRole || len(rows) != 2 || rows[0].OK || rows[0].Label != tc.want {
+				t.Errorf("got %+v (matched %v, holdsRole %v), want the first condition %q unmet", rows, matched, holdsRole, tc.want)
 			}
 		})
 	}

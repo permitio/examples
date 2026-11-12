@@ -165,11 +165,18 @@ func (a *App) Load() error {
 			}
 		}
 	}
-	now := time.Now()
-	for n, e := range model.SeedActivity {
-		a.activity[e.User] = append(a.activity[e.User], activityEvent{Text: e.Text, At: now.Add(-time.Duration(20+15*n) * time.Minute)})
-	}
+	a.seedActivity(time.Now())
 	return nil
+}
+
+// seedActivity fills people's recent activity and the trucks' history from the seed, spaced back
+// from now so the newest entry comes first.
+func (a *App) seedActivity(now time.Time) {
+	for n, e := range model.SeedActivity {
+		at := now.Add(-time.Duration(20+15*n) * time.Minute)
+		a.activity[e.User] = append(a.activity[e.User], activityEvent{Text: e.Text, At: at})
+		a.history[e.Truck] = append(a.history[e.Truck], historyRecord{Kind: e.Kind, By: model.FullName(e.User), At: at})
+	}
 }
 
 // defaultName names instances the seed doesn't know: their display name is rebuilt from the key.
@@ -345,8 +352,7 @@ type membership struct {
 }
 
 // memberships are the organizations a person can act for: their own, those where they hold a role
-// (for platform staff, every customer organization), and those where they hold an active
-// break-glass grant.
+// (for platform staff, every organization), and those where they hold an active break-glass grant.
 func (a *App) memberships(userKey string) []membership {
 	user, _ := model.UserOf(userKey)
 	platform := a.platformStaff(userKey)

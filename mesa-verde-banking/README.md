@@ -9,7 +9,7 @@ A banking app whose accounts, transactions and wire transfers are authorized by 
 - **Fine-grained wire transfers**, checked in two steps:
   1. `create` on `Wire_Transfer`, with the amount as a resource attribute. Owners may send any amount; beneficiaries up to £1,000 (the `Small_Wire` resource set). A denied transfer becomes a `Wire_Transfer` instance with the owner as its `_Reviewer_`, and the user asks for approval in the Operation Approval element.
   2. `create` on `Transaction`, with the user's current `location` and `strongAuth` as user attributes. Owners whose location matches the `country` of their registered address (`Safe_Owners`) may send any amount, other owners (`Unsafe_Owners`) up to £1,000, and owners who entered a one-time code (`Strong_Auth_Owners`) any amount. A denied transfer gets a one-time code from Better Auth's email-OTP plugin, and the user sends it again with the code.
-- **ReBAC.** Every transaction is a `Transaction` instance with `Sender` and `Receiver` relationships. The transaction list is the account owner's `getUserPermissions` for `Transaction` instances in the account.
+- **ReBAC.** Every transaction is a `Transaction` instance with `Sender` and `Receiver` relationships. The transaction list is the account owner's `getUserPermissions` for `Transaction` instances: the ones sent from the account, and the ones sent to it (those live in the sender's account). Data writes go through the PDP, which answers once it has applied them, so a sent transfer is in the list at once.
 - **Permit Elements**: User Management (Manage Account Users), Access Request (Request Access to Transactions), Operation Approval (asking for a transfer's approval) and Approval Management (Review Wire Transfers).
 
 ## The demo users
@@ -84,16 +84,16 @@ Every line that asks Permit carries a `// Permit check:` comment, and every line
 git grep -n "Permit check\|Permit write" src
 ```
 
-| Route                                             | What it asks Permit                                                                 |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `GET /account/api/tenants`                        | Reads the user's accounts; on the first visit, creates their account and owner role |
-| `GET /account/api/tenants/all`                    | Lists the accounts a transfer can go to                                             |
-| `GET /account/api/balance?tenant=`                | `read` on `Account`                                                                 |
-| `GET /account/api/transactions?tenant=`           | `list` on `Transaction`, then the owner's `Transaction` instances                   |
-| `POST /account/api/transactions?tenant=`          | `read` on `Account`, `create` on `Wire_Transfer`, then on `Transaction`; records it |
-| `POST /account/api/frontend-permissions/[tenant]` | The UI's bulk check, for `permit-fe-sdk`                                            |
-| `GET /account/api/elements-login?tenant=`         | An Elements login for the user in the account                                       |
-| `POST /account/webhook`                           | Records an approved transfer, or deletes a denied one                               |
+| Route                                             | What it asks Permit                                                                                                             |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /account/api/tenants`                        | Reads the user's accounts; until they own their own (a first visit, or one that failed half way), creates it and its owner role |
+| `GET /account/api/tenants/all`                    | Lists the accounts a transfer can go to                                                                                         |
+| `GET /account/api/balance?tenant=`                | `read` on `Account`                                                                                                             |
+| `GET /account/api/transactions?tenant=`           | `list` on `Transaction`, then the owner's `Transaction` instances                                                               |
+| `POST /account/api/transactions?tenant=`          | `read` on `Account`, `create` on `Wire_Transfer`, then on `Transaction`; records it                                             |
+| `POST /account/api/frontend-permissions/[tenant]` | The UI's bulk check, for `permit-fe-sdk`                                                                                        |
+| `GET /account/api/elements-login?tenant=`         | An Elements login for the user in the account                                                                                   |
+| `POST /account/webhook`                           | Records an approved transfer, or deletes a denied one                                                                           |
 
 Every API route answers 401 without a Better Auth session, and 502 when Permit cannot be reached. A wire transfer answers 200 with a `status`: `sent`, or the next step, `approval_required` or `strong_auth_required` (the way payment APIs answer "requires action"). It answers 403 with a `code` when it is refused: `denied`, or `invalid_code` for a wrong or used one-time code.
 

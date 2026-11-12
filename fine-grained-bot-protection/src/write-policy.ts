@@ -1,4 +1,9 @@
-import type { ConditionSetCreate, ConditionSetRuleCreate, Permit } from 'permitio';
+import type {
+  ConditionSetCreate,
+  ConditionSetRuleCreate,
+  ConditionSetRuleRead,
+  Permit,
+} from 'permitio';
 import { USER_KEY } from '#src/items';
 import {
   BOT_TYPE_ATTRIBUTE,
@@ -18,7 +23,7 @@ export interface PolicyApi {
   resources: Pick<Api['resources'], 'list' | 'create' | 'update'>;
   resourceAttributes: Pick<Api['resourceAttributes'], 'list' | 'create' | 'update'>;
   conditionSets: Pick<Api['conditionSets'], 'list' | 'create' | 'update'>;
-  conditionSetRules: Pick<Api['conditionSetRules'], 'list' | 'create'>;
+  conditionSetRules: Pick<Api['conditionSetRules'], 'list' | 'create' | 'delete'>;
   users: Pick<Api['users'], 'sync'>;
 }
 
@@ -105,9 +110,11 @@ export function describeError(err: unknown): string {
  * Creates the policy and the demo user in a Permit environment, or brings them back to this
  * definition when they are there already, so it is safe to run again. It reads each list first
  * rather than relying on a 409 from a create, because the SDK logs every failed call as an error. A
- * grant that exists is not sent again: Permit answers 409 to a duplicate. The environment is meant
- * to be the example's own, so the first page of each list (100 entries) holds everything. Grants
- * nobody asked for are left alone.
+ * grant that exists is not sent again: Permit answers 409 to a duplicate. A grant between this
+ * policy's user sets and resource sets that GRANTS does not list is removed, so taking an action
+ * out of GRANTS takes it out of Permit; grants that involve any other set are left alone. The
+ * environment is meant to be the example's own, so the first page of each list (100 entries) holds
+ * everything.
  */
 export async function writePolicy(api: PolicyApi, log: Log): Promise<void> {
   // Permit read: the resources (api.resources.list).
@@ -161,24 +168,39 @@ export async function writePolicy(api: PolicyApi, log: Log): Promise<void> {
     }
   }
 
-  const granted = new Set<string>();
+  const granted: ConditionSetRuleRead[] = [];
   for (const { key: userSet } of USER_SETS) {
     // The SDK's type asks for all three filters, but the API takes each on its own and the SDK
     // leaves out the ones that are undefined.
     const filter = { userSetKey: userSet } as RuleFilter;
     // Permit read: the user set's grants (api.conditionSetRules.list).
     const rules = await step(`list grants of ${userSet}`, () => api.conditionSetRules.list(filter));
-    for (const r of rules) granted.add(ruleLabel(r));
+    granted.push(...rules);
   }
-  for (const rule of grantRules()) {
+  const grantedLabels = new Set(granted.map(ruleLabel));
+  const wanted = grantRules();
+  for (const rule of wanted) {
     const label = ruleLabel(rule);
-    if (granted.has(label)) {
+    if (grantedLabels.has(label)) {
       log(`already granted ${label}`);
       continue;
     }
     // Permit write: a grant (api.conditionSetRules.create).
     await step(`grant ${label}`, () => api.conditionSetRules.create(rule));
     log(`granted ${label}`);
+  }
+  const wantedLabels = new Set(wanted.map(ruleLabel));
+  const ownSets = new Set<string>([...USER_SETS, ...RESOURCE_SETS].map((set) => set.key));
+  for (const rule of granted) {
+    const label = ruleLabel(rule);
+    if (wantedLabels.has(label) || !ownSets.has(rule.user_set) || !ownSets.has(rule.resource_set))
+      continue;
+    const { user_set, permission, resource_set } = rule;
+    // Permit write: removes a grant GRANTS no longer lists (api.conditionSetRules.delete).
+    await step(`revoke ${label}`, () =>
+      api.conditionSetRules.delete({ user_set, permission, resource_set }),
+    );
+    log(`revoked ${label}`);
   }
 
   // The resource sets compare an item's owner with the user's `key` attribute, which the PDP has

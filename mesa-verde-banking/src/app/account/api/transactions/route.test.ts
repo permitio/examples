@@ -78,30 +78,33 @@ describe('GET /account/api/transactions', () => {
     });
   });
 
-  it("lists the owner's Transaction instances in the account, newest first", async () => {
+  it("lists the account's sent and received transactions, newest first", async () => {
     const permit = fakePermit();
     permit.check.mockResolvedValue(true);
     ownersByTenant();
-    const attributes = (id: string, date: string) => ({
+    const row = (id: string, date: string) => ({
       id,
       date,
       description: `Transfer ${id}`,
       amount: 10,
       currency: '£',
     });
+    const transaction = (id: string, date: string, tenant: string, to: string, role: string) => ({
+      tenant: { key: tenant, attributes: {} },
+      permissions: ['Transaction:list'],
+      roles: [role],
+      resource: { type: 'Transaction', key: id, attributes: { ...row(id, date), to } },
+    });
     permit.getUserPermissions.mockResolvedValue({
       '__tenant:dave-mesaverde-example': { permissions: ['Account:read'], roles: ['AccountOwner'] },
-      'Transaction:old': {
-        permissions: ['Transaction:list'],
-        roles: ['Sender'],
-        resource: { type: 'Transaction', key: 'old', attributes: attributes('old', '2026-01-01') },
-      },
-      'Transaction:new': {
-        permissions: ['Transaction:list'],
-        roles: ['Receiver'],
-        resource: { type: 'Transaction', key: 'new', attributes: attributes('new', '2026-02-01') },
-      },
+      'Transaction:sent': transaction('sent', '2026-01-01', FROM, TO, 'Sender'),
+      // Received: the transaction lives in the sender's account.
+      'Transaction:received': transaction('received', '2026-02-01', TO, FROM, 'Receiver'),
+      // The owner's role in another account's transaction, sent elsewhere: not this account's.
+      'Transaction:elsewhere': transaction('elsewhere', '2026-03-01', TO, 'bob', 'Sender'),
+      'Transaction:not-to-us': transaction('not-to-us', '2026-03-02', TO, 'bob', 'Receiver'),
       'Transaction:broken': {
+        tenant: { key: FROM, attributes: {} },
         permissions: ['Transaction:list'],
         roles: ['Sender'],
         resource: { type: 'Transaction', key: 'broken', attributes: { id: 'broken' } },
@@ -112,10 +115,10 @@ describe('GET /account/api/transactions', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual([
-      { ...attributes('new', '2026-02-01'), direction: 'in' },
-      { ...attributes('old', '2026-01-01'), direction: 'out' },
+      { ...row('received', '2026-02-01'), direction: 'in' },
+      { ...row('sent', '2026-01-01'), direction: 'out' },
     ]);
-    expect(permit.getUserPermissions).toHaveBeenCalledWith(DAVE, [FROM], [], ['Transaction']);
+    expect(permit.getUserPermissions).toHaveBeenCalledWith(DAVE, undefined, [], ['Transaction']);
   });
 
   it('answers an empty list for an account without an owner', async () => {

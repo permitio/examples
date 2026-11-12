@@ -130,6 +130,8 @@ export type DemoEvent = CheckEvent | WriteEvent | ReadEvent;
 export interface EventsResponse {
   events: DemoEvent[];
   lastId: number;
+  /** A demo reset cleared the events up to this id: a feed drops any it still holds. */
+  clearedThrough: number;
 }
 
 /** POST /api/events/:id/explain: the PDP's reason for the recorded check, replayed now. */

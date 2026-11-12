@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { rateLimit } from 'express-rate-limit';
 import type { Deps } from '#src/server/app';
 import { deniedBy, HttpError, permitReason, statusOf } from '#src/server/errors';
 import type { EventSource } from '#src/server/events';
@@ -265,9 +266,21 @@ async function applyApproval(d: Deps, r: DemoRequest, durationMs?: number): Prom
   }
 }
 
+/** Approvals and denials write to Permit, so each client gets fewer of them than of reads. */
+export const DECISIONS_PER_MINUTE = 300;
+
 /** The approval workflow: the records live in the mock, every decision is authorized here. */
 export function requestsRouter(d: Deps): Router {
   const r = Router();
+  // One per router, so each app (and each test) counts on its own.
+  const decisionLimit = rateLimit({
+    windowMs: 60_000,
+    limit: DECISIONS_PER_MINUTE,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Too many requests' },
+  });
+  r.use(['/requests/:id/approve', '/requests/:id/deny'], decisionLimit);
 
   r.get('/approvals', async (_req, res) => {
     const persona = personaOf(res);

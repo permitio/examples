@@ -129,6 +129,7 @@ function fakeApi(existing: Existing = {}) {
         rules.filter((r) => r.user_set === filter.userSetKey),
       ),
       create: vi.fn(async (_rule: ConditionSetRuleCreate) => ({})),
+      delete: vi.fn(async (_rule: ConditionSetRuleCreate) => {}),
     },
     users: {
       sync: vi.fn(async (user: { key: string }) => ({
@@ -211,6 +212,7 @@ describe('writePolicy', () => {
     expect(api.conditionSets.update).toHaveBeenCalledTimes(ALL_SETS.length);
     // Permit answers 409 to a grant that exists, so none is sent again.
     expect(api.conditionSetRules.create).not.toHaveBeenCalled();
+    expect(api.conditionSetRules.delete).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith('updated user set Human_Users');
     expect(log).toHaveBeenCalledWith('updated resource set Blocked_Items');
     expect(log).toHaveBeenCalledWith(
@@ -228,6 +230,45 @@ describe('writePolicy', () => {
       USER_SETS.map((s) => ({ userSetKey: s.key })),
     );
     expect(api.conditionSetRules.create.mock.calls.map(([r]) => r)).toEqual(missing);
+  });
+
+  it('revokes the grants between its own sets that GRANTS no longer lists', async () => {
+    const dropped = {
+      user_set: 'Trusted_Bots',
+      permission: 'Content_Item:read',
+      resource_set: 'Blocked_Items',
+    };
+    const evil = {
+      user_set: 'Evil_Bots',
+      permission: 'Content_Item:delete',
+      resource_set: 'Public_Items',
+    };
+    // Grants that involve a set this policy does not define belong to someone else.
+    const foreign = [
+      { user_set: 'Human_Users', permission: 'Content_Item:read', resource_set: 'Archived_Items' },
+      { user_set: 'Admins', permission: 'Content_Item:read', resource_set: 'Blocked_Items' },
+    ];
+    const { api, policyApi } = fakeApi({ rules: [...grantRules(), dropped, evil, ...foreign] });
+    const log = vi.fn();
+    await writePolicy(policyApi, log);
+
+    expect(api.conditionSetRules.create).not.toHaveBeenCalled();
+    expect(api.conditionSetRules.delete.mock.calls.map(([r]) => r)).toEqual([dropped, evil]);
+    expect(log).toHaveBeenCalledWith('revoked Trusted_Bots may Content_Item:read on Blocked_Items');
+    expect(log).toHaveBeenCalledWith('revoked Evil_Bots may Content_Item:delete on Public_Items');
+  });
+
+  it('labels a failed revoke', async () => {
+    const dropped = {
+      user_set: 'Evil_Bots',
+      permission: 'Content_Item:read',
+      resource_set: 'Public_Items',
+    };
+    const { api, policyApi } = fakeApi({ rules: [dropped] });
+    api.conditionSetRules.delete.mockRejectedValueOnce(new Error('Request failed'));
+    await expect(writePolicy(policyApi, vi.fn())).rejects.toThrow(
+      'revoke Evil_Bots may Content_Item:read on Public_Items: Request failed',
+    );
   });
 
   it('creates only the sets that are missing', async () => {

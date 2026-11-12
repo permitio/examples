@@ -28,7 +28,7 @@ export function createFakePermit() {
         listTenantUsers: vi.fn<Permit['api']['tenants']['listTenantUsers']>(),
       },
       users: {
-        get: vi.fn<Permit['api']['users']['get']>(),
+        list: vi.fn<Permit['api']['users']['list']>(),
         getById: vi.fn<Permit['api']['users']['getById']>(),
         sync: vi.fn<Permit['api']['users']['sync']>(),
       },

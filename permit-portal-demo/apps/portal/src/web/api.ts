@@ -163,9 +163,22 @@ export interface FeedState {
   /** Newest first: up to FEED_SIZE of each kind, plus any older rows the presenter still has open. */
   events: DemoEvent[];
   lastId: number;
+  /**
+   * The newest id a demo reset cleared: no event at or below it stays in the feed. Undefined until
+   * the first poll says where the portal's log stands.
+   */
+  clearedThrough: number | undefined;
 }
 
-export const emptyFeed: FeedState = { events: [], lastId: 0 };
+export const emptyFeed: FeedState = { events: [], lastId: 0, clearedThrough: undefined };
+
+/**
+ * Whether a demo reset cleared the portal's log since the feed's last poll. The first poll, and the
+ * first after a portal restart, only learns where the log stands: a reset from before the page
+ * loaded is no news.
+ */
+export const resetSince = (feed: FeedState, res: EventsResponse): boolean =>
+  feed.clearedThrough !== undefined && res.clearedThrough > feed.clearedThrough;
 
 const isRefresh = (event: DemoEvent) => event.source === 'refresh';
 
@@ -177,7 +190,9 @@ export const isShown = (event: DemoEvent, showRefreshes: boolean) =>
  * Folds one poll into the feed. Page refreshes are capped separately, so a page re-reading itself
  * every few seconds never pushes the presenter's own decisions out, and rows in `keep` (open in the
  * panel) stay too. Ids going back means the portal restarted: that poll asked for ids above the old
- * log's last one, so it missed the start of the new log, and the feed starts over from id 0.
+ * log's last one, so it missed the start of the new log, and the feed starts over from id 0. A demo
+ * reset clears the portal's log without reusing ids: events up to its `clearedThrough` leave the
+ * feed, open rows included, since they were decided on data the reset replaced.
  */
 export function mergeFeed(
   feed: FeedState,
@@ -190,7 +205,12 @@ export function mergeFeed(
   let refreshes = 0;
   let others = 0;
   const events = [...byId.values()]
+    .filter((e) => e.id > res.clearedThrough)
     .sort((a, b) => b.id - a.id)
     .filter((e) => (isRefresh(e) ? ++refreshes : ++others) <= FEED_SIZE || keep.has(e.id));
-  return { events, lastId: Math.max(feed.lastId, res.lastId) };
+  return {
+    events,
+    lastId: Math.max(feed.lastId, res.lastId),
+    clearedThrough: res.clearedThrough,
+  };
 }

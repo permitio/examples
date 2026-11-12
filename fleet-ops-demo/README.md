@@ -57,14 +57,20 @@ rules, a Git repository connected to that environment through
    make pdp
    make setup
    ```
-3. Install the custom rules. Clone the environment's GitOps branch into `policy-repo/` (gitignored),
-   with push access, then apply:
+3. Install the custom rules. Clone the branch the environment follows into `policy-repo/`
+   (gitignored), with push access, then apply:
    ```bash
-   git clone --branch permit/generated/<environment id> <your policy repository> policy-repo
+   git clone --branch <environment branch> <your policy repository> policy-repo
    make apply-policy
    ```
-   It writes `custom/root.rego`, makes every allow in `root.rego` require it, pushes, restarts the
-   PDP and waits until the PDP has loaded the new version.
+   The environment branch is `permit/generated/<environment id>`, or the environment's
+   `custom_branch_name` when it has one, such as `main` for Development in the [`gitops/`](gitops/)
+   setup. `make apply-policy` works on the branch checked out in `policy-repo/`: it writes
+   `custom/root.rego`, makes every allow in `root.rego` require it, pushes that branch, restarts the
+   PDP and waits until the PDP has loaded the new version. Schema and dashboard changes leave
+   `root.rego` alone; Permit replaces it only when it merges an update of its own policy library
+   that changes `root.rego`. `make verify` then reports the custom rules missing: run
+   `make apply-policy` again.
 4. Check, then start the app on http://localhost:3000:
    ```bash
    make verify
@@ -78,7 +84,7 @@ rules, a Git repository connected to that environment through
 | `make pdp` | Start the local container PDP (port 7766) from `docker-compose.yml` |
 | `make setup` | Make Permit's schema match `internal/schema` exactly (create what is missing, remove what it doesn't have), then restore the seed |
 | `make reset` | Restore the seeded data in Permit (organizations, people, instances, relationships, role assignments, people's attributes); restart the app afterwards |
-| `make apply-policy` | Install the custom rules in the GitOps branch, restart the PDP and wait for the new version |
+| `make apply-policy` | Install the custom rules on the environment branch checked out in `policy-repo/`, restart the PDP and wait for the new version |
 | `make verify` | Pre-flight: PDP up, custom rules loaded, the 53 decisions the scenarios rely on |
 | `make start` | Build and run the app on http://localhost:3000 |
 | `make test` | Go unit tests, and the custom Rego's unit tests (`opa test --v0-compatible policy/`) |
@@ -119,7 +125,7 @@ The sign-in menu groups people by employer. All the organizations and people are
 
 | Person | Access |
 |---|---|
-| Ava Stone (Fleet Ops) | Platform operator: org admin of Fleet Ops (platform staff) and of every customer organization |
+| Ava Stone (Fleet Ops) | Platform operator: org admin of Fleet Ops (platform staff) and of every other organization, the partner Mesa included |
 | Olivia Chen | Org admin, Acme Freight |
 | Rachel Reyes | Region manager, Acme South (Dallas and Houston) |
 | Sam Ortiz | Site manager, Dallas; supervisor of the Dallas night shift |

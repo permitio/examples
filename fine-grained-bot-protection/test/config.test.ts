@@ -55,7 +55,18 @@ describe('loadSetupConfig', () => {
     expect(loadSetupConfig({ PERMIT_API_KEY: KEY })).toEqual({
       apiKey: KEY,
       apiUrl: 'https://api.permit.io',
+      pdpUrl: 'http://localhost:7766',
     });
+  });
+
+  it('reads the PDP it waits for', () => {
+    const env = { PERMIT_API_KEY: KEY, PERMIT_PDP_URL: 'http://pdp:7000' };
+    expect(loadSetupConfig(env).pdpUrl).toBe('http://pdp:7000');
+  });
+
+  it('rejects a PERMIT_PDP_URL that is not a URL', () => {
+    const env = { PERMIT_API_KEY: KEY, PERMIT_PDP_URL: 'localhost:7766' };
+    expect(() => loadSetupConfig(env)).toThrow(/^Invalid PERMIT_PDP_URL/);
   });
 
   it('takes a local Permit backend', () => {

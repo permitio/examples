@@ -6,11 +6,22 @@ import { permitSettings } from '@/lib/env';
 
 let client: Permit | undefined;
 
-/** The Permit SDK client: checks go to the PDP, data and schema calls to the Permit API. */
+/**
+ * The Permit SDK client: checks go to the PDP, schema calls to the Permit API. Data writes (users,
+ * tenants, instances, role assignments) go through the PDP, which forwards them to Permit and
+ * answers once it has applied them, for up to 10 seconds. So the transaction list read right after
+ * a transfer already has it.
+ */
 export function getPermit(): Permit {
   if (client === undefined) {
     const { apiKey, apiUrl, pdpUrl } = permitSettings();
-    client = new Permit({ token: apiKey, apiUrl, pdp: pdpUrl });
+    client = new Permit({
+      token: apiKey,
+      apiUrl,
+      pdp: pdpUrl,
+      proxyFactsViaPdp: true,
+      factsSyncTimeout: 10,
+    });
   }
   return client;
 }
@@ -54,32 +65,65 @@ export async function getAccountOwner(tenant: string): Promise<UserRead | undefi
   return users.data[0];
 }
 
-/** A Permit user by key, or undefined when Permit has no such user. */
+/**
+ * A Permit user by key, or undefined when Permit has no such user. A new user's first visit lands
+ * here before the user exists, so it searches the user list, which answers an empty page, instead
+ * of getting the user by key: the SDK logs every 404 from `users.get` as an error. The search
+ * matches parts of keys, emails and names, so only an exact key match counts.
+ */
 export async function findUser(key: string): Promise<UserRead | undefined> {
-  try {
-    return await getPermit().api.users.get(key);
-  } catch (error) {
-    if (statusOf(error) === 404) return undefined;
-    throw error;
+  for (let page = 1; ; page += 1) {
+    const result = await getPermit().api.users.list({ search: key, page, perPage: 100 });
+    const user = result.data.find((candidate) => candidate.key === key);
+    if (user !== undefined) return user;
+    if (page >= (result.page_count ?? 1)) return undefined;
   }
 }
 
+/** How many tenants a page of the tenant search holds, the most the API returns at once. */
+const TENANT_PAGE = 100;
+
 /**
- * Opens a new user's own account: a tenant named after them, the user (with the country of their
- * registered address, when the bank knows it), and the AccountOwner role in that tenant.
+ * Whether Permit has a tenant with this key. It searches the tenant list, which answers an empty
+ * page for a missing tenant, instead of getting the tenant by key: the SDK logs every 404 as an
+ * error. The search matches parts of keys and names, so only an exact key match counts.
+ */
+async function tenantExists(key: string): Promise<boolean> {
+  for (let page = 1; ; page += 1) {
+    const tenants = await getPermit().api.tenants.list({ search: key, page, perPage: TENANT_PAGE });
+    if (tenants.some((tenant) => tenant.key === key)) return true;
+    if (tenants.length < TENANT_PAGE) return false;
+  }
+}
+
+/** Whether `user` holds AccountOwner in the account their email names. */
+export function ownsOwnAccount(user: UserRead | undefined, email: string): boolean {
+  const tenant = accountKeyFor(email);
+  return (user?.associated_tenants ?? []).some(
+    (association) => association.tenant === tenant && association.roles.includes('AccountOwner'),
+  );
+}
+
+/**
+ * Opens a user's own account: a tenant named after them, the user (with the country of their
+ * registered address, when the bank knows it), and the AccountOwner role in that tenant. A retry
+ * after a partial failure finishes the job: it reads what exists before writing, so the expected
+ * "already there" never comes back as a 409, which the SDK would log as an error.
  */
 export async function openAccount(email: string, country: string | undefined): Promise<void> {
   const permit = getPermit();
   const tenant = accountKeyFor(email);
-  try {
-    // Permit write: the user's account, a tenant
-    await permit.api.tenants.create({ key: tenant, name: email });
-  } catch (error) {
-    if (statusOf(error) !== 409) throw error;
+  let ownerHeld = false;
+  if (await tenantExists(tenant)) {
     const owner = await getAccountOwner(tenant);
     if (owner !== undefined && owner.key !== email) {
       throw new Error(`The account ${tenant} already belongs to another user`);
     }
+    ownerHeld = owner !== undefined;
+  } else {
+    // Permit write: the user's account, a tenant. A 409 means a request running at the same time
+    // created it first.
+    await createOrKeep(() => permit.api.tenants.create({ key: tenant, name: email }));
   }
   // Permit write: the user, with their registered country
   await permit.api.users.sync({
@@ -87,6 +131,7 @@ export async function openAccount(email: string, country: string | undefined): P
     email,
     ...(country === undefined ? {} : { attributes: { country } }),
   });
+  if (ownerHeld) return;
   await createOrKeep(() =>
     // Permit write: AccountOwner of their account
     permit.api.roleAssignments.assign({ role: 'AccountOwner', tenant, user: email }),
@@ -177,29 +222,43 @@ const transactionAttributes = z.object({
   description: z.string(),
   amount: z.number(),
   currency: z.string(),
+  to: z.string(),
 });
 
+/** The tenant the PDP names on each entry; the SDK's type leaves it out for resource entries. */
+const entryTenant = z.object({ tenant: z.object({ key: z.string() }) });
+
 /**
- * The transactions of an account, newest first: the Transaction instances its owner holds a
- * relationship (Sender or Receiver) with in that tenant, read from the PDP.
+ * The transactions of an account, newest first, read from the PDP: the ones its owner sent from it
+ * (`Sender`, in this tenant) and the ones sent to it (`Receiver`). A transaction lives in the
+ * sending account's tenant, so the incoming ones come from other tenants: the query covers all of
+ * them, and keeps those whose `to` is this account.
  */
 export async function listTransactions(tenant: string): Promise<TransactionRow[]> {
   const owner = await getAccountOwner(tenant);
   if (owner === undefined) return [];
-  // Permit check: the Transaction instances the owner has a relationship with
+  // Permit check: the Transaction instances the owner has a relationship with, in any tenant
   const permissions = await getPermit().getUserPermissions(
     owner.key,
-    [tenant],
+    undefined,
     [],
     ['Transaction'],
   );
   return Object.values(permissions)
-    .flatMap((entry) => {
+    .flatMap((entry): TransactionRow[] => {
       if (!('resource' in entry) || entry.resource?.type !== 'Transaction') return [];
       const attributes = transactionAttributes.safeParse(entry.resource.attributes);
       if (!attributes.success) return [];
-      const direction = entry.roles?.includes('Sender') === true ? 'out' : 'in';
-      return [{ ...attributes.data, direction } satisfies TransactionRow];
+      const { to, ...row } = attributes.data;
+      const roles = entry.roles ?? [];
+      const inTenant = entryTenant.safeParse(entry).data?.tenant.key === tenant;
+      if (roles.includes('Sender') && inTenant) {
+        return [{ ...row, direction: 'out' }];
+      }
+      if (roles.includes('Receiver') && to === tenant) {
+        return [{ ...row, direction: 'in' }];
+      }
+      return [];
     })
     .toSorted((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }

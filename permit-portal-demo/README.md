@@ -48,7 +48,7 @@ Reset to the starting state between runs with `bin/demo reset demo`.
 | `bin/demo logs <profile>`                                                                      | Follows the containers' logs                                                                          |
 | `bin/demo seed <profile>`                                                                      | Creates or updates the policy, the demo data and the preflight fixtures in Permit; safe to re-run     |
 | `bin/demo preflight <profile>`                                                                 | Checks the PDP, the policy (a matrix of expected allows and denies) and the demo's starting state     |
-| `bin/demo reset <profile>`                                                                     | Puts the demo back in its starting state, then runs preflight                                         |
+| `bin/demo reset <profile>`                                                                     | Puts the demo back in its starting state, clears the decision panel's log, then runs preflight        |
 | `bin/demo scenario <profile> <s1\|s2\|s4\|s5\|s8>`                                             | Runs one scenario end to end                                                                          |
 | `bin/demo replay <profile> --since <ISO time, or 30m, 2h> [--action view_billing] [--details]` | Re-asks the decisions in Permit's audit log against today's policy, and lists those that would change |
 | `bin/demo measure <profile>`                                                                   | Times checks and changes against the PDP                                                              |

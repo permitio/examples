@@ -86,6 +86,9 @@ func TestReferencesExist(t *testing.T) {
 		if _, ok := model.UserOf(e.User); !ok {
 			t.Errorf("activity: unknown person %s", e.User)
 		}
+		if i, ok := model.SeedByID[e.Truck]; !ok || !strings.Contains(e.Text, i.Name) {
+			t.Errorf("activity %q: truck %s is not seeded or not the one it names", e.Text, e.Truck)
+		}
 	}
 	for _, c := range checks.Checks {
 		if _, ok := model.UserOf(c.User); !ok {

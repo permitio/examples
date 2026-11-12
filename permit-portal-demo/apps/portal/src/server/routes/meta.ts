@@ -27,7 +27,19 @@ export function metaRouter(d: Deps): Router {
 
   r.get('/events', (req, res) => {
     const since = sinceOf(req.query['since']);
-    res.json({ events: d.events.since(since), lastId: d.events.lastId() });
+    res.json({
+      events: d.events.since(since),
+      lastId: d.events.lastId(),
+      clearedThrough: d.events.clearedThrough(),
+    });
+  });
+
+  // bin/demo reset clears the feed: its checks were decided on the Permit data the reset replaced,
+  // so the panel would otherwise go on showing, for example, an organization the reset deleted as
+  // open.
+  r.post('/events/clear', (_req, res) => {
+    d.events.clear();
+    res.json({ clearedThrough: d.events.clearedThrough() });
   });
 
   // Permit's reason on demand (F2): replay the check's recorded input to the PDP's /allowed, keep

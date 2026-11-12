@@ -147,26 +147,25 @@ export function useResource<T>(
     wasHidden.current = false;
     readAtShown.current = shown;
     const identity = JSON.stringify([path, key ?? null, nonce]);
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    const run: { alive: boolean; timer?: ReturnType<typeof setTimeout> } = { alive: true };
     const load = async (refresh: boolean) => {
       const opts = refresh ? { source: 'refresh' as const } : undefined;
       try {
         const data =
           body === undefined ? await api.get<T>(path, opts) : await api.post<T>(path, body, opts);
-        if (alive) setState({ path, data });
+        if (run.alive) setState({ path, data });
       } catch (error) {
-        if (alive)
+        if (run.alive)
           setState((prev) => ({ path, data: prev.path === path ? prev.data : undefined, error }));
       }
-      if (!alive) return;
+      if (!run.alive) return;
       finished.current = identity;
-      if (refreshMs !== undefined) timer = setTimeout(() => void load(true), refreshMs);
+      if (refreshMs !== undefined) run.timer = setTimeout(() => void load(true), refreshMs);
     };
     void load(finished.current === identity && !catchingUp);
     return () => {
-      alive = false;
-      clearTimeout(timer);
+      run.alive = false;
+      clearTimeout(run.timer);
     };
   }, [path, active, refreshMs, body, key, nonce, shown]);
 

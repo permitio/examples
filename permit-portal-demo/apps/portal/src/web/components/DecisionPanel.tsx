@@ -6,7 +6,15 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { api, emptyFeed, explainEvent, type FeedState, isShown, mergeFeed } from '@/api';
+import {
+  api,
+  emptyFeed,
+  explainEvent,
+  type FeedState,
+  isShown,
+  mergeFeed,
+  resetSince,
+} from '@/api';
 import { formatClock, formatPrecise, replayNote, ruleLegend, timeLegend } from '@/format';
 import { usePersonaName, useVisible } from '@/hooks';
 import type { CheckEvent, EventsResponse, ExplainResponse, ReadEvent, WriteEvent } from '@/types';
@@ -365,6 +373,12 @@ interface DecisionPanelProps {
   personaName: string;
   open: boolean;
   onToggle: () => void;
+  /**
+   * Called when a poll finds that a demo reset cleared the portal's log, so the page can re-read
+   * what the reset changed. Must keep its identity between renders: a new one restarts the
+   * polling.
+   */
+  onReset: () => void;
 }
 
 /**
@@ -372,11 +386,17 @@ interface DecisionPanelProps {
  * directory signs for where the current persona may go. Polling pauses while the tab is hidden, and
  * the poll itself goes out as a background refresh. Checks caused by pages re-reading themselves
  * stay out of the log unless "Show page refreshes" is on; the signs count them. "Clear view" hides
- * rows and signs here only; the portal keeps its log. While the presenter has a row open, newer
- * rows are held back (and the open row is never dropped from the feed) until they ask for the
- * newest. Hidden, the panel is a purple rail and keeps polling.
+ * rows and signs here only; the portal keeps its log until a demo reset clears it. While the
+ * presenter has a row open, newer rows are held back (and the open row stays in the feed until a
+ * reset) until they ask for the newest. Hidden, the panel is a purple rail and keeps polling.
  */
-export function DecisionPanel({ persona, personaName, open, onToggle }: DecisionPanelProps) {
+export function DecisionPanel({
+  persona,
+  personaName,
+  open,
+  onToggle,
+  onReset,
+}: DecisionPanelProps) {
   const visible = useVisible();
   const nameOf = usePersonaName();
   const [feed, setFeed] = useState<FeedState>(emptyFeed);
@@ -394,34 +414,36 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
 
   useEffect(() => {
     if (!visible) return;
-    let alive = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    const run: { alive: boolean; timer?: ReturnType<typeof setTimeout> } = { alive: true };
     const poll = async () => {
       try {
         const res = await api.get<EventsResponse>(`/api/events?since=${feedRef.current.lastId}`, {
           source: 'refresh',
         });
-        if (!alive) return;
+        if (!run.alive) return;
+        const reset = resetSince(feedRef.current, res);
         const next = mergeFeed(feedRef.current, res, keepRef.current);
-        if (next.lastId < feedRef.current.lastId) {
-          // The portal restarted and its ids began again, so earlier positions mean nothing now.
+        if (next.lastId < feedRef.current.lastId || reset) {
+          // The portal restarted and its ids began again, or a demo reset cleared its log, so
+          // earlier positions and open rows mean nothing now.
           setHiddenThrough(0);
           setView(LIVE);
         }
         feedRef.current = next;
         setFeed(next);
         setError(undefined);
+        if (reset) onReset();
       } catch (e) {
-        if (alive) setError(e);
+        if (run.alive) setError(e);
       }
-      if (alive) timer = setTimeout(poll, POLL_MS);
+      if (run.alive) run.timer = setTimeout(poll, POLL_MS);
     };
     void poll();
     return () => {
-      alive = false;
-      clearTimeout(timer);
+      run.alive = false;
+      clearTimeout(run.timer);
     };
-  }, [visible]);
+  }, [visible, onReset]);
 
   const { expanded, pausedAt } = view;
   const unhidden = feed.events.filter((e) => e.id > hiddenThrough && isShown(e, showRefreshes));
@@ -474,7 +496,8 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
       <aside
         ref={panelRef}
         aria-label="Permit decisions"
-        className="permit flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto"
+        // relative: absolutely positioned content (sr-only labels) stays inside the scroll box.
+        className="permit relative flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto"
       >
         <div className="sticky top-0 z-10 flex flex-col bg-background">
           <div className="permit-band flex items-center justify-between gap-3 px-5 py-3">

@@ -87,6 +87,8 @@ export function App() {
   const [meta, setMeta] = useState<Meta>();
   const [metaError, setMetaError] = useState<unknown>();
   const [attempt, setAttempt] = useState(0);
+  /** How many demo resets the decision panel has seen since this tab loaded. */
+  const [resets, setResets] = useState(0);
   const [persona, setPersonaKey] = useState(getPersona);
   const [tab, setTab] = useState<PortalTab>(0);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -104,8 +106,9 @@ export function App() {
     setTheme(next);
   };
 
-  // /api/meta is read once (again only after "Try again", which bumps `attempt`). Afterwards only
-  // the demo clock's offset changes, through the clock buttons.
+  // /api/meta is read once, again after "Try again" (which bumps `attempt`) and after a demo reset,
+  // which puts the demo clock back to zero. Otherwise only the clock's offset changes, through the
+  // clock buttons.
   useEffect(() => {
     let alive = true;
     loadMeta().then(
@@ -124,7 +127,7 @@ export function App() {
     return () => {
       alive = false;
     };
-  }, [attempt]);
+  }, [attempt, resets]);
 
   // Changing persona clears page state: the page below is keyed on the persona, so it mounts afresh
   // on their first page.
@@ -133,6 +136,10 @@ export function App() {
     setPersonaKey(key);
     setTab(0);
   }, []);
+
+  // A demo reset (bin/demo reset, or a scenario run) changed the data under the open page. The page
+  // is keyed on the reset count, so it mounts afresh and reads it again, as after a persona switch.
+  const pageAfterReset = useCallback(() => setResets((n) => n + 1), []);
 
   const moveClock = async (path: string, body?: unknown) => {
     const moved = await clock.run(() => api.post<ClockResponse>(path, body));
@@ -178,7 +185,8 @@ export function App() {
         />
         {rebuilt && <ReloadBanner />}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <main className="min-w-0 flex-1 lg:overflow-y-auto">
+          {/* relative: absolutely positioned content (sr-only labels) stays inside the scroll box. */}
+          <main className="relative min-w-0 flex-1 lg:overflow-y-auto">
             <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 pt-6 pb-10 sm:px-6">
               <PortalHeader
                 titles={pages.length > 0 ? pages.map((p) => p.title) : ['Home']}
@@ -187,7 +195,7 @@ export function App() {
                 firstName={firstName}
               />
               <ErrorBanner error={clock.error} onDismiss={clock.clearError} />
-              <div key={`${persona}:${tab}`} role="tabpanel">
+              <div key={`${persona}:${tab}:${resets}`} role="tabpanel">
                 {tab === 'evidence' ? (
                   <Evidence />
                 ) : page ? (
@@ -205,6 +213,7 @@ export function App() {
             personaName={meta.personas.find((p) => p.key === persona)?.name ?? persona}
             open={panelOpen}
             onToggle={() => setPanelOpen((open) => !open)}
+            onReset={pageAfterReset}
           />
         </div>
       </div>

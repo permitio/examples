@@ -23,7 +23,8 @@ var actionPhrases = map[string]string{
 	"view_activity":    "view the activity of",
 }
 
-// Condition is one rule condition with the value the PDP evaluated.
+// Condition is one rule condition with the value the PDP evaluated. Label words both: when the
+// condition isn't met, it names the evaluated value too.
 type Condition struct {
 	Label  string `json:"label"`
 	OK     bool   `json:"ok"`
@@ -99,22 +100,53 @@ var operators = map[string]func(actual, value any) bool{
 	},
 }
 
-var labels = map[string]func(v any) string{
-	"user.roles": func(v any) string { return fmt.Sprintf("Org-level role %v in the acting organization", v) },
-	"user.certifications": func(v any) string {
-		return fmt.Sprintf("Holds the %s certification", strings.Replace(fmt.Sprint(v), "tier", "tier ", 1))
-	},
-	"resource.lifecycle_state": func(v any) string { return fmt.Sprintf("Truck is %v", v) },
-	"resource.region":          func(v any) string { return fmt.Sprintf("Truck's region is %v", v) },
-	"resource.served_account":  func(v any) string { return fmt.Sprintf("Truck serves %v", v) },
+// subjects name the attribute a condition reads; others are named by their reference.
+var subjects = map[string]string{
+	"user.roles":              "Org-level roles in the acting organization",
+	"resource.region":         "Truck's region",
+	"resource.served_account": "Truck's served account",
 }
 
-// label words a condition; conditions without a wording of their own get a generic one.
-func label(ref string, value any) string {
-	if f, ok := labels[ref]; ok {
-		return f(value)
+// label words a condition as one sentence: what it requires when met, and the value the PDP
+// evaluated against it when not ("Truck's region is West, not South").
+func label(cond schema.Condition, actual any, ok bool) string {
+	subject := subjects[cond.Ref]
+	if subject == "" {
+		subject = cond.Ref
 	}
-	return fmt.Sprintf("%s is %v", ref, value)
+	if cond.Op == "array_contains" {
+		if ok {
+			return fmt.Sprintf("%s include %v", subject, cond.Value)
+		}
+		held := "there are none"
+		if text := valueText(actual); text != "none" {
+			held = "they are " + text
+		}
+		return fmt.Sprintf("%s don't include %v (%s)", subject, cond.Value, held)
+	}
+	if ok {
+		return fmt.Sprintf("%s is %v", subject, cond.Value)
+	}
+	return fmt.Sprintf("%s is %s, not %v", subject, valueText(actual), cond.Value)
+}
+
+// valueText words an attribute value: a list as its items, a missing or empty one as "none".
+func valueText(v any) string {
+	switch v := v.(type) {
+	case nil:
+		return "none"
+	case []any:
+		if len(v) == 0 {
+			return "none"
+		}
+		items := make([]string, len(v))
+		for n, item := range v {
+			items[n] = fmt.Sprint(item)
+		}
+		return strings.Join(items, ", ")
+	default:
+		return fmt.Sprint(v)
+	}
 }
 
 // rule re-evaluates an attribute rule's conditions on the attributes the PDP reported, so the log
@@ -159,7 +191,7 @@ func evaluate(r schema.ConditionSetRule, attrs map[string]map[string]any) (rows 
 			if cond.Ref == "user.roles" {
 				holdsRole = holdsRole && ok
 			}
-			rows = append(rows, Condition{Label: label(cond.Ref, cond.Value), OK: ok, Actual: actual})
+			rows = append(rows, Condition{Label: label(cond, actual, ok), OK: ok, Actual: actual})
 		}
 	}
 	return rows, matched, holdsRole
