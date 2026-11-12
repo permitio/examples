@@ -30,15 +30,15 @@ function stillGrantsUntrustedBotsPrivateRead(): PermitChecker {
   };
 }
 
-/** A PDP that answers from `before` for the first `rounds` rounds of checks, then from `after`. */
-function switchesAfter(rounds: number, before: PermitChecker, after: PermitChecker) {
+/** A PDP that answers round `n` from `rounds[n]`, and every round after them from `last`. */
+function roundByRound(rounds: readonly PermitChecker[], last: PermitChecker) {
   let calls = 0;
   // Each round asks one bulk check per user set.
-  const callsPerRound = 4;
   return {
     bulkCheck: vi.fn(async (checks: Checks) => {
+      const round = Math.floor(calls / 4);
       calls += 1;
-      return (calls <= rounds * callsPerRound ? before : after).bulkCheck(checks);
+      return (rounds[round] ?? last).bulkCheck(checks);
     }),
   };
 }
@@ -82,7 +82,7 @@ describe('waitForPdp', () => {
 
   it('waits while the PDP answers from the policy it had before', async () => {
     const log = vi.fn();
-    const permit = switchesAfter(3, answersAll(false), fakePermit());
+    const permit = roundByRound(Array(3).fill(answersAll(false)), fakePermit());
     const wait = waitForPdp(permit, log, options);
     await vi.advanceTimersByTimeAsync(3_000);
     await wait;
@@ -96,8 +96,29 @@ describe('waitForPdp', () => {
     ]);
   });
 
+  it('logs each state once when the PDP goes back to an earlier one', async () => {
+    const log = vi.fn();
+    const empty = answersAll(false);
+    const stale = stillGrantsUntrustedBotsPrivateRead();
+    const permit = roundByRound([empty, stale, empty, stale], fakePermit());
+    const wait = waitForPdp(permit, log, options);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await wait;
+    expect(permit.bulkCheck).toHaveBeenCalledTimes(20);
+    expect(log.mock.calls).toEqual([
+      [
+        'waiting for the PDP: 14 of 64 answers differ from GRANTS, such as ' +
+          'Human_Users read on Public Item: denied, GRANTS allows',
+      ],
+      [
+        'waiting for the PDP: 1 of 64 answers differ from GRANTS, such as ' +
+          'Untrusted_Bots read on Private Item: allowed, GRANTS denies',
+      ],
+    ]);
+  });
+
   it('waits for a revoked grant to be denied', async () => {
-    const permit = switchesAfter(2, stillGrantsUntrustedBotsPrivateRead(), fakePermit());
+    const permit = roundByRound(Array(2).fill(stillGrantsUntrustedBotsPrivateRead()), fakePermit());
     const wait = waitForPdp(permit, vi.fn(), options);
     await vi.advanceTimersByTimeAsync(2_000);
     await wait;

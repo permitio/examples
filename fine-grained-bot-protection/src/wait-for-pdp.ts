@@ -49,7 +49,7 @@ export async function waitForPdp(
 ): Promise<void> {
   const total = USER_SETS.length * ITEMS.length * ACTIONS.length;
   const deadline = Date.now() + timeoutMs;
-  let logged = '';
+  const logged = new Set<string>();
   for (;;) {
     let problem: string;
     try {
@@ -63,8 +63,9 @@ export async function waitForPdp(
       throw new PdpNotReadyError(
         `The PDP did not apply the policy within ${timeoutMs / 1000} s: ${problem}`,
       );
-    if (problem !== logged) log(`waiting for the PDP: ${problem}`);
-    logged = problem;
+    // A PDP that loads the policy in steps can go back to an earlier state; each is logged once.
+    if (!logged.has(problem)) log(`waiting for the PDP: ${problem}`);
+    logged.add(problem);
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 }
