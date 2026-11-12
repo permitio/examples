@@ -125,7 +125,7 @@ The sign-in menu groups people by employer. All the organizations and people are
 
 | Person | Access |
 |---|---|
-| Ava Stone (Fleet Ops) | Platform operator: org admin of Fleet Ops (platform staff) and of every customer organization |
+| Ava Stone (Fleet Ops) | Platform operator: org admin of Fleet Ops (platform staff) and of every other organization, the partner Mesa included |
 | Olivia Chen | Org admin, Acme Freight |
 | Rachel Reyes | Region manager, Acme South (Dallas and Houston) |
 | Sam Ortiz | Site manager, Dallas; supervisor of the Dallas night shift |

@@ -352,8 +352,7 @@ type membership struct {
 }
 
 // memberships are the organizations a person can act for: their own, those where they hold a role
-// (for platform staff, every customer organization), and those where they hold an active
-// break-glass grant.
+// (for platform staff, every organization), and those where they hold an active break-glass grant.
 func (a *App) memberships(userKey string) []membership {
 	user, _ := model.UserOf(userKey)
 	platform := a.platformStaff(userKey)

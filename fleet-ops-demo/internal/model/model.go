@@ -4,9 +4,10 @@
 // The sync command writes it to Permit. The app reads authorization data back from Permit and takes
 // names, team members, delivery lanes and starting activity from here.
 //
-// Tenancy: every customer organization is a Permit tenant, and so is Fleet Ops, the platform operator,
-// whose org admins are platform staff. The acting organization is passed as the tenant on every
-// check; the custom tenant-isolation rule denies a check about another organization's resource.
+// Tenancy: every organization, customer or partner, is a Permit tenant, and so is Fleet Ops, the
+// platform operator, whose org admins are platform staff. The acting organization is passed as the
+// tenant on every check; the custom tenant-isolation rule denies a check about another
+// organization's resource.
 // Hierarchy (ReBAC): org -> (sub-org ->) region -> site -> asset (truck), plus team under site.
 package model
 
@@ -58,7 +59,7 @@ var Tenants = []Tenant{
 	{Key: "lonestar", Name: "Lone Star Logistics", Description: "Customer (tenant B)"},
 	{Key: "summit", Name: "Summit Freight Group", Description: "Customer with two sub-organizations, Summit East and Summit West (scenario 3)"},
 	{Key: "mesa", Name: "Mesa Fleet Services", Description: "Maintenance partner (tenant P)", Partner: true},
-	{Key: PlatformTenant, Name: "Fleet Ops", Description: "Platform operator: manages every customer organization", Platform: true},
+	{Key: PlatformTenant, Name: "Fleet Ops", Description: "Platform operator: manages every organization", Platform: true},
 }
 
 // homeNames names the employers that are not Permit tenants.
@@ -242,8 +243,8 @@ var RoleAssignments = func() []RoleAssignment {
 		{User: "skyler", Role: "viewer", ResourceInstance: "asset:summit-atl-01", Tenant: "summit"},
 	}
 	// The platform operator manages every tenant: Ava is org admin of Fleet Ops (platform staff) and of
-	// each customer organization. The tenant-isolation rule still applies, so she works inside one
-	// organization at a time.
+	// every other organization, partners included. The tenant-isolation rule still applies, so she
+	// works inside one organization at a time.
 	for _, t := range Tenants {
 		ras = append(ras, RoleAssignment{User: "ava", Role: "org_admin", ResourceInstance: "org:" + t.Key, Tenant: t.Key})
 	}
