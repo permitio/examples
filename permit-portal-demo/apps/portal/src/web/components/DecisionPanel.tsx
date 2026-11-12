@@ -473,7 +473,8 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
       <aside
         ref={panelRef}
         aria-label="Permit decisions"
-        className="permit flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto"
+        // relative: absolutely positioned content (sr-only labels) stays inside the scroll box.
+        className="permit relative flex min-w-0 flex-col bg-background lg:w-[31rem] lg:shrink-0 lg:overflow-y-auto"
       >
         <div className="sticky top-0 z-10 flex flex-col bg-background">
           <div className="permit-band flex items-center justify-between gap-3 px-5 py-3">
