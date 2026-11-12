@@ -6,7 +6,15 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { api, emptyFeed, explainEvent, type FeedState, isShown, mergeFeed } from '@/api';
+import {
+  api,
+  emptyFeed,
+  explainEvent,
+  type FeedState,
+  isShown,
+  mergeFeed,
+  resetSince,
+} from '@/api';
 import { formatClock, formatPrecise, replayNote, ruleLegend, timeLegend } from '@/format';
 import { usePersonaName, useVisible } from '@/hooks';
 import type { CheckEvent, EventsResponse, ExplainResponse, ReadEvent, WriteEvent } from '@/types';
@@ -365,6 +373,12 @@ interface DecisionPanelProps {
   personaName: string;
   open: boolean;
   onToggle: () => void;
+  /**
+   * Called when a poll finds that a demo reset cleared the portal's log, so the page can re-read
+   * what the reset changed. Must keep its identity between renders: a new one restarts the
+   * polling.
+   */
+  onReset: () => void;
 }
 
 /**
@@ -376,7 +390,13 @@ interface DecisionPanelProps {
  * presenter has a row open, newer rows are held back (and the open row stays in the feed until a
  * reset) until they ask for the newest. Hidden, the panel is a purple rail and keeps polling.
  */
-export function DecisionPanel({ persona, personaName, open, onToggle }: DecisionPanelProps) {
+export function DecisionPanel({
+  persona,
+  personaName,
+  open,
+  onToggle,
+  onReset,
+}: DecisionPanelProps) {
   const visible = useVisible();
   const nameOf = usePersonaName();
   const [feed, setFeed] = useState<FeedState>(emptyFeed);
@@ -401,11 +421,9 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
           source: 'refresh',
         });
         if (!run.alive) return;
+        const reset = resetSince(feedRef.current, res);
         const next = mergeFeed(feedRef.current, res, keepRef.current);
-        if (
-          next.lastId < feedRef.current.lastId ||
-          next.clearedThrough > feedRef.current.clearedThrough
-        ) {
+        if (next.lastId < feedRef.current.lastId || reset) {
           // The portal restarted and its ids began again, or a demo reset cleared its log, so
           // earlier positions and open rows mean nothing now.
           setHiddenThrough(0);
@@ -414,6 +432,7 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
         feedRef.current = next;
         setFeed(next);
         setError(undefined);
+        if (reset) onReset();
       } catch (e) {
         if (run.alive) setError(e);
       }
@@ -424,7 +443,7 @@ export function DecisionPanel({ persona, personaName, open, onToggle }: Decision
       run.alive = false;
       clearTimeout(run.timer);
     };
-  }, [visible]);
+  }, [visible, onReset]);
 
   const { expanded, pausedAt } = view;
   const unhidden = feed.events.filter((e) => e.id > hiddenThrough && isShown(e, showRefreshes));

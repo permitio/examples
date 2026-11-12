@@ -163,11 +163,22 @@ export interface FeedState {
   /** Newest first: up to FEED_SIZE of each kind, plus any older rows the presenter still has open. */
   events: DemoEvent[];
   lastId: number;
-  /** The newest id a demo reset cleared: no event at or below it stays in the feed. */
-  clearedThrough: number;
+  /**
+   * The newest id a demo reset cleared: no event at or below it stays in the feed. Undefined until
+   * the first poll says where the portal's log stands.
+   */
+  clearedThrough: number | undefined;
 }
 
-export const emptyFeed: FeedState = { events: [], lastId: 0, clearedThrough: 0 };
+export const emptyFeed: FeedState = { events: [], lastId: 0, clearedThrough: undefined };
+
+/**
+ * Whether a demo reset cleared the portal's log since the feed's last poll. The first poll, and the
+ * first after a portal restart, only learns where the log stands: a reset from before the page
+ * loaded is no news.
+ */
+export const resetSince = (feed: FeedState, res: EventsResponse): boolean =>
+  feed.clearedThrough !== undefined && res.clearedThrough > feed.clearedThrough;
 
 const isRefresh = (event: DemoEvent) => event.source === 'refresh';
 

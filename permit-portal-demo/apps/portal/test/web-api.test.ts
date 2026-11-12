@@ -9,6 +9,7 @@ import {
   getPersona,
   isShown,
   mergeFeed,
+  resetSince,
   setPersona,
 } from '@/api';
 import type { CheckEvent, WriteEvent } from '@/types';
@@ -281,6 +282,27 @@ describe('decision feed (GET /api/events)', () => {
     expect(after.events.map((e) => e.id)).toEqual([43]);
     expect(after.lastId).toBe(43);
     expect(after.clearedThrough).toBe(42);
+  });
+
+  it('tells a demo reset apart from where the log stood when the page loaded', () => {
+    // The page loads after an earlier reset: the first poll only learns that it happened.
+    const loaded = { events: [check(58)], lastId: 58, clearedThrough: 57 };
+    expect(resetSince(emptyFeed, loaded)).toBe(false);
+    const feed = mergeFeed(emptyFeed, loaded);
+
+    expect(resetSince(feed, { events: [check(59)], lastId: 59, clearedThrough: 57 })).toBe(false);
+    expect(resetSince(feed, { events: [], lastId: 58, clearedThrough: 58 })).toBe(true);
+  });
+
+  it('does not take a portal restart for a demo reset', () => {
+    const before = mergeFeed(emptyFeed, { events: [check(41)], lastId: 41, clearedThrough: 0 });
+    const restarted = { events: [], lastId: 2, clearedThrough: 0 };
+    const after = mergeFeed(before, restarted);
+
+    expect(resetSince(before, restarted)).toBe(false);
+    expect(resetSince(after, { events: [write(1), write(2)], lastId: 2, clearedThrough: 0 })).toBe(
+      false,
+    );
   });
 
   it('hides page refreshes unless the presenter asks to see them', () => {
