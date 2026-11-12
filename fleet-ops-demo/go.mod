@@ -2,7 +2,7 @@ module fleetops
 
 go 1.26.0
 
-toolchain go1.26.9
+toolchain go1.26.11
 
 require (
 	github.com/permitio/permit-golang v1.2.8
