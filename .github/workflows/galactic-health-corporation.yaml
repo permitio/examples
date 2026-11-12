@@ -1,0 +1,164 @@
+name: galactic-health-corporation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'galactic-health-corporation/**'
+      - '.github/workflows/galactic-health-corporation.yaml'
+  pull_request:
+    paths:
+      - 'galactic-health-corporation/**'
+      - '.github/workflows/galactic-health-corporation.yaml'
+
+concurrency:
+  # A new push to a PR cancels that PR's superseded run. Pushes to main get a
+  # group per commit, so no merge's run is cancelled or replaced while queued.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+    working-directory: galactic-health-corporation
+
+jobs:
+  audit:
+    name: Locked dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: galactic-health-corporation/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: galactic-health-corporation/.nvmrc
+          package-manager-cache: false
+      - name: Audit the lockfile before installing anything
+        run: pnpm audit --audit-level=low
+
+  lint:
+    name: Lint and format
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: galactic-health-corporation/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: galactic-health-corporation/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run oxlint and oxfmt
+        run: pnpm lint:oxlint && pnpm lint:format
+
+  types:
+    name: Strict types
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: galactic-health-corporation/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: galactic-health-corporation/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run tsc
+        run: pnpm lint:types
+
+  test:
+    name: Tests
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        env:
+          npm_config_ignore_scripts: 'true'
+        with:
+          package_json_file: galactic-health-corporation/package.json
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: galactic-health-corporation/.nvmrc
+          package-manager-cache: false
+      - name: Install locked tools without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run vitest
+        run: pnpm test
+
+  rego:
+    name: Rego policy tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The OPA that ships in the PDP image the Compose file runs.
+      - name: Run opa test with the PDP's OPA
+        run: |
+          docker run --rm --entrypoint /app/bin/opa \
+            --volume "$PWD/policy:/policy:ro" \
+            permitio/pdp-v2:0.9.16 test --v0-compatible --verbose /policy
+
+  images:
+    name: Docker image
+    needs: audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the Compose file
+        run: PERMIT_API_KEY=compose-config-check docker compose config --quiet
+      # The app and setup services run the same image.
+      - name: Build the image the Compose file runs
+        run: docker build --tag galactic-health-corporation:ci .

@@ -1,0 +1,9 @@
+engineStrict: true
+ignoreScripts: true
+minimumReleaseAge: 10080
+pmOnFail: error
+savePrefix: ''
+autoInstallPeers: false
+overrides:
+  # permit-fe-sdk 1.7.2 asks for axios ^0.30.0, which has open advisories; 0.35 fixes them.
+  permit-fe-sdk>axios: 0.35.0

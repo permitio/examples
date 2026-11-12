@@ -1,0 +1,58 @@
+name: mesa-verde-banking
+
+# Settings the setup and the app share.
+x-app-env: &app-env
+  PERMIT_API_KEY: ${PERMIT_API_KEY:?Set PERMIT_API_KEY in .env (copy .env.example)}
+  PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+  DATABASE_PATH: /data/mesa-verde.db
+  BETTER_AUTH_URL: http://localhost:${APP_PORT:-3000}
+  BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+  PUBLIC_URL: ${PUBLIC_URL:-}
+  WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+
+services:
+  # Permit's policy decision point. The app sends every check here.
+  pdp:
+    image: permitio/pdp-v2:0.9.16
+    environment:
+      PDP_API_KEY: ${PERMIT_API_KEY:?Set PERMIT_API_KEY in .env (copy .env.example)}
+      PDP_CONTROL_PLANE: ${PERMIT_API_URL:-https://api.permit.io}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    ports: ['${PDP_PORT:-7766}:7000']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:7000/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # Applies main.tf with Terraform, configures the Permit Elements, seeds the demo data in Permit
+  # and the demo users in the local database, then exits. Safe to run again.
+  setup:
+    build: { context: ., target: setup }
+    environment: *app-env
+    extra_hosts: ['host.docker.internal:host-gateway']
+    volumes:
+      - app-data:/data
+      - terraform-state:/state
+    restart: 'no'
+
+  app:
+    build: { context: ., target: app }
+    environment:
+      <<: *app-env
+      PERMIT_PDP_URL: http://pdp:7000
+      PERMIT_ELEMENTS_URL: ${PERMIT_ELEMENTS_URL:-https://embed.permit.io}
+      PERMIT_ELEMENTS_API_URL: ${PERMIT_ELEMENTS_API_URL:-}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    volumes: ['app-data:/data']
+    ports: ['${APP_PORT:-3000}:3000']
+    depends_on:
+      setup: { condition: service_completed_successfully }
+      pdp: { condition: service_healthy }
+
+volumes:
+  # SQLite: Better Auth's users and sessions, and the demo customers.
+  app-data:
+  # Terraform's state for main.tf, so setup can run again.
+  terraform-state:

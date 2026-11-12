@@ -1,0 +1,18 @@
+/* MUI's styles sit in the `mui` layer (enableCssLayer in the root layout), between Tailwind's base
+   and utilities, so utility classes on MUI components take effect. */
+@layer theme, base, mui, components, utilities;
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-dm-serif), ui-serif, Georgia, serif;
+}
+
+body {
+  color: black;
+}
+
+h1 {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+}

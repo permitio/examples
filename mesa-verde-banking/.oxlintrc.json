@@ -1,0 +1,40 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "unicorn", "react", "nextjs"],
+  "jsPlugins": ["./tools/comment-width.ts"],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [".next/**", "node_modules/**", "next-env.d.ts"],
+  "env": {
+    "builtin": true,
+    "node": true,
+    "browser": true
+  },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "patterns": [
+          {
+            "group": ["./**", "../**"],
+            "message": "Use @/ imports (#tools/ in tools)."
+          }
+        ]
+      }
+    ],
+    "comment-width/line-comments": [
+      "error",
+      {
+        "maxLength": 100
+      }
+    ]
+  }
+}
