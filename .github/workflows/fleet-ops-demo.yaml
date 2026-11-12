@@ -1,0 +1,100 @@
+name: fleet-ops-demo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fleet-ops-demo/**'
+      - '.github/workflows/fleet-ops-demo.yaml'
+  pull_request:
+    paths:
+      - 'fleet-ops-demo/**'
+      - '.github/workflows/fleet-ops-demo.yaml'
+
+concurrency:
+  # A new push to a PR cancels that PR's superseded run. Pushes to main get a
+  # group per commit, so no merge's run is cancelled or replaced while queued.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+    working-directory: fleet-ops-demo
+
+jobs:
+  vuln:
+    name: Go vulnerability check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: fleet-ops-demo/go.mod
+          cache: false
+      # `go run module@version` checks the module against the Go checksum database before running it.
+      - name: Check the code and the toolchain for known vulnerabilities it reaches
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+  go:
+    name: Go format, vet, build and tests
+    needs: vuln
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: fleet-ops-demo/go.mod
+          cache: false
+      - name: Check formatting
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [[ -n "$unformatted" ]]; then
+            printf 'gofmt would change:\n%s\n' "$unformatted"
+            exit 1
+          fi
+      - name: Vet
+        run: go vet ./...
+      - name: Build
+        run: go build ./...
+      - name: Staticcheck
+        run: go run honnef.co/go/tools/cmd/staticcheck@2025.1.1 ./...
+      - name: Test
+        run: go test -race ./...
+
+  rego:
+    name: Custom Rego checks and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install verified opa binary
+        run: |
+          curl --fail --silent --show-error --location --max-time 60 \
+            https://github.com/open-policy-agent/opa/releases/download/v1.21.1/opa_linux_amd64_static \
+            --output "$RUNNER_TEMP/opa"
+          printf '%s  %s\n' \
+            '668506eb17a2eaa1fce6cc0d1f42ef85125d4ac5bda5fc74d1152d0c77145031' \
+            "$RUNNER_TEMP/opa" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/opa"
+      # The rules are written in the Rego v0 syntax that Permit's generated policy uses.
+      - name: Check and test the custom rules
+        run: |
+          "$RUNNER_TEMP/opa" check --v0-compatible policy/
+          "$RUNNER_TEMP/opa" test --v0-compatible policy/

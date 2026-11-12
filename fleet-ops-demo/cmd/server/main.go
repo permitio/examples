@@ -1,0 +1,29 @@
+// Command server runs Fleet Ops on http://localhost:3000 (PORT in .env changes it).
+//
+//	make start
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+	"time"
+
+	"fleetops/internal/pdp"
+	"fleetops/internal/server"
+	"fleetops/internal/settings"
+	"fleetops/web"
+)
+
+func main() {
+	s := settings.MustLoad()
+	app := server.New(pdp.New(s, settings.Client(s)))
+	if err := app.Load(); err != nil {
+		log.Fatalf("loading authorization data from Permit: %v", err)
+	}
+	port := s.Port
+	addr := "127.0.0.1:" + port
+	fmt.Printf("Fleet Ops (Go SDK) on http://localhost:%s, project %s, environment %s\n", port, s.Project, s.Env)
+	srv := &http.Server{Addr: addr, Handler: app.Handler(web.Files, s.Project, s.Env), ReadHeaderTimeout: 10 * time.Second}
+	log.Fatal(srv.ListenAndServe())
+}

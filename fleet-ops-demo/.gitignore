@@ -1,0 +1,4 @@
+.env
+bin/
+# A clone of the Permit GitOps environment branch, for `make apply-policy`.
+policy-repo/
