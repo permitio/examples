@@ -8,7 +8,7 @@ The blog post [Introduce AI bots in your applications](https://www.permit.io/blo
 
 - **The app** (`src/`): a demo page at http://localhost:3000 and an API at `/api/items`. The API lists the items the caller may read; the page shows Permit's decision for every item and action, and lets you send the request as each kind of caller.
 - **A local PDP** (`permitio/pdp-v2`), connected to your Permit environment, which makes the decisions.
-- **`setup`**: a one-shot service that writes the policy and the demo user to your Permit environment before the app starts. It creates what is missing and updates what is there, so it is safe to run again. It does not remove grants you add by hand.
+- **`setup`**: a one-shot service that writes the policy and the demo user to your Permit environment before the app starts. It creates what is missing, updates what is there and removes the grants between its own user sets and resource sets that `GRANTS` does not list, so it is safe to run again and the environment ends up with exactly this policy. Grants that involve any other set are left alone.
 
 Every request acts as the same signed-in user, `user@example.com`, so the only thing that changes Permit's answer is what kind of caller sent it. Setup creates that user in Permit: the resource sets compare an item's owner with the user's `key` attribute, which the PDP has only for users Permit knows. The `botType` attribute is not stored; the app sends it with every check.
 
