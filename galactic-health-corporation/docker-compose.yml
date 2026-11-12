@@ -1,0 +1,43 @@
+name: galactic-health-corporation
+services:
+  pdp:
+    image: permitio/pdp-v2:0.9.16
+    environment:
+      PDP_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PDP_CONTROL_PLANE: ${PERMIT_API_URL:-https://api.permit.io}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    ports: ['${PDP_PORT:-7766}:7000']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:7000/healthy']
+      interval: 5s
+      timeout: 3s
+      retries: 60
+  # Creates the session secret, the database tables, the Permit policy and the demo members, then
+  # exits. Safe to run again.
+  setup:
+    build: .
+    image: galactic-health-corporation:local
+    command: ['node_modules/.bin/tsx', 'scripts/setup.ts']
+    environment:
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    volumes: ['app-data:/data']
+  app:
+    build: .
+    image: galactic-health-corporation:local
+    environment:
+      PERMIT_API_KEY: ${PERMIT_API_KEY:?set PERMIT_API_KEY in .env (see .env.example)}
+      PERMIT_API_URL: ${PERMIT_API_URL:-https://api.permit.io}
+      PERMIT_PDP_URL: http://pdp:7000
+      BETTER_AUTH_URL: http://localhost:${APP_PORT:-3000}
+    extra_hosts: ['host.docker.internal:host-gateway']
+    volumes: ['app-data:/data']
+    ports: ['${APP_PORT:-3000}:3000']
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      pdp:
+        condition: service_healthy
+volumes:
+  app-data:

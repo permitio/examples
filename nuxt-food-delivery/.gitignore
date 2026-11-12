@@ -1,0 +1,16 @@
+# Nuxt output and the app's local data store
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+node_modules
+*.log
+.DS_Store
+
+# Local env files
+.env
+.env.*
+!.env.example
