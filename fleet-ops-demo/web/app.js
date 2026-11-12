@@ -523,6 +523,14 @@ async function init() {
     renderLog();
   });
   window.addEventListener('hashchange', render);
+  // A link to the page already shown changes no hash, so it re-runs the page's checks itself.
+  document.addEventListener('click', (ev) => {
+    const link = ev.target.closest('a[href^="#"]');
+    if (link && link.getAttribute('href') === (location.hash || '#/')) {
+      ev.preventDefault();
+      render();
+    }
+  });
   await render();
 }
 
