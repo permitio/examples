@@ -41,10 +41,10 @@
     "yup": "1.7.1"
   },
   "devDependencies": {
-    "@oxlint/plugins": "1.91.0",
+    "@oxlint/plugins": "1.93.0",
     "@types/node": "24.19.2",
-    "oxfmt": "0.76.0",
-    "oxlint": "1.91.0",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
     "typescript": "6.0.3",
     "vitest": "5.1.0",
     "vue-tsc": "3.3.14"
