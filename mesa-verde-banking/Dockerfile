@@ -1,5 +1,5 @@
 # Two images from one file: `app` (the Next.js server) and `setup` (Terraform and the seed).
-FROM hashicorp/terraform:1.17.1 AS terraform
+FROM hashicorp/terraform:1.17.2 AS terraform
 
 FROM node:24-slim AS deps
 WORKDIR /app
